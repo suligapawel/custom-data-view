@@ -10,7 +10,14 @@ public static class ParameterValuesValidator
         var errors = new Dictionary<string, string[]>();
         foreach (var parameter in definition.PathParameters)
         {
-            if (parameter.Required && !values.Path.ContainsKey(parameter.Name))
+            if (values.Path.TryGetValue(parameter.Name, out var value))
+            {
+                if (string.IsNullOrEmpty(value))
+                {
+                    errors[$"parameters.path.{parameter.Name}"] = ["Wartość parametru adresu nie może być pusta."];
+                }
+            }
+            else if (parameter.Required)
             {
                 errors[$"parameters.path.{parameter.Name}"] = ["Wartość wymaganego parametru jest wymagana."];
             }
