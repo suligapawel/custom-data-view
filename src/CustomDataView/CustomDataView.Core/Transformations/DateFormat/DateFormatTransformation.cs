@@ -23,8 +23,8 @@ public sealed class DateFormatTransformation : ITransformation
     {
         var innerValue = _inner.Apply(value);
         var pattern = _parameters.GetText(Key, PatternParameter);
-        if (!DateTimeOffset.TryParseExact(
-                (string)innerValue,
+        if (innerValue is not string text || !DateTimeOffset.TryParseExact(
+                text,
                 IsoFormats,
                 CultureInfo.InvariantCulture,
                 DateTimeStyles.AssumeUniversal,

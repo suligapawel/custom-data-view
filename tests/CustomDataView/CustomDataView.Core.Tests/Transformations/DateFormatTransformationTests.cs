@@ -47,6 +47,16 @@ public class DateFormatTransformationTests
         Assert.That(exception.Reason, Is.EqualTo(TransformationFailureReasons.InvalidValue));
     }
 
+    [Test(Description = "scenario_TEMP-001-006 - #8")]
+    public void Given_DateFormat_When_ValueIsNumber_Then_FailsWithInvalidValue()
+    {
+        var transformation = CreateDateFormat("yyyy-MM-dd");
+
+        var exception = Assert.Throws<TransformationFailedException>(() => transformation.Apply(1760342400m));
+
+        Assert.That(exception.Reason, Is.EqualTo(TransformationFailureReasons.InvalidValue));
+    }
+
     private static DateFormatTransformation CreateDateFormat(JsonNode pattern)
     {
         var parameters = new TransformationParameters(new Dictionary<string, JsonNode> { ["pattern"] = pattern });
