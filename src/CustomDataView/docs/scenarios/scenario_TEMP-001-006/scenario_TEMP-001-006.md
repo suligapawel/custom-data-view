@@ -84,21 +84,20 @@ Każde z zadań 2-5 dodaje klasę `XxxTransformation` i rejestruje ją w DI jako
 ### Zadanie 6 — Katalog (TEMP-001)
 
 - Folder `Transformations/Catalog/`: `ITransformationService`, `TransformationService`, `TransformationDto`,
-  `TransformationParameterDto`.
+  `TransformationParameterDto`, `TransformationStep`, `TransformationResult`, `TransformationError`.
 - `ITransformationService` / `TransformationService` (singleton) przyjmuje `IEnumerable<ITransformation>` z DI; nie ma
-  osobnych klas katalogu.
-- `GetAll()` zwraca katalog jako `TransformationDto` posortowane po kluczu (ordinalnie), tylko do odczytu;
-  `Find(key)` zwraca transformację albo `null` (używane przez łańcuch).
+  osobnych klas katalogu ani łańcucha.
+- `GetAll()` zwraca katalog jako `TransformationDto` posortowane po kluczu (ordinalnie), tylko do odczytu.
 - Serwis nie ma operacji zapisu. Nowa transformacja to nowa klasa i jej rejestracja w DI.
 
 ### Zadanie 7 — Łańcuch transformacji (TEMP-006)
 
 - `TransformationStep(Key, Parameters)` to jeden element listy z pola kafelka.
-- `TransformationChainExecutor.Execute(value, steps)` przechodzi po krokach w kolejności listy:
-  `value = service.Find(key).Apply(value, parameters)`. Nieznany klucz kończy się `unknown_transformation`.
+- `ITransformationService.Apply(value, steps)` przechodzi po krokach w kolejności listy: wyszukuje transformację po
+  kluczu i wywołuje `transformation.Apply(value, parameters)`. Nieznany klucz kończy się `unknown_transformation`.
   Powtórzenia są dozwolone.
-- Wynik `TransformationChainResult`: sukces z wartością albo `transformation_failed` z kluczem i powodem (bez pozycji).
-  Pierwszy błąd przerywa łańcuch. Inne wyjątki nie są przechwytywane.
+- Wynik `TransformationResult`: sukces z wartością albo `TransformationError` `transformation_failed` z kluczem
+  i powodem (bez pozycji). Pierwszy błąd przerywa łańcuch. Inne wyjątki nie są przechwytywane.
 
 ## Kryteria akceptacji
 
