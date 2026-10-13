@@ -1,0 +1,17 @@
+using System.Text.Json;
+
+namespace CustomDataView.Core.Connections.Definitions;
+
+public sealed record ConnectionInput(string Name, string Method, string Url, JsonElement? Body)
+{
+    public ConnectionDefinition ToDefinition()
+    {
+        if (Method == "POST")
+        {
+            var body = Body is { ValueKind: not JsonValueKind.Null } element ? element.GetRawText() : null;
+            return new PostConnectionDefinition(Name, Url, body);
+        }
+
+        return new GetConnectionDefinition(Name, Url);
+    }
+}

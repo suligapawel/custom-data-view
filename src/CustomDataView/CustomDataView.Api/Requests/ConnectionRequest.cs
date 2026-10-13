@@ -1,18 +1,18 @@
 using System.Text.Json;
 using CustomDataView.Core.Connections.Definitions;
+using CustomDataView.Core.Connections.Validation;
 
 namespace CustomDataView.Api.Requests;
 
 public sealed record ConnectionRequest(string Name, string Method, string Url, JsonElement? Body)
 {
-    public ConnectionDefinition ToDefinition()
+    public IDictionary<string, string[]> Validate()
     {
-        if (Method == "POST")
-        {
-            var body = Body is { ValueKind: not JsonValueKind.Null } element ? element.GetRawText() : null;
-            return new PostConnectionDefinition(Name, Url, body);
-        }
+        return ConnectionDefinitionValidator.Validate(ToInput());
+    }
 
-        return new GetConnectionDefinition(Name, Url);
+    public ConnectionInput ToInput()
+    {
+        return new ConnectionInput(Name, Method, Url, Body);
     }
 }
