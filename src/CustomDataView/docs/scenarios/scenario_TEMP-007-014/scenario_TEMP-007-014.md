@@ -20,11 +20,11 @@ połączeń używanych przez kafelki należy do TEMP-020 i nie jest częścią t
 Folder `CustomDataView.Core/Connections/`:
 
 - `Definitions/` — `Connection`, `ConnectionDefinition`, `GetConnectionDefinition`, `PostConnectionDefinition`,
-  `ParameterDeclaration`, `NameValuePair`, `ConnectionInput`.
+  `ParameterDeclaration`, `NameValuePair`, `ConnectionInput`, `ParameterDeclarationInput`, `ConnectionMethods`.
 - `Validation/` — `ConnectionDefinitionValidator`, `ParameterValuesValidator`, `ParameterNames`.
-- `Templates/` — `UrlTemplate`, `BodyTemplate`, `ParameterValueResolver`.
+- `Templates/` — `UrlTemplate`, `BodyTemplate` (podstawianie wartości i wartości domyślnych).
 - `Calls/` — `IConnection`, `GetConnection`, `PostConnection`, `IConnectionFactory`, `ConnectionFactory`,
-  `ConnectionParameterValues`.
+  `ConnectionRequestBuilder`, `ParameterValuesInput` (surowe wartości JSON z żądania), `ConnectionParameterValues`.
 - `Http/` — `IExternalApiClient`, `ExternalApiClient`, `ExternalApiOptions`, `ExternalApiResult`,
   `ExternalApiErrorCodes`.
 - `Persistence/` — `IConnectionRepository`, `InMemoryConnectionRepository`.
@@ -65,7 +65,8 @@ public sealed record Connection(Guid Id, ConnectionDefinition Definition);
   `https://api.example.com/contracts/{id}/sellers?units=metric`. Stałe query można zostawić w samym URL.
 - `Headers` to stała, uporządkowana lista par; powtórzenia nazw są dozwolone.
 - `PathParameters`, `QueryParameters`, `BodyParameters` to deklaracje: nazwa, czy wymagany, opcjonalna wartość
-  domyślna. Dla ścieżki i query `DefaultValue` jest tekstem; dla body to surowy tekst JSON dowolnej wartości.
+  domyślna. `DefaultValue` jest przechowywane jako surowy tekst JSON; dla ścieżki i query musi to być tekst JSON, dla
+  body dowolna wartość JSON.
 - `Body` (tylko POST) to szablon JSON zapisany jako surowy tekst (`JsonElement.GetRawText()`) albo `null`. Każda
   wartość tekstowa JSON równa dokładnie `"{name}"` (nazwa w formacie z Zadania 2) jest miejscem na parametr body.
   Klucze obiektów i fragmenty tekstu (`"Kontrakt {id}"`) nie są podmieniane.
