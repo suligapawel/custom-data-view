@@ -4,11 +4,16 @@ namespace CustomDataView.Core.Transformations;
 
 public static class TransformationValue
 {
-    public static decimal ToNumber(object value)
+    public static decimal ToNumber(string key, object value)
     {
         if (value is string text)
         {
-            return decimal.Parse(text.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture);
+            if (decimal.TryParse(text.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out var number))
+            {
+                return number;
+            }
+
+            throw new TransformationFailedException(key, TransformationFailureReasons.InvalidValue);
         }
 
         return (decimal)value;
