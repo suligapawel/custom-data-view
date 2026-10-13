@@ -50,6 +50,16 @@ public static class ConnectionDefinitionValidator
             errors["body"] = ["Treść jest dozwolona tylko dla połączenia POST."];
         }
 
+        if (input.Body is { ValueKind: not JsonValueKind.Null } body)
+        {
+            var declared = input.BodyParameters.Select(parameter => parameter.Name).ToHashSet();
+            var undeclared = BodyTemplate.PlaceholderNames(body).Where(name => !declared.Contains(name)).ToList();
+            if (undeclared.Count > 0 && !errors.ContainsKey("body"))
+            {
+                errors["body"] = undeclared.Select(name => $"Parametr treści \"{name}\" nie został zadeklarowany.").ToArray();
+            }
+        }
+
         if (IsGet(input.Method) && input.BodyParameters.Count > 0)
         {
             errors["bodyParameters"] = ["Parametry treści są dozwolone tylko dla połączenia POST."];

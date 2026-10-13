@@ -99,6 +99,34 @@ public class ConnectionValidationTests : ConnectionApiTests
         await AssertRejected(definition, errorKey);
     }
 
+    [TestCase("""{"contractId": "{id}"}""", false, "body")]
+    [Test(Description = "scenario_TEMP-007-014 - #14")]
+    public async Task Given_BodyParametersNotMatchingBody_When_UserSavesConnection_Then_SavingIsRejected(
+        string body,
+        bool declaresId,
+        string errorKey)
+    {
+        var definition = ValidPostDefinition();
+        definition["body"] = JsonNode.Parse(body);
+        definition["bodyParameters"] = declaresId
+            ? new JsonArray(new JsonObject { ["name"] = "id", ["required"] = true })
+            : new JsonArray();
+
+        await AssertRejected(definition, errorKey);
+    }
+
+    private static JsonObject ValidPostDefinition()
+    {
+        return new JsonObject
+        {
+            ["name"] = "Wyszukiwanie sprzedawców",
+            ["method"] = "POST",
+            ["url"] = "https://api.example.com/sellers/search",
+            ["body"] = new JsonObject { ["contractId"] = "{id}" },
+            ["bodyParameters"] = new JsonArray(new JsonObject { ["name"] = "id", ["required"] = true })
+        };
+    }
+
     private static JsonObject ValidGetDefinition()
     {
         return new JsonObject
