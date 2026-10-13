@@ -38,5 +38,9 @@ public class AddConnectionTests
         });
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        var created = await response.Content.ReadFromJsonAsync<CreatedConnection>();
+        Assert.That(created.Id, Is.Not.EqualTo(Guid.Empty));
     }
+
+    private sealed record CreatedConnection(Guid Id);
 }
