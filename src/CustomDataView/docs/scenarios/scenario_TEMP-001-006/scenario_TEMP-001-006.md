@@ -83,19 +83,20 @@ Każde z zadań 2-5 dodaje klasę `XxxTransformation` i rejestruje ją w DI jako
 
 ### Zadanie 6 — Katalog (TEMP-001)
 
-- Folder `Transformations/Catalog/`: `ITransformationService`, `TransformationService`, `TransformationDto`,
-  `TransformationParameterDto`, `TransformationStep`, `TransformationResult`, `TransformationError`.
-- `ITransformationService` / `TransformationService` (singleton) przyjmuje `IEnumerable<ITransformation>` z DI; nie ma
-  osobnych klas katalogu ani łańcucha.
-- `GetAll()` zwraca katalog jako `TransformationDto` posortowane po kluczu (ordinalnie), tylko do odczytu.
-- Serwis nie ma operacji zapisu. Nowa transformacja to nowa klasa i jej rejestracja w DI.
+- Folder `Transformations/Catalog/`: `ITransformationCatalogService`, `TransformationCatalogService`,
+  `TransformationDto`, `TransformationParameterDto`.
+- `TransformationCatalogService` (singleton) przyjmuje `IEnumerable<ITransformation>` z DI; `GetAll()` zwraca katalog
+  jako `TransformationDto` posortowane po kluczu (ordinalnie), tylko do odczytu.
+- Katalog nie ma operacji zapisu. Nowa transformacja to nowa klasa i jej rejestracja w DI.
 
 ### Zadanie 7 — Łańcuch transformacji (TEMP-006)
 
+- Stosowanie transformacji nie jest częścią katalogu: `ITransformationService` / `TransformationService` (singleton)
+  w `Transformations/` przyjmuje `IEnumerable<ITransformation>` z DI.
 - `TransformationStep(Key, Parameters)` to jeden element listy z pola kafelka.
-- `ITransformationService.Apply(value, steps)` przechodzi po krokach w kolejności listy: wyszukuje transformację po
-  kluczu i wywołuje `transformation.Apply(value, parameters)`. Nieznany klucz kończy się `unknown_transformation`.
-  Powtórzenia są dozwolone.
+- `Apply(value, steps)` przechodzi po krokach w kolejności listy: wyszukuje transformację po kluczu i wywołuje
+  `transformation.Apply(value, parameters)`. Nieznany klucz kończy się `unknown_transformation`. Powtórzenia są
+  dozwolone.
 - Wynik `TransformationResult`: sukces z wartością albo `TransformationError` `transformation_failed` z kluczem
   i powodem (bez pozycji). Pierwszy błąd przerywa łańcuch. Inne wyjątki nie są przechwytywane.
 
@@ -128,7 +129,7 @@ Każde z zadań 2-5 dodaje klasę `XxxTransformation` i rejestruje ją w DI jako
 
 ## Endpoint
 
-`GET /api/custom-data-view/transformations` → `ITransformationService.GetAll()` →
+`GET /api/custom-data-view/transformations` → `ITransformationCatalogService.GetAll()` →
 `IReadOnlyList<TransformationDto>` (200), bez opakowania w `ApiResponse`.
 
 ```json
@@ -144,7 +145,7 @@ Endpoint katalogu nie przyjmuje danych wejściowych. Parametry transformacji są
 
 ## Handler i sekwencja wykonania
 
-1. Endpoint (minimal API) wstrzykuje `ITransformationService`.
+1. Endpoint (minimal API) wstrzykuje `ITransformationCatalogService`.
 2. Serwis zwraca transformacje z DI zmapowane na `TransformationDto`.
 3. Endpoint zwraca listę z kodem 200. `CustomDataView.Bootstrapper` rejestruje usługi i mapuje endpoint.
 
@@ -164,7 +165,7 @@ Brak zmian.
 
 ### Testy jednostkowe
 
-Testy w NUnit bez mocków, na prawdziwych obiektach: serwis transformacji (katalog z prawdziwej rejestracji DI), `TransformationParameters`, `TransformationValue`,
+Testy w NUnit bez mocków, na prawdziwych obiektach: katalog (serwis z prawdziwej rejestracji DI), `TransformationParameters`, `TransformationValue`,
 każda transformacja (przypadki z kryteriów akceptacji) oraz łańcuch (kolejność, pusta lista, przerwanie, nieznany klucz,
 powtórzenia).
 
