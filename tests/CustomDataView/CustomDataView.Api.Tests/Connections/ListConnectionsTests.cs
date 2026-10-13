@@ -46,5 +46,8 @@ public class ListConnectionsTests
         Assert.That(
             connections.Select(connection => connection["name"]!.GetValue<string>()),
             Is.EqualTo(new[] { "Sprzedawcy kontraktu", "Wyszukiwanie sprzedawców" }));
+        Assert.That(
+            connections.Select(connection => connection["method"]?.GetValue<string>()),
+            Is.EqualTo(new[] { "GET", "POST" }));
     }
 }

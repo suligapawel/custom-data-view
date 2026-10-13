@@ -16,14 +16,22 @@ public sealed class ConnectionService(IConnectionRepository repository) : IConne
     public IReadOnlyList<ConnectionSummaryDto> GetAll()
     {
         return repository.GetAll()
-            .Select(connection => new ConnectionSummaryDto(connection.Id, connection.Definition.Name))
+            .Select(connection => new ConnectionSummaryDto(
+                connection.Id,
+                connection.Definition.Name,
+                MethodOf(connection.Definition)))
             .ToList();
     }
 
     public ConnectionDto Get(Guid id)
     {
         var connection = repository.Get(id);
-        var body = connection.Definition.Body;
+        var body = (connection.Definition as PostConnectionDefinition)?.Body;
         return new ConnectionDto(connection.Id, body is null ? null : JsonNode.Parse(body));
+    }
+
+    private static string MethodOf(ConnectionDefinition definition)
+    {
+        return definition is PostConnectionDefinition ? "POST" : "GET";
     }
 }
