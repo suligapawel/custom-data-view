@@ -65,4 +65,31 @@ public class AddConnectionTests : ConnectionApiTests
         var details = await Client.GetFromJsonAsync<JsonObject>($"{ConnectionsUrl}/{created.Id}");
         Assert.That(details["body"], Is.Null);
     }
+
+    [Test(Description = "scenario_TEMP-007-014 - #5")]
+    public async Task Given_ConnectionNamedWeather_When_UserSavesAnotherConnectionWithSameName_Then_BothAreListed()
+    {
+        var first = await CreateConnection(new { name = "Pogoda", method = "GET", url = "https://api.example.com/weather" });
+
+        var response = await Client.PostAsJsonAsync(
+            ConnectionsUrl,
+            new { name = "Pogoda", method = "GET", url = "https://api.example.com/weather/today" });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        var second = (await response.Content.ReadFromJsonAsync<CreatedConnection>()).Id;
+        var connections = await Client.GetFromJsonAsync<JsonArray>(ConnectionsUrl);
+        Assert.That(
+            connections.Where(connection => connection["name"]!.GetValue<string>() == "Pogoda")
+                .Select(connection => connection["id"]!.GetValue<Guid>()),
+            Is.EqualTo(new[] { first, second }));
+    }
+
+    [Test(Description = "scenario_TEMP-007-014 - #6")]
+    public async Task Given_MethodWrittenInLowercase_When_UserSavesConnection_Then_ItIsSavedAsGetConnection()
+    {
+        var id = await CreateConnection(new { name = "Pogoda", method = "get", url = "https://api.example.com/weather" });
+
+        var connections = await Client.GetFromJsonAsync<JsonArray>(ConnectionsUrl);
+        Assert.That(connections.Single(connection => connection["id"]!.GetValue<Guid>() == id)["method"]!.GetValue<string>(), Is.EqualTo("GET"));
+    }
 }
