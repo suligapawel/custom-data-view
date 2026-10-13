@@ -1,0 +1,129 @@
+# Database Plan — CustomDataView
+
+## Overview
+
+Plan obejmuje na razie tylko definicje połączeń do zewnętrznych REST API (PRD 3.2, TEMP-007 … TEMP-014). Tabela
+`connections` przechowuje szablon żądania GET lub POST, a każdy typ parametru — deklaracje parametrów ścieżki, query
+i treści — ma własną tabelę podrzędną powiązaną z połączeniem relacją wiele-do-jednego. Nagłówki nie są
+przechowywane: są stałe i predefiniowane w kodzie.
+Wszystkie tabele leżą w schemacie `custom_data_view`; dostęp przez Dapper, bez Entity Framework. Kafelki i widoki
+zostaną dodane w kolejnych wersjach planu.
+
+## Tables
+
+### custom_data_view.connections
+
+| Column     | Type         | Constraints                                   | Description                                                     |
+|------------|--------------|-----------------------------------------------|-----------------------------------------------------------------|
+| id         | uuid         | PK, NOT NULL                                  | Identyfikator połączenia nadawany przez aplikację (`Guid.NewGuid()`) |
+| name       | varchar(100) | NOT NULL                                      | Nazwa połączenia; bez wymogu unikalności                        |
+| method     | varchar(4)   | NOT NULL, CHECK (method IN ('GET', 'POST'))   | Rodzaj połączenia                                               |
+| url        | text         | NOT NULL                                      | Szablon URL z parametrami ścieżki `{name}`                      |
+| body       | json         | NULL, CHECK (method = 'POST' OR body IS NULL) | Szablon treści POST z miejscami `"{name}"`; NULL = brak treści  |
+| created_at | timestamptz  | NOT NULL, DEFAULT now()                       | Moment dodania; wyznacza kolejność listy; nie zmienia się przy edycji |
+| updated_at | timestamptz  | NOT NULL, DEFAULT now()                       | Moment ostatniej edycji; ustawiany przez repozytorium           |
+
+### custom_data_view.connection_path_parameters
+
+| Column        | Type        | Constraints                                         | Description                                  |
+|---------------|-------------|-----------------------------------------------------|----------------------------------------------|
+| connection_id | uuid        | PK, NOT NULL, FK → connections.id ON DELETE CASCADE | Połączenie                                   |
+| position      | int         | PK, NOT NULL, CHECK (position >= 0)                 | Kolejność deklaracji                         |
+| name          | varchar(50) | NOT NULL                                            | Nazwa placeholdera `{name}` w URL (snake_case) |
+| required      | boolean     | NOT NULL                                            | Czy wartość jest wymagana przy wywołaniu     |
+| default_value | text        | NULL                                                | Wartość domyślna; NULL = brak                |
+| created_at    | timestamptz | NOT NULL, DEFAULT now()                             | Moment zapisu wiersza                        |
+| updated_at    | timestamptz | NOT NULL, DEFAULT now()                             | Moment ostatniej zmiany wiersza              |
+
+PK: `(connection_id, position)`.
+
+### custom_data_view.connection_query_parameters
+
+| Column        | Type    | Constraints                                         | Description                                   |
+|---------------|---------|-----------------------------------------------------|-----------------------------------------------|
+| connection_id | uuid    | PK, NOT NULL, FK → connections.id ON DELETE CASCADE | Połączenie                                    |
+| position      | int     | PK, NOT NULL, CHECK (position >= 0)                 | Kolejność deklaracji (kolejność w query string) |
+| name          | text    | NOT NULL                                            | Klucz query zewnętrznego API; powtórzenia dozwolone |
+| required      | boolean | NOT NULL                                            | Czy wartość jest wymagana przy wywołaniu      |
+| default_value | text    | NULL                                                | Wartość domyślna; NULL = brak                 |
+| created_at    | timestamptz | NOT NULL, DEFAULT now()                         | Moment zapisu wiersza                         |
+| updated_at    | timestamptz | NOT NULL, DEFAULT now()                         | Moment ostatniej zmiany wiersza               |
+
+PK: `(connection_id, position)`.
+
+### custom_data_view.connection_body_parameters
+
+| Column        | Type        | Constraints                                         | Description                                        |
+|---------------|-------------|-----------------------------------------------------|----------------------------------------------------|
+| connection_id | uuid        | PK, NOT NULL, FK → connections.id ON DELETE CASCADE | Połączenie (tylko POST — pilnuje aplikacja)        |
+| position      | int         | PK, NOT NULL, CHECK (position >= 0)                 | Kolejność deklaracji                               |
+| name          | varchar(50) | NOT NULL                                            | Nazwa miejsca `"{name}"` w szablonie treści (snake_case) |
+| required      | boolean     | NOT NULL                                            | Czy wartość jest wymagana przy wywołaniu           |
+| default_value | json        | NULL                                                | Wartość domyślna (dowolna wartość JSON); NULL = brak |
+| created_at    | timestamptz | NOT NULL, DEFAULT now()                             | Moment zapisu wiersza                              |
+| updated_at    | timestamptz | NOT NULL, DEFAULT now()                             | Moment ostatniej zmiany wiersza                    |
+
+PK: `(connection_id, position)`.
+
+### custom_data_view.__migration_history
+
+Tabela historii migracji modułu tworzona przez pierwszą migrację razem ze schematem (wymóg `AGENTS.md`;
+`DatabaseMigrator` jej nie tworzy). Repozytorium nie ma jeszcze mechanizmu migracji, więc jej strukturę ustali
+implementacja migratora — nie jest częścią modelu domeny.
+
+## Relationships
+
+| From table                  | To table    | Type        | Foreign key column                                        |
+|-----------------------------|-------------|-------------|-----------------------------------------------------------|
+| connection_path_parameters  | connections | many-to-one | connection_path_parameters.connection_id → connections.id  |
+| connection_query_parameters | connections | many-to-one | connection_query_parameters.connection_id → connections.id |
+| connection_body_parameters  | connections | many-to-one | connection_body_parameters.connection_id → connections.id  |
+
+Wszystkie klucze obce: `ON DELETE CASCADE`.
+
+## Indexes
+
+- `pk_connections` (`connections(id)`) — szczegóły, edycja, usunięcie i test połączenia po identyfikatorze
+  (TEMP-010 … TEMP-013).
+- `ix_connections_created_at_id` (`connections(created_at, id)`) — lista połączeń w kolejności dodania:
+  `ORDER BY created_at, id` (TEMP-010).
+- `pk_connection_path_parameters`, `pk_connection_query_parameters`, `pk_connection_body_parameters`
+  (`(connection_id, position)`) — wczytanie parametrów połączenia
+  w kolejności definicji (`WHERE connection_id = @id ORDER BY position`) oraz kaskadowe usuwanie. Wiodąca kolumna
+  `connection_id` obsługuje FK, więc dodatkowe indeksy nie są potrzebne.
+
+## Design decisions
+
+1. **Jedna baza zapisu i odczytu.** Repozytorium agregatu (`IConnectionRepository`: dodanie, edycja, usunięcie,
+   odczyt po id) oraz osobny interfejs odczytu dla listy i szczegółów, zgodnie z `AGENTS.md`. Bez osobnych tabel
+   read-modelu.
+2. **Rodzaj połączenia jako kolumna `method` z CHECK.** Jedna tabela upraszcza listę i przyszły FK z pól kafelków;
+   repozytorium mapuje wiersz na `GetConnectionDefinition` albo `PostConnectionDefinition`. CHECK gwarantuje, że
+   szablon treści istnieje tylko dla POST.
+3. **Szablon treści w `json`, nie `jsonb`.** PRD wymaga zwracania body bez zmian; `json` zachowuje dokładny tekst
+   i kolejność kluczy, a nadal waliduje składnię. Zawartość body nie jest filtrowana ani indeksowana.
+4. **Każdy typ parametru w osobnej tabeli** (decyzja dewelopera). Różne typy wartości domyślnych (text vs json),
+   różne limity nazw i niezależna kolejność w każdej sekcji.
+5. **PK `(connection_id, position)` bez własnego id parametru.** Parametry nie mają tożsamości poza połączeniem;
+   edycja zastępuje całą definicję: `UPDATE connections` + `DELETE` i ponowny `INSERT` wierszy parametrów w jednej
+   transakcji.
+6. **Wartości domyślne:** `text` dla ścieżki i query (zawsze tekst), `json` dla treści (dowolna wartość JSON).
+   Repozytorium mapuje je na obecny model w kodzie (surowy tekst JSON w `ParameterDeclaration.DefaultValue`).
+7. **Kolejność listy po `created_at, id`.** `created_at` ustawiane przy dodaniu i niezmieniane przy edycji, więc
+   edytowane połączenie zachowuje pozycję; `id` rozstrzyga remisy.
+8. **Unikalność nazw parametrów tylko w aplikacji** (decyzja dewelopera). Baza nie ma UNIQUE na nazwach; reguły
+   (unikalne nazwy ścieżki i treści, powtórzenia query dozwolone, zgodność placeholderów z deklaracjami, parametry
+   treści tylko dla POST) egzekwuje walidator.
+9. **W bazie tylko podstawowe ograniczenia:** NOT NULL, CHECK metody i treści, `CHECK (position >= 0)`,
+   `name varchar(100)`, nazwy parametrów ścieżki i treści `varchar(50)`. Format URL i snake_case pozostają
+   w aplikacji.
+10. **Twarde usuwanie z kaskadą.** PRD nie wymaga historii ani przywracania. Blokadę usunięcia połączenia używanego
+    przez pola kafelków (TEMP-020) zapewni przyszły FK z tabeli pól kafelka z `ON DELETE RESTRICT`.
+11. **Brak outboxa dla połączeń.** Operacje na połączeniach nie publikują zdarzeń integracyjnych w MVP.
+12. **Brak RLS.** W MVP wszystkie definicje są wspólne i nie ma użytkowników.
+13. **`created_at` i `updated_at` w tabelach parametrów.** Każda tabela ma znaczniki czasu, zgodnie z konwencją
+    planu. Ponieważ edycja odtwarza wiersze parametrów (decyzja 5), oba znaczniki wskazują moment ostatniego zapisu
+    definicji połączenia, a nie pierwszego dodania danego parametru; pierwotny moment dodania połączenia przechowuje
+    `connections.created_at`.
+14. **Brak tabeli nagłówków** (decyzja dewelopera). Wszystkie połączenia wysyłają te same nagłówki, predefiniowane
+    w kodzie (treść POST zawsze jako `Content-Type: application/json`), więc definicja połączenia ich nie zawiera.
