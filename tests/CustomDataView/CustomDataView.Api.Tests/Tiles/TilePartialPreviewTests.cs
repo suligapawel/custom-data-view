@@ -47,6 +47,28 @@ public class TilePartialPreviewTests : TileApiTests
             preview.ToJsonString());
     }
 
+    [Test(Description = "scenario_TEMP-015-023 - #46")]
+    public async Task Given_FieldsForExistingCityAndMissingZip_When_UserPreviewsTile_Then_ZipFieldHasPathNotFound()
+    {
+        var id = await CreateTile(new
+        {
+            name = "Adres",
+            fields = new[] { Field(CustomerConnectionId, "$.address.city", "Miasto"), Field(CustomerConnectionId, "$.address.zip", "Kod") }
+        });
+
+        var preview = await Preview(id, CustomerValues());
+
+        AssertFields(preview, """
+                              [
+                                {"label": "Miasto", "value": "Kraków"},
+                                {"label": "Kod", "error": {"code": "path_not_found"}}
+                              ]
+                              """);
+    }
+
+    private static void AssertFields(JsonObject preview, string expected)
+        => Assert.That(JsonNode.DeepEquals(preview["fields"], JsonNode.Parse(expected)), Is.True, preview.ToJsonString());
+
     private object RateValues()
         => new { connections = new[] { new { connectionId = RateConnectionId, query = new { currency = "EUR" } } } };
 

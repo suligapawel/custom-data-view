@@ -121,6 +121,11 @@ public sealed class TilePreviewService(
                     .ToArray()));
         }
 
+        if (matches.Count == 0)
+        {
+            return new TileFieldPreview(field.Label, null, new TileFieldError(TileFieldErrorCodes.PathNotFound));
+        }
+
         var result = transformations.Apply(TransformationValue.FromJson(matches.Single()), field.Transformations);
         if (result.Error is { } error)
         {
