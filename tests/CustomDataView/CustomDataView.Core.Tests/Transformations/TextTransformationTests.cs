@@ -36,4 +36,15 @@ public class TextTransformationTests
 
         Assert.That(result, Is.EqualTo("abc"));
     }
+
+    [Test(Description = "scenario_TEMP-001-006 - #11")]
+    [SetCulture("tr-TR")]
+    public void Given_LowercaseOnTurkishServerCulture_When_ValueIsTitle_Then_ResultUsesInvariantCulture()
+    {
+        var transformation = new LowercaseTransformation(new IdentityTransformation(), new TransformationParameters(null));
+
+        var result = transformation.Apply("TITLE");
+
+        Assert.That(result, Is.EqualTo("title"));
+    }
 }
