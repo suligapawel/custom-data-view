@@ -14,6 +14,12 @@ public sealed class CustomDataViewExceptionHandler : IExceptionHandler
             return true;
         }
 
+        if (exception is ValidationException validation)
+        {
+            await Results.ValidationProblem(validation.Errors).ExecuteAsync(httpContext);
+            return true;
+        }
+
         if (exception is BadHttpRequestException badRequest)
         {
             await Results.Problem(statusCode: badRequest.StatusCode, title: "Nieprawidłowe żądanie.").ExecuteAsync(httpContext);

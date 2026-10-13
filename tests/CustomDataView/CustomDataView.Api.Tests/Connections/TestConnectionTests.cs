@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Nodes;
 
@@ -138,5 +139,29 @@ public class TestConnectionTests : ConnectionApiTests
         await Client.PostAsJsonAsync($"{ConnectionsUrl}/{id}/test", new { parameters = new { body = new { id = "C-42" } } });
 
         Assert.That(JsonNode.DeepEquals(JsonNode.Parse(Factory.ExternalApi.Requests.Single().Body), JsonNode.Parse(body)), Is.True);
+    }
+
+    [TestCase("{}", "parameters.path.id")]
+    [Test(Description = "scenario_TEMP-007-014 - #33")]
+    public async Task Given_GetConnectionWithRequiredPathParameter_When_UserTestsItWithInvalidValues_Then_TestIsRejected(
+        string pathValues,
+        string errorKey)
+    {
+        var id = await CreateConnection(new
+        {
+            name = "Sprzedawcy kontraktu",
+            method = "GET",
+            url = "https://api.example.com/contracts/{id}/sellers",
+            pathParameters = new[] { new { name = "id", required = true } }
+        });
+
+        var response = await Client.PostAsJsonAsync(
+            $"{ConnectionsUrl}/{id}/test",
+            new JsonObject { ["parameters"] = new JsonObject { ["path"] = JsonNode.Parse(pathValues) } });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        var problem = await response.Content.ReadFromJsonAsync<JsonObject>();
+        Assert.That(problem["errors"]!.AsObject().ContainsKey(errorKey), Is.True);
+        Assert.That(Factory.ExternalApi.Requests, Is.Empty);
     }
 }
