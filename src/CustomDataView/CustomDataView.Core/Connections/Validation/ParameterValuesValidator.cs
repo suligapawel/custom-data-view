@@ -32,12 +32,27 @@ public static class ParameterValuesValidator
 
         foreach (var parameter in definition.QueryParameters)
         {
-            if (parameter.Required && !values.Query.ContainsKey(parameter.Name))
+            if (values.Query.TryGetValue(parameter.Name, out var value))
+            {
+                if (!IsQueryValue(value))
+                {
+                    errors[$"parameters.query.{parameter.Name}"] = ["Wartość parametru zapytania musi być tekstem albo niepustą listą tekstów."];
+                }
+            }
+            else if (parameter.Required)
             {
                 errors[$"parameters.query.{parameter.Name}"] = ["Wartość wymaganego parametru jest wymagana."];
             }
         }
 
         return errors;
+    }
+
+    private static bool IsQueryValue(JsonElement value)
+    {
+        return value.ValueKind == JsonValueKind.String
+            || (value.ValueKind == JsonValueKind.Array
+                && value.GetArrayLength() > 0
+                && value.EnumerateArray().All(item => item.ValueKind == JsonValueKind.String));
     }
 }
