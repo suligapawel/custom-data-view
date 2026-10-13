@@ -1,3 +1,5 @@
+using CustomDataView.Core.Connections.Management;
+using CustomDataView.Core.Connections.Persistence;
 using CustomDataView.Core.Transformations.Abstractions;
 using CustomDataView.Core.Transformations.Catalog;
 using CustomDataView.Core.Transformations.Execution;
@@ -19,6 +21,13 @@ public static class DependencyInjection
         services.AddSingleton<ITransformation, UppercaseTransformation>();
         services.AddSingleton<ITransformationCatalogService, TransformationCatalogService>();
         services.AddSingleton<ITransformationService, TransformationService>();
+        return services;
+    }
+
+    public static IServiceCollection AddCustomDataViewConnections(this IServiceCollection services)
+    {
+        services.AddSingleton<IConnectionRepository, InMemoryConnectionRepository>();
+        services.AddSingleton<IConnectionService, ConnectionService>();
         return services;
     }
 }
