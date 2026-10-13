@@ -16,6 +16,16 @@ public class RoundTransformationTests
         Assert.That(result, Is.EqualTo(21.46m));
     }
 
+    [Test(Description = "scenario_TEMP-001-006 - #4")]
+    public void Given_RoundWithZeroDecimals_When_ValueIs21_4567_Then_ResultIs21()
+    {
+        var transformation = CreateRound(0);
+
+        var result = transformation.Apply(21.4567m);
+
+        Assert.That(result, Is.EqualTo(21m));
+    }
+
     private static RoundTransformation CreateRound(JsonNode decimals)
     {
         var parameters = new TransformationParameters(new Dictionary<string, JsonNode> { ["decimals"] = decimals });
