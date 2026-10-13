@@ -167,4 +167,28 @@ public class TestConnectionTests : ConnectionApiTests
         Assert.That(problem["errors"]!.AsObject().ContainsKey(errorKey), Is.True);
         Assert.That(Factory.ExternalApi.Requests, Is.Empty);
     }
+
+    [Test(Description = "scenario_TEMP-007-014 - #34")]
+    public async Task Given_SavedAndUnsavedIdenticalConnections_When_UserTestsBoth_Then_TheySendSameRequestAndGetSameResult()
+    {
+        var definition = new JsonObject
+        {
+            ["name"] = "Sprzedawcy kontraktu",
+            ["method"] = "GET",
+            ["url"] = "https://api.example.com/contracts/{id}/sellers",
+            ["pathParameters"] = new JsonArray(new JsonObject { ["name"] = "id", ["required"] = true })
+        };
+        var id = await CreateConnection(definition.DeepClone());
+        var parameters = new JsonObject { ["path"] = new JsonObject { ["id"] = "42" } };
+
+        var saved = await Client.PostAsJsonAsync($"{ConnectionsUrl}/{id}/test", new JsonObject { ["parameters"] = parameters.DeepClone() });
+        var unsaved = await Client.PostAsJsonAsync(
+            $"{ConnectionsUrl}/test",
+            new JsonObject { ["connection"] = definition.DeepClone(), ["parameters"] = parameters.DeepClone() });
+
+        Assert.That(unsaved.StatusCode, Is.EqualTo(saved.StatusCode));
+        Assert.That(Factory.ExternalApi.Requests, Has.Count.EqualTo(2));
+        Assert.That(Factory.ExternalApi.Requests[1], Is.EqualTo(Factory.ExternalApi.Requests[0]));
+        Assert.That(await unsaved.Content.ReadAsStringAsync(), Is.EqualTo(await saved.Content.ReadAsStringAsync()));
+    }
 }

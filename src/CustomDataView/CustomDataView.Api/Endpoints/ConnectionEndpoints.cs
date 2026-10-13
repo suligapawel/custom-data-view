@@ -43,6 +43,20 @@ public static class ConnectionEndpoints
             return Results.NoContent();
         });
         endpoints.MapPost(
+            $"{ConnectionsUrl}/test",
+            async (ConnectionDraftTestRequest request, IConnectionTestService service, CancellationToken cancellationToken) =>
+            {
+                var errors = request.Validate();
+                if (errors.Count > 0)
+                {
+                    return Results.ValidationProblem(errors);
+                }
+
+                var definition = request.Connection.ToInput().ToDefinition();
+                var parameters = ConnectionTestRequest.ValuesOf(request.Parameters);
+                return Results.Ok(await service.Test(definition, parameters, cancellationToken));
+            });
+        endpoints.MapPost(
             $"{ConnectionsUrl}/{{id:guid}}/test",
             async (Guid id, ConnectionTestRequest request, IConnectionTestService service, CancellationToken cancellationToken) =>
                 Results.Ok(await service.Test(id, ConnectionTestRequest.ValuesOf(request), cancellationToken)));

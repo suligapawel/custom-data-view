@@ -7,7 +7,11 @@ public sealed record ConnectionTestRequest(ConnectionParametersRequest Parameter
 {
     public static ParameterValuesInput ValuesOf(ConnectionTestRequest request)
     {
-        var parameters = request?.Parameters;
+        return ValuesOf(request?.Parameters);
+    }
+
+    public static ParameterValuesInput ValuesOf(ConnectionParametersRequest parameters)
+    {
         return new ParameterValuesInput(
             parameters?.Path ?? new Dictionary<string, JsonElement>(),
             parameters?.Query ?? new Dictionary<string, JsonElement>(),
