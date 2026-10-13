@@ -20,12 +20,13 @@ public static partial class UrlTemplate
     public static Uri Resolve(
         string url,
         IReadOnlyDictionary<string, string> pathValues,
-        IReadOnlyList<ParameterDeclaration> queryParameters)
+        IReadOnlyList<ParameterDeclaration> queryParameters,
+        IReadOnlyDictionary<string, IReadOnlyList<string>> queryValues)
     {
         var resolved = PlaceholderPattern().Replace(url, match => Uri.EscapeDataString(pathValues[match.Value[1..^1]]));
         var query = queryParameters
-            .Where(parameter => parameter.DefaultValue is not null)
-            .Select(parameter => $"{Uri.EscapeDataString(parameter.Name)}={Uri.EscapeDataString(JsonSerializer.Deserialize<string>(parameter.DefaultValue))}")
+            .SelectMany(parameter => QueryValues(parameter, queryValues)
+                .Select(value => $"{Uri.EscapeDataString(parameter.Name)}={Uri.EscapeDataString(value)}"))
             .ToList();
         if (query.Count > 0)
         {
@@ -33,6 +34,18 @@ public static partial class UrlTemplate
         }
 
         return new Uri(resolved);
+    }
+
+    private static IReadOnlyList<string> QueryValues(
+        ParameterDeclaration parameter,
+        IReadOnlyDictionary<string, IReadOnlyList<string>> queryValues)
+    {
+        if (queryValues.TryGetValue(parameter.Name, out var values))
+        {
+            return values;
+        }
+
+        return parameter.DefaultValue is null ? [] : [JsonSerializer.Deserialize<string>(parameter.DefaultValue)];
     }
 
     public static IReadOnlyList<string> PlaceholderNames(string url)

@@ -41,6 +41,8 @@ public class TestConnectionTests : ConnectionApiTests
     }
 
     [TestCase("{}", "https://api.example.com/sellers?units=metric&pageSize=20")]
+    [TestCase("""{"pageSize": "50"}""", "https://api.example.com/sellers?units=metric&pageSize=50")]
+    [TestCase("""{"status": "active"}""", "https://api.example.com/sellers?units=metric&pageSize=20&status=active")]
     [Test(Description = "scenario_TEMP-007-014 - #29")]
     public async Task Given_GetConnectionWithQueryParameters_When_UserTestsIt_Then_QueryIsAppended(string values, string address)
     {
