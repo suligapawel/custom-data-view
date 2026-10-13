@@ -6,59 +6,59 @@ namespace CustomDataView.Core.Connections.Validation;
 
 public static class ParameterValuesValidator
 {
+    private const string MissingValueMessage = "Wartość wymaganego parametru jest wymagana.";
+
     public static IDictionary<string, string[]> Validate(ConnectionDefinition definition, ParameterValuesInput values)
     {
         var errors = new Dictionary<string, string[]>();
-        foreach (var parameter in definition.PathParameters)
-        {
-            if (values.Path.TryGetValue(parameter.Name, out var value))
-            {
-                if (value.ValueKind != JsonValueKind.String || value.GetString() == string.Empty)
-                {
-                    errors[$"parameters.path.{parameter.Name}"] = ["Wartość parametru adresu musi być niepustym tekstem."];
-                }
-            }
-            else if (parameter.Required)
-            {
-                errors[$"parameters.path.{parameter.Name}"] = ["Wartość wymaganego parametru jest wymagana."];
-            }
-        }
-
-        AddUndeclared("path", definition.PathParameters, values.Path, errors);
-
-        foreach (var parameter in definition.QueryParameters)
-        {
-            if (values.Query.TryGetValue(parameter.Name, out var value))
-            {
-                if (!IsQueryValue(value))
-                {
-                    errors[$"parameters.query.{parameter.Name}"] = ["Wartość parametru zapytania musi być tekstem albo niepustą listą tekstów."];
-                }
-            }
-            else if (parameter.Required)
-            {
-                errors[$"parameters.query.{parameter.Name}"] = ["Wartość wymaganego parametru jest wymagana."];
-            }
-        }
-
-        AddUndeclared("query", definition.QueryParameters, values.Query, errors);
-        var bodyParameters = (definition as PostConnectionDefinition)?.BodyParameters ?? [];
-        foreach (var parameter in bodyParameters.Where(parameter => parameter.Required && !values.Body.ContainsKey(parameter.Name)))
-        {
-            errors[$"parameters.body.{parameter.Name}"] = ["Wartość wymaganego parametru jest wymagana."];
-        }
-
-        AddUndeclared("body", bodyParameters, values.Body, errors);
-
+        ValidateSection(
+            "path",
+            definition.PathParameters,
+            values.Path,
+            value => value.ValueKind == JsonValueKind.String && value.GetString() != string.Empty,
+            "Wartość parametru adresu musi być niepustym tekstem.",
+            errors);
+        ValidateSection(
+            "query",
+            definition.QueryParameters,
+            values.Query,
+            IsQueryValue,
+            "Wartość parametru zapytania musi być tekstem albo niepustą listą tekstów.",
+            errors);
+        ValidateSection(
+            "body",
+            (definition as PostConnectionDefinition)?.BodyParameters ?? [],
+            values.Body,
+            _ => true,
+            null,
+            errors);
         return errors;
     }
 
-    private static void AddUndeclared(
+    private static void ValidateSection(
         string section,
         IReadOnlyList<ParameterDeclaration> parameters,
         IReadOnlyDictionary<string, JsonElement> values,
+        Func<JsonElement, bool> isValid,
+        string invalidValueMessage,
         Dictionary<string, string[]> errors)
     {
+        foreach (var parameter in parameters)
+        {
+            var key = $"parameters.{section}.{parameter.Name}";
+            if (values.TryGetValue(parameter.Name, out var value))
+            {
+                if (!isValid(value))
+                {
+                    errors[key] = [invalidValueMessage];
+                }
+            }
+            else if (parameters.Any(declaration => declaration.Name == parameter.Name && declaration.Required))
+            {
+                errors[key] = [MissingValueMessage];
+            }
+        }
+
         var declared = parameters.Select(parameter => parameter.Name).ToHashSet();
         foreach (var name in values.Keys.Where(name => !declared.Contains(name)))
         {

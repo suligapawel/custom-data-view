@@ -33,7 +33,7 @@ public static class ConnectionDefinitionValidator
 
     private static void ValidateMethod(ConnectionInput input, Dictionary<string, string[]> errors)
     {
-        if (!IsGet(input.Method) && !IsPost(input.Method))
+        if (!ConnectionMethods.IsGet(input.Method) && !ConnectionMethods.IsPost(input.Method))
         {
             errors["method"] = ["Rodzaj połączenia musi być GET albo POST."];
         }
@@ -116,7 +116,7 @@ public static class ConnectionDefinitionValidator
     private static void ValidateBody(ConnectionInput input, Dictionary<string, string[]> errors)
     {
         var hasBody = input.Body is { ValueKind: not JsonValueKind.Null };
-        if (IsGet(input.Method))
+        if (ConnectionMethods.IsGet(input.Method))
         {
             if (hasBody)
             {
@@ -183,15 +183,5 @@ public static class ConnectionDefinitionValidator
     {
         var declared = parameters.Select(parameter => parameter.Name).ToHashSet();
         return placeholders.Where(name => !declared.Contains(name)).ToList();
-    }
-
-    private static bool IsGet(string method)
-    {
-        return string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool IsPost(string method)
-    {
-        return string.Equals(method, "POST", StringComparison.OrdinalIgnoreCase);
     }
 }

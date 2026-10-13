@@ -16,7 +16,7 @@ public sealed record ConnectionInput(
     {
         var pathParameters = PathParameters.Select(ToDeclaration).ToList();
         var queryParameters = QueryParameters.Select(ToDeclaration).ToList();
-        if (string.Equals(Method, "POST", StringComparison.OrdinalIgnoreCase))
+        if (ConnectionMethods.IsPost(Method))
         {
             return new PostConnectionDefinition(
                 Name,

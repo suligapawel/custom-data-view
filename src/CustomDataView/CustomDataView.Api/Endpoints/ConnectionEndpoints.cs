@@ -22,7 +22,8 @@ public static class ConnectionEndpoints
                 return Results.ValidationProblem(errors);
             }
 
-            return Results.Created((string)null, new { id = service.Add(request.ToInput().ToDefinition()) });
+            var id = service.Add(request.ToInput().ToDefinition());
+            return Results.Created($"{ConnectionsUrl}/{id}", new ConnectionCreatedResponse(id));
         });
         endpoints.MapGet(ConnectionsUrl, (IConnectionService service) => Results.Ok(service.GetAll()));
         endpoints.MapGet($"{ConnectionsUrl}/{{id:guid}}", (Guid id, IConnectionService service) =>

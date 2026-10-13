@@ -20,7 +20,7 @@ public sealed class ConnectionService(IConnectionRepository repository) : IConne
             .Select(connection => new ConnectionSummaryDto(
                 connection.Id,
                 connection.Definition.Name,
-                MethodOf(connection.Definition),
+                ConnectionMethods.Of(connection.Definition),
                 connection.Definition.Url))
             .ToList();
     }
@@ -33,7 +33,7 @@ public sealed class ConnectionService(IConnectionRepository repository) : IConne
         return new ConnectionDto(
             connection.Id,
             definition.Name,
-            MethodOf(definition),
+            ConnectionMethods.Of(definition),
             definition.Url,
             definition.Headers,
             ToDtos(definition.PathParameters),
@@ -64,10 +64,5 @@ public sealed class ConnectionService(IConnectionRepository repository) : IConne
     private static JsonNode ParseJson(string json)
     {
         return json is null ? null : JsonNode.Parse(json);
-    }
-
-    private static string MethodOf(ConnectionDefinition definition)
-    {
-        return definition is PostConnectionDefinition ? "POST" : "GET";
     }
 }

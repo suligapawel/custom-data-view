@@ -39,6 +39,11 @@ public static partial class UrlTemplate
         return new Uri(resolved);
     }
 
+    public static IReadOnlyList<string> PlaceholderNames(string url)
+    {
+        return PlaceholderPattern().Matches(url).Select(match => match.Value[1..^1]).Distinct().ToList();
+    }
+
     private static string PathValue(
         string name,
         IReadOnlyList<ParameterDeclaration> pathParameters,
@@ -67,11 +72,6 @@ public static partial class UrlTemplate
         }
 
         return parameter.DefaultValue is null ? [] : [JsonSerializer.Deserialize<string>(parameter.DefaultValue)];
-    }
-
-    public static IReadOnlyList<string> PlaceholderNames(string url)
-    {
-        return PlaceholderPattern().Matches(url).Select(match => match.Value[1..^1]).Distinct().ToList();
     }
 
     [GeneratedRegex(@"\{[^{}]*\}")]
