@@ -56,6 +56,20 @@ public class TilePreviewTests : TileApiTests
         AssertError(preview, 0, """{"code": "transformation_failed", "transformation": "round", "reason": "invalid_parameter"}""");
     }
 
+    [Test(Description = "scenario_TEMP-015-023 - #29")]
+    public async Task Given_FieldsWithoutTransformations_When_UserPreviewsTile_Then_ValuesAreReturnedUnchanged()
+    {
+        var id = await CreateTile(new
+        {
+            name = "Klient",
+            fields = new[] { Field(CustomerConnectionId, "$.balance", "Saldo"), Field(CustomerConnectionId, "$.address", "Adres") }
+        });
+
+        var preview = await Preview(id, CustomerValues());
+
+        AssertValues(preview, """[1234.567, {"city": "Kraków"}]""");
+    }
+
     private async Task<JsonObject> Preview(Guid id, object values)
     {
         var response = await Client.PostAsJsonAsync($"{TilesUrl}/{id}/preview", values);
@@ -73,6 +87,6 @@ public class TilePreviewTests : TileApiTests
     private static void AssertValues(JsonObject preview, string expected)
     {
         var values = new JsonArray(preview["fields"]!.AsArray().Select(field => field["value"]?.DeepClone()).ToArray());
-        Assert.That(JsonNode.DeepEquals(values, JsonNode.Parse(expected)), Is.True, values.ToJsonString());
+        Assert.That(JsonNode.DeepEquals(values, JsonNode.Parse(expected)), Is.True, preview.ToJsonString());
     }
 }

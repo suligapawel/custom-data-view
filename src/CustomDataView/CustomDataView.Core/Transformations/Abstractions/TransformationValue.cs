@@ -9,10 +9,20 @@ public static class TransformationValue
     private const string NumberTextFormat = "0.############################";
 
     public static object FromJson(JsonNode node)
-        => node.GetValueKind() == JsonValueKind.Number ? node.GetValue<decimal>() : node.GetValue<string>();
+        => node.GetValueKind() switch
+        {
+            JsonValueKind.Number => (object)node.GetValue<decimal>(),
+            JsonValueKind.String => node.GetValue<string>(),
+            _ => node
+        };
 
     public static JsonNode ToJson(object value)
-        => value is decimal number ? JsonValue.Create(number) : JsonValue.Create((string)value);
+        => value switch
+        {
+            decimal number => JsonValue.Create(number),
+            JsonNode node => node.DeepClone(),
+            _ => JsonValue.Create((string)value)
+        };
 
     public static decimal ToNumber(string key, object value)
     {
