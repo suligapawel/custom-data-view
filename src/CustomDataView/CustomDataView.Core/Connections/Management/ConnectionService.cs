@@ -28,7 +28,12 @@ public sealed class ConnectionService(IConnectionRepository repository) : IConne
     {
         var connection = repository.Get(id);
         var body = (connection.Definition as PostConnectionDefinition)?.Body;
-        return new ConnectionDto(connection.Id, body is null ? null : JsonNode.Parse(body));
+        return new ConnectionDto(
+            connection.Id,
+            connection.Definition.Name,
+            MethodOf(connection.Definition),
+            connection.Definition.Url,
+            body is null ? null : JsonNode.Parse(body));
     }
 
     private static string MethodOf(ConnectionDefinition definition)
