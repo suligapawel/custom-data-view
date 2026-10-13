@@ -46,6 +46,16 @@ public class RoundTransformationTests
         Assert.That(result, Is.EqualTo(-3m));
     }
 
+    [Test(Description = "scenario_TEMP-001-006 - #4")]
+    public void Given_RoundWithTwoDecimals_When_ValueIsTextWithComma_Then_ResultIs21_46()
+    {
+        var transformation = CreateRound(2);
+
+        var result = transformation.Apply("21,4567");
+
+        Assert.That(result, Is.EqualTo(21.46m));
+    }
+
     private static RoundTransformation CreateRound(JsonNode decimals)
     {
         var parameters = new TransformationParameters(new Dictionary<string, JsonNode> { ["decimals"] = decimals });
