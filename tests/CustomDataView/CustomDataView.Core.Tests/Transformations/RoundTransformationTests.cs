@@ -120,6 +120,17 @@ public class RoundTransformationTests
         Assert.That(exception.Parameter, Is.EqualTo("decimals"));
     }
 
+    [Test(Description = "scenario_TEMP-001-006 - #6")]
+    public void Given_RoundWithElevenDecimals_When_ValueIsTransformed_Then_FailsWithInvalidDecimalsParameter()
+    {
+        var transformation = CreateRound(11);
+
+        var exception = Assert.Throws<TransformationFailedException>(() => transformation.Apply(21.4567m));
+
+        Assert.That(exception.Reason, Is.EqualTo(TransformationFailureReasons.InvalidParameter));
+        Assert.That(exception.Parameter, Is.EqualTo("decimals"));
+    }
+
     private static RoundTransformation CreateRound(JsonNode decimals)
     {
         var parameters = new TransformationParameters(new Dictionary<string, JsonNode> { ["decimals"] = decimals });
