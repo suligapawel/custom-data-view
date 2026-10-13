@@ -14,35 +14,32 @@ użytkownik wybiera je z katalogu i podaje wartości parametrów w polu kafelka.
 
 ## Domena
 
-Folder `CustomDataView.Core/Transformations/`. Każda transformacja ma własny folder (np. `Transformations/Round/`), w
-którym leżą jej definicja i klasa zachowania. Wszystko o danej transformacji jest w jednym miejscu.
+Folder `CustomDataView.Core/Transformations/`. Każda transformacja to jedna klasa w swoim folderze (np.
+`Transformations/Round/RoundTransformation.cs`), która jest jednocześnie wpisem katalogu i kodem wykonywalnym.
 
 ### Zadanie 1 — Wspólne elementy (TEMP-002 … TEMP-006)
 
-- `ITransformation { string Key; object Apply(object value); }` — zachowanie (dekorator).
-- `ITransformationDefinition` — defi+nicja należąca do transformacji: metadane katalogu i fabryka.
-
 ```csharp
-public interface ITransformationDefinition
+public interface ITransformation
 {
     string Key { get; }
     string Name { get; }
     string Description { get; }
     IReadOnlyList<TransformationParameterDescriptor> Parameters { get; }
-    ITransformation Create(ITransformation inner, TransformationParameters parameters);
+    object Apply(object value, TransformationParameters parameters);
 }
 ```
 
-- `TransformationParameterDescriptor(Name, Type)`, gdzie `Type` to `integer` albo `string`.
-- Klucz transformacji jest stałą w jej definicji (np. `RoundTransformationDefinition.TransformationKey`); klasa
-  zachowania używa tej samej stałej.
+- Transformacja jest bezstanowym singletonem: ta sama instancja obsługuje wszystkie pola, a wartości parametrów z pola
+  kafelka są przekazywane przy każdym wywołaniu `Apply`.
+- `TransformationParameterDescriptor(Name, Type)`, gdzie `Type` to `integer` albo `string`; deskryptor jest prywatnym
+  polem statycznym klasy transformacji i służy zarówno katalogowi, jak i odczytowi wartości parametru.
+- Abstrakcyjna klasa `Transformation` przepuszcza `null` bez wywoływania logiki (`Transform`).
 - Wartość w łańcuchu: `null`, `string`, `decimal`, `bool` albo `JsonNode` (obiekt/tablica).
   `TransformationValue.FromJson` zamienia wartość JSON na ten model.
-- `IdentityTransformation` zwraca wartość bez zmian. Abstrakcyjna `DecoratorTransformation(inner, parameters)`
-  wywołuje `inner.Apply`, a `null` przepuszcza dalej bez własnej logiki.
 - `TransformationFailedException(key, reason, parameter)`. Możliwe powody: `invalid_value`, `invalid_parameter`
   (z nazwą parametru) oraz `unknown_transformation`. Wiadomość wyjątku nie zawiera przetwarzanej wartości.
-- `TransformationParameters` odczytuje parametry **przy wykonaniu** (`Create` niczego nie waliduje). Nadmiarowe
+- `TransformationParameters` odczytuje parametry **przy wykonaniu**. Nadmiarowe
   parametry są ignorowane.
   - integer: liczba całkowita JSON (`2`) albo tekst złożony z samych cyfr (`"2"`); każda inna wartość lub jej brak daje
     `invalid_parameter`,
@@ -53,19 +50,18 @@ public interface ITransformationDefinition
 - `ToNumber`: tekst po obcięciu spacji, najwyżej jeden separator dziesiętny (`.` lub `,`), wykładnik dozwolony, bez
   separatorów tysięcy; `bool`, obiekt i tekst nieliczbowy dają `invalid_value`.
 
-Każde z zadań 2-5 dodaje dla każdej transformacji parę `XxxTransformationDefinition` + `XxxTransformation` i rejestruje
-definicję w DI jako singleton `ITransformationDefinition`. Nazwy i opisy są po polsku; klucze i nazwy parametrów w
+Każde z zadań 2-5 dodaje klasę `XxxTransformation` i rejestruje ją w DI jako singleton `ITransformation`. Nazwy i opisy są po polsku; klucze i nazwy parametrów w
 `snake_case`.
 
 ### Zadanie 2 — `round(decimals: integer)` (TEMP-002)
 
-- Definicja: „Zaokrąglenie” — „Zaokrągla liczbę do podanej liczby miejsc po przecinku (0-10).”
+- Nazwa i opis: „Zaokrąglenie” — „Zaokrągla liczbę do podanej liczby miejsc po przecinku (0-10).”
 - `decimals` w zakresie 0-10, inaczej `invalid_parameter`. `Math.Round(..., MidpointRounding.AwayFromZero)`, wynik
   jest liczbą `decimal`.
 
 ### Zadanie 3 — `date_format(pattern: string)` (TEMP-003)
 
-- Definicja: „Formatowanie daty” — „Formatuje datę ISO 8601 według wzorca w kulturze niezmiennej.”
+- Nazwa i opis: „Formatowanie daty” — „Formatuje datę ISO 8601 według wzorca w kulturze niezmiennej.”
 - Wejście: tekst ISO 8601 (`yyyy-MM-dd` albo data z godziną, opcjonalnie `Z` lub `±HH:mm`), parsowany przez
   `DateTimeOffset.TryParseExact` w kulturze niezmiennej. Offset źródła jest zachowany, a jego brak oznacza UTC.
 - Liczba, `bool`, obiekt lub tekst inny niż ISO dają `invalid_value`. Pusty `pattern` albo `FormatException` przy
@@ -73,12 +69,12 @@ definicję w DI jako singleton `ITransformationDefinition`. Nazwy i opisy są po
 
 ### Zadanie 4 — `prefix(text: string)` / `suffix(text: string)` (TEMP-004)
 
-- Definicje: „Prefiks” — „Dokleja tekst przed wartością.”; „Sufiks” — „Dokleja tekst po wartości.”
+- Nazwy i opisy: „Prefiks” — „Dokleja tekst przed wartością.”; „Sufiks” — „Dokleja tekst po wartości.”
 - `text` + `ToText(value)` albo `ToText(value)` + `text`; pusty `text` jest dozwolony.
 
 ### Zadanie 5 — `uppercase` / `lowercase` / `truncate(max_length: integer)` (TEMP-005)
 
-- Definicje: „Wielkie litery”, „Małe litery” (bez parametrów, pusta lista) oraz „Przycięcie tekstu” — „Przycina tekst
+- Nazwy i opisy: „Wielkie litery”, „Małe litery” (bez parametrów, pusta lista) oraz „Przycięcie tekstu” — „Przycina tekst
   do maksymalnej liczby znaków.”
 - `ToUpperInvariant` / `ToLowerInvariant` na `ToText(value)`.
 - `truncate`: `max_length` ≥ 1, inaczej `invalid_parameter`; zwykły `Substring(0, max_length)` bez wielokropka.
@@ -86,21 +82,19 @@ definicję w DI jako singleton `ITransformationDefinition`. Nazwy i opisy są po
 
 ### Zadanie 6 — Katalog (TEMP-001)
 
-- `ITransformationCatalog` / `TransformationCatalog` (singleton) przyjmuje `IEnumerable<ITransformationDefinition>`
-  z DI i nie zna konkretnych transformacji.
-- `GetAll()` zwraca definicje posortowane po kluczu (ordinalnie); `Find(key)` zwraca definicję albo `null`.
-- Zduplikowany klucz rzuca wyjątek przy tworzeniu katalogu (błąd programisty wykrywany przy starcie).
-- Katalog nie ma operacji zapisu. Nowa transformacja to nowy folder z definicją i klasą, bez zmian w katalogu.
+- `ITransformationCatalog` / `TransformationCatalog` (singleton) przyjmuje `IEnumerable<ITransformation>` z DI.
+- `GetAll()` zwraca transformacje posortowane po kluczu (ordinalnie); `Find(key)` zwraca transformację albo `null`.
+- Katalog nie ma operacji zapisu. Nowa transformacja to nowa klasa i jej rejestracja w DI.
+- `ITransformationCatalogService.GetAll()` mapuje katalog na `TransformationDto` dla endpointu.
 
-### Zadanie 7 — Łańcuch dekoratorów (TEMP-006)
+### Zadanie 7 — Łańcuch transformacji (TEMP-006)
 
 - `TransformationStep(Key, Parameters)` to jeden element listy z pola kafelka.
-- `TransformationChainBuilder.Build(steps)` zaczyna od `IdentityTransformation`, a dla każdego kroku wywołuje
-  `catalog.Find(key).Create(poprzedni, parameters)`. Nieznany klucz daje krok, który przy wykonaniu rzuca
-  `unknown_transformation`. Powtórzenia są dozwolone.
-- `TransformationChainExecutor.Execute(value, steps)` zwraca `TransformationChainResult`: sukces z wartością albo
-  `transformation_failed` z kluczem i powodem (bez pozycji). Pierwszy błąd przerywa łańcuch. Inne wyjątki nie są
-  przechwytywane.
+- `TransformationChainExecutor.Execute(value, steps)` przechodzi po krokach w kolejności listy:
+  `value = catalog.Find(key).Apply(value, parameters)`. Nieznany klucz kończy się `unknown_transformation`.
+  Powtórzenia są dozwolone.
+- Wynik `TransformationChainResult`: sukces z wartością albo `transformation_failed` z kluczem i powodem (bez pozycji).
+  Pierwszy błąd przerywa łańcuch. Inne wyjątki nie są przechwytywane.
 
 ## Kryteria akceptacji
 
@@ -131,30 +125,25 @@ definicję w DI jako singleton `ITransformationDefinition`. Nazwy i opisy są po
 
 ## Endpoint
 
-`GET /api/custom-data-view/transformations` → `IQueryDispatcher.Handle(GetTransformationsQuery)` →
-`ApiResponse<IReadOnlyList<TransformationDto>>` (200).
+`GET /api/custom-data-view/transformations` → `ITransformationCatalogService.GetAll()` →
+`IReadOnlyList<TransformationDto>` (200), bez opakowania w `ApiResponse`.
 
 ```json
-{ "data": [ { "key": "date_format", "name": "Formatowanie daty", "description": "…",
-              "parameters": [ { "name": "pattern", "type": "string" } ] } ] }
+[ { "key": "date_format", "name": "Formatowanie daty", "description": "…",
+    "parameters": [ { "name": "pattern", "type": "string" } ] } ]
 ```
 
 Pozostałe transformacje nie mają endpointu; ich efekt widać w podglądzie kafelka.
 
 ## Walidacja wejścia
 
-Endpoint katalogu nie przyjmuje danych wejściowych (`GetTransformationsRequest.Validate()` jest pusty). Parametry
-transformacji są sprawdzane przy wykonaniu (Zadanie 2).
+Endpoint katalogu nie przyjmuje danych wejściowych. Parametry transformacji są sprawdzane przy wykonaniu (Zadanie 1).
 
 ## Handler i sekwencja wykonania
 
-1. Endpoint mapuje `GetTransformationsRequest` na `GetTransformationsQuery`.
-2. Handler pobiera `ITransformationCatalog.GetAll()` i mapuje definicje (`Key`, `Name`, `Description`, `Parameters`)
-   na `TransformationDto`.
-3. Endpoint zwraca `ApiResponse` z kodem 200.
-
-Repozytorium nie ma jeszcze infrastruktury współdzielonej (`IQueryDispatcher`, `ApiResponse`, bootstrapper), więc
-trzeba ją dodać zgodnie z `AGENTS.md` przed endpointem katalogu.
+1. Endpoint (minimal API) wstrzykuje `ITransformationCatalogService`.
+2. Serwis pobiera `ITransformationCatalog.GetAll()` i mapuje transformacje na `TransformationDto`.
+3. Endpoint zwraca listę z kodem 200. `CustomDataView.Bootstrapper` rejestruje usługi i mapuje endpoint.
 
 ## Baza danych
 
