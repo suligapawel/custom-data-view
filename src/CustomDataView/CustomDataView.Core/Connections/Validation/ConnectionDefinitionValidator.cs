@@ -21,6 +21,17 @@ public static class ConnectionDefinitionValidator
             errors["url"] = ["Adres połączenia musi być bezwzględnym adresem http lub https."];
         }
 
+        if (!IsSupportedMethod(input.Method))
+        {
+            errors["method"] = ["Rodzaj połączenia musi być GET albo POST."];
+        }
+
         return errors;
+    }
+
+    private static bool IsSupportedMethod(string method)
+    {
+        return string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(method, "POST", StringComparison.OrdinalIgnoreCase);
     }
 }

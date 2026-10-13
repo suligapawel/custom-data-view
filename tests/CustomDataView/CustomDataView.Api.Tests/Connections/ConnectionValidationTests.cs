@@ -44,6 +44,16 @@ public class ConnectionValidationTests : ConnectionApiTests
         await AssertRejected(definition, "url");
     }
 
+    [TestCase("PUT")]
+    [Test(Description = "scenario_TEMP-007-014 - #10")]
+    public async Task Given_UnsupportedMethod_When_UserSavesConnection_Then_SavingIsRejectedWithMethodError(string method)
+    {
+        var definition = ValidGetDefinition();
+        definition["method"] = method;
+
+        await AssertRejected(definition, "method");
+    }
+
     private static JsonObject ValidGetDefinition()
     {
         return new JsonObject
