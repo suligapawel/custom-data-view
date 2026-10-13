@@ -107,6 +107,26 @@ public class TilePartialPreviewTests : TileApiTests
                               """);
     }
 
+    [Test(Description = "scenario_TEMP-015-023 - #49")]
+    public async Task Given_OnlyRateFieldsAndRateSourceNotResponding_When_UserPreviewsTile_Then_EveryFieldHasSourceError()
+    {
+        var id = await CreateTile(new
+        {
+            name = "Kurs",
+            fields = new[] { Field(RateConnectionId, "$.rate", "Kurs EUR"), Field(RateConnectionId, "$.date", "Data") }
+        });
+        RateSourceFails(_ => throw new HttpRequestException("Connection refused"));
+
+        var preview = await Preview(id, RateValues());
+
+        AssertFields(preview, """
+                              [
+                                {"label": "Kurs EUR", "error": {"code": "source_unavailable"}},
+                                {"label": "Data", "error": {"code": "source_unavailable"}}
+                              ]
+                              """);
+    }
+
     private static void AssertFields(JsonObject preview, string expected)
         => Assert.That(JsonNode.DeepEquals(preview["fields"], JsonNode.Parse(expected)), Is.True, preview.ToJsonString());
 
