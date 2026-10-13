@@ -3,7 +3,7 @@
 ## Cel
 
 Użytkownik może odczytać katalog predefiniowanych transformacji pól, a backend potrafi zastosować do wartości
-uporządkowaną listę transformacji złożoną w łańcuch dekoratorów. Jest to fundament techniczny pod kafelki i ich
+uporządkowaną listę transformacji, jedna po drugiej. Jest to fundament techniczny pod kafelki i ich
 podgląd (TEMP-015, TEMP-021 … TEMP-023).
 
 ## Kontekst biznesowy
