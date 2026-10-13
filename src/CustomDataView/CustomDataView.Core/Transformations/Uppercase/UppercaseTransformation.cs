@@ -1,15 +1,14 @@
 namespace CustomDataView.Core.Transformations.Uppercase;
 
-public sealed class UppercaseTransformation : DecoratorTransformation
+public sealed class UppercaseTransformation : Transformation
 {
-    public UppercaseTransformation(ITransformation inner, TransformationParameters parameters)
-        : base(inner, parameters)
-    {
-    }
+    public override string Key => "uppercase";
 
-    public override string Key => UppercaseTransformationDefinition.TransformationKey;
+    public override string Name => "Wielkie litery";
 
-    protected override object Transform(object value)
+    public override string Description => "Zamienia tekst na wielkie litery w kulturze niezmiennej.";
+
+    protected override object Transform(object value, TransformationParameters parameters)
     {
         return TransformationValue.ToText(Key, value).ToUpperInvariant();
     }

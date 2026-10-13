@@ -4,5 +4,11 @@ public interface ITransformation
 {
     string Key { get; }
 
-    object Apply(object value);
+    string Name { get; }
+
+    string Description { get; }
+
+    IReadOnlyList<TransformationParameterDescriptor> Parameters { get; }
+
+    object Apply(object value, TransformationParameters parameters);
 }

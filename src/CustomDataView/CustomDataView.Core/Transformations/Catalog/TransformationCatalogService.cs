@@ -12,11 +12,11 @@ public sealed class TransformationCatalogService : ITransformationCatalogService
     public IReadOnlyList<TransformationDto> GetAll()
     {
         return _catalog.GetAll()
-            .Select(definition => new TransformationDto(
-                definition.Key,
-                definition.Name,
-                definition.Description,
-                definition.Parameters.Select(parameter => new TransformationParameterDto(parameter.Name, parameter.Type)).ToList()))
+            .Select(transformation => new TransformationDto(
+                transformation.Key,
+                transformation.Name,
+                transformation.Description,
+                transformation.Parameters.Select(parameter => new TransformationParameterDto(parameter.Name, parameter.Type)).ToList()))
             .ToList();
     }
 }

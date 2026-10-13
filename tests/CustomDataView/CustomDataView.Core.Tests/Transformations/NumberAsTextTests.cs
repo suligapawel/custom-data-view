@@ -13,9 +13,10 @@ public class NumberAsTextTests
     [Test(Description = "scenario_TEMP-001-006 - #13")]
     public void Given_SuffixWithKilograms_When_NumberHasTrailingZero_Then_TextHasNoTrailingZero()
     {
-        var transformation = new SuffixTransformation(new IdentityTransformation(), CreateParameter("text", " kg"));
+        var transformation = new SuffixTransformation();
+        var parameters = CreateParameter("text", " kg");
 
-        var result = transformation.Apply(21.50m);
+        var result = transformation.Apply(21.50m, parameters);
 
         Assert.That(result, Is.EqualTo("21.5 kg"));
     }
@@ -23,9 +24,10 @@ public class NumberAsTextTests
     [Test(Description = "scenario_TEMP-001-006 - #13")]
     public void Given_PrefixWithHash_When_NumberIsInExponentNotation_Then_TextIsPlainNumber()
     {
-        var transformation = new PrefixTransformation(new IdentityTransformation(), CreateParameter("text", "#"));
+        var transformation = new PrefixTransformation();
+        var parameters = CreateParameter("text", "#");
 
-        var result = transformation.Apply(1e3m);
+        var result = transformation.Apply(1e3m, parameters);
 
         Assert.That(result, Is.EqualTo("#1000"));
     }
@@ -33,9 +35,10 @@ public class NumberAsTextTests
     [Test(Description = "scenario_TEMP-001-006 - #13")]
     public void Given_Uppercase_When_NumberHasTrailingZero_Then_ResultIsNumberText()
     {
-        var transformation = new UppercaseTransformation(new IdentityTransformation(), new TransformationParameters(null));
+        var transformation = new UppercaseTransformation();
+        var parameters = new TransformationParameters(null);
 
-        var result = transformation.Apply(21.50m);
+        var result = transformation.Apply(21.50m, parameters);
 
         Assert.That(result, Is.EqualTo("21.5"));
     }
@@ -43,9 +46,10 @@ public class NumberAsTextTests
     [Test(Description = "scenario_TEMP-001-006 - #13")]
     public void Given_Lowercase_When_NumberIsFraction_Then_ResultIsNumberText()
     {
-        var transformation = new LowercaseTransformation(new IdentityTransformation(), new TransformationParameters(null));
+        var transformation = new LowercaseTransformation();
+        var parameters = new TransformationParameters(null);
 
-        var result = transformation.Apply(0.1m);
+        var result = transformation.Apply(0.1m, parameters);
 
         Assert.That(result, Is.EqualTo("0.1"));
     }
@@ -53,9 +57,10 @@ public class NumberAsTextTests
     [Test(Description = "scenario_TEMP-001-006 - #13")]
     public void Given_TruncateToThree_When_NumberHasTrailingZero_Then_ResultIsCutNumberText()
     {
-        var transformation = new TruncateTransformation(new IdentityTransformation(), CreateParameter("max_length", 3));
+        var transformation = new TruncateTransformation();
+        var parameters = CreateParameter("max_length", 3);
 
-        var result = transformation.Apply(21.50m);
+        var result = transformation.Apply(21.50m, parameters);
 
         Assert.That(result, Is.EqualTo("21."));
     }

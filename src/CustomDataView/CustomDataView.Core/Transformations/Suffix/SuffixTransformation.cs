@@ -1,18 +1,20 @@
 namespace CustomDataView.Core.Transformations.Suffix;
 
-public sealed class SuffixTransformation : DecoratorTransformation
+public sealed class SuffixTransformation : Transformation
 {
-    private static readonly TransformationParameterDescriptor TextParameter = SuffixTransformationDefinition.TextParameter;
+    private static readonly TransformationParameterDescriptor TextParameter =
+        new("text", TransformationParameterTypes.String);
 
-    public SuffixTransformation(ITransformation inner, TransformationParameters parameters)
-        : base(inner, parameters)
+    public override string Key => "suffix";
+
+    public override string Name => "Sufiks";
+
+    public override string Description => "Dokleja tekst po wartości.";
+
+    public override IReadOnlyList<TransformationParameterDescriptor> Parameters { get; } = [TextParameter];
+
+    protected override object Transform(object value, TransformationParameters parameters)
     {
-    }
-
-    public override string Key => SuffixTransformationDefinition.TransformationKey;
-
-    protected override object Transform(object value)
-    {
-        return TransformationValue.ToText(Key, value) + Parameters.GetText(Key, TextParameter.Name);
+        return TransformationValue.ToText(Key, value) + parameters.GetText(Key, TextParameter.Name);
     }
 }

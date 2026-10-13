@@ -15,13 +15,13 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddCustomDataViewTransformations(this IServiceCollection services)
     {
-        services.AddSingleton<ITransformationDefinition, DateFormatTransformationDefinition>();
-        services.AddSingleton<ITransformationDefinition, LowercaseTransformationDefinition>();
-        services.AddSingleton<ITransformationDefinition, PrefixTransformationDefinition>();
-        services.AddSingleton<ITransformationDefinition, RoundTransformationDefinition>();
-        services.AddSingleton<ITransformationDefinition, SuffixTransformationDefinition>();
-        services.AddSingleton<ITransformationDefinition, TruncateTransformationDefinition>();
-        services.AddSingleton<ITransformationDefinition, UppercaseTransformationDefinition>();
+        services.AddSingleton<ITransformation, DateFormatTransformation>();
+        services.AddSingleton<ITransformation, LowercaseTransformation>();
+        services.AddSingleton<ITransformation, PrefixTransformation>();
+        services.AddSingleton<ITransformation, RoundTransformation>();
+        services.AddSingleton<ITransformation, SuffixTransformation>();
+        services.AddSingleton<ITransformation, TruncateTransformation>();
+        services.AddSingleton<ITransformation, UppercaseTransformation>();
         services.AddSingleton<ITransformationCatalog, TransformationCatalog>();
         services.AddSingleton<ITransformationCatalogService, TransformationCatalogService>();
         return services;

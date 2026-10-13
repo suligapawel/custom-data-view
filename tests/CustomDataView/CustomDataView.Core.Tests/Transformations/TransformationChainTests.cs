@@ -85,14 +85,14 @@ public class TransformationChainTests
 
     private static TransformationChainExecutor CreateExecutor()
     {
-        ITransformationDefinition[] definitions =
+        ITransformation[] transformations =
         [
-            new PrefixTransformationDefinition(),
-            new RoundTransformationDefinition(),
-            new SuffixTransformationDefinition(),
-            new UppercaseTransformationDefinition()
+            new PrefixTransformation(),
+            new RoundTransformation(),
+            new SuffixTransformation(),
+            new UppercaseTransformation()
         ];
-        return new TransformationChainExecutor(new TransformationChainBuilder(new TransformationCatalog(definitions)));
+        return new TransformationChainExecutor(new TransformationCatalog(transformations));
     }
 
     private static TransformationStep Step(string key, params (string Name, JsonNode Value)[] parameters)

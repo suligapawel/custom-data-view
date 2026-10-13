@@ -2,22 +2,22 @@ namespace CustomDataView.Core.Transformations.Catalog;
 
 public sealed class TransformationCatalog : ITransformationCatalog
 {
-    private readonly IReadOnlyList<ITransformationDefinition> _sortedDefinitions;
-    private readonly Dictionary<string, ITransformationDefinition> _definitions;
+    private readonly IReadOnlyList<ITransformation> _sortedTransformations;
+    private readonly Dictionary<string, ITransformation> _transformations;
 
-    public TransformationCatalog(IEnumerable<ITransformationDefinition> definitions)
+    public TransformationCatalog(IEnumerable<ITransformation> transformations)
     {
-        _sortedDefinitions = definitions.OrderBy(definition => definition.Key, StringComparer.Ordinal).ToList().AsReadOnly();
-        _definitions = _sortedDefinitions.ToDictionary(definition => definition.Key, StringComparer.Ordinal);
+        _sortedTransformations = transformations.OrderBy(transformation => transformation.Key, StringComparer.Ordinal).ToList().AsReadOnly();
+        _transformations = _sortedTransformations.ToDictionary(transformation => transformation.Key, StringComparer.Ordinal);
     }
 
-    public IReadOnlyList<ITransformationDefinition> GetAll()
+    public IReadOnlyList<ITransformation> GetAll()
     {
-        return _sortedDefinitions;
+        return _sortedTransformations;
     }
 
-    public ITransformationDefinition Find(string key)
+    public ITransformation Find(string key)
     {
-        return _definitions.GetValueOrDefault(key);
+        return _transformations.GetValueOrDefault(key);
     }
 }

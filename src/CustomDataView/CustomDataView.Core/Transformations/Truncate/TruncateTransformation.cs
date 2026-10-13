@@ -1,21 +1,23 @@
 namespace CustomDataView.Core.Transformations.Truncate;
 
-public sealed class TruncateTransformation : DecoratorTransformation
+public sealed class TruncateTransformation : Transformation
 {
     private const int MinMaxLength = 1;
 
-    private static readonly TransformationParameterDescriptor MaxLengthParameter = TruncateTransformationDefinition.MaxLengthParameter;
+    private static readonly TransformationParameterDescriptor MaxLengthParameter =
+        new("max_length", TransformationParameterTypes.Integer);
 
-    public TruncateTransformation(ITransformation inner, TransformationParameters parameters)
-        : base(inner, parameters)
+    public override string Key => "truncate";
+
+    public override string Name => "Przycięcie tekstu";
+
+    public override string Description => "Przycina tekst do maksymalnej liczby znaków.";
+
+    public override IReadOnlyList<TransformationParameterDescriptor> Parameters { get; } = [MaxLengthParameter];
+
+    protected override object Transform(object value, TransformationParameters parameters)
     {
-    }
-
-    public override string Key => TruncateTransformationDefinition.TransformationKey;
-
-    protected override object Transform(object value)
-    {
-        var maxLength = Parameters.GetInteger(Key, MaxLengthParameter.Name);
+        var maxLength = parameters.GetInteger(Key, MaxLengthParameter.Name);
         if (maxLength < MinMaxLength)
         {
             throw new TransformationFailedException(Key, TransformationFailureReasons.InvalidParameter, MaxLengthParameter.Name);

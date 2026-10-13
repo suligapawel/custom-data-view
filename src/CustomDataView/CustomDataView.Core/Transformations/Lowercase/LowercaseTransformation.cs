@@ -1,15 +1,14 @@
 namespace CustomDataView.Core.Transformations.Lowercase;
 
-public sealed class LowercaseTransformation : DecoratorTransformation
+public sealed class LowercaseTransformation : Transformation
 {
-    public LowercaseTransformation(ITransformation inner, TransformationParameters parameters)
-        : base(inner, parameters)
-    {
-    }
+    public override string Key => "lowercase";
 
-    public override string Key => LowercaseTransformationDefinition.TransformationKey;
+    public override string Name => "Małe litery";
 
-    protected override object Transform(object value)
+    public override string Description => "Zamienia tekst na małe litery w kulturze niezmiennej.";
+
+    protected override object Transform(object value, TransformationParameters parameters)
     {
         return TransformationValue.ToText(Key, value).ToLowerInvariant();
     }

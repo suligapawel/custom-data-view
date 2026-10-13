@@ -2,7 +2,7 @@ namespace CustomDataView.Core.Transformations.Catalog;
 
 public interface ITransformationCatalog
 {
-    IReadOnlyList<ITransformationDefinition> GetAll();
+    IReadOnlyList<ITransformation> GetAll();
 
-    ITransformationDefinition Find(string key);
+    ITransformation Find(string key);
 }
