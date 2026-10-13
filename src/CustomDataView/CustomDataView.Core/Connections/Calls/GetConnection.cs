@@ -8,7 +8,7 @@ public sealed class GetConnection(GetConnectionDefinition definition, IExternalA
 {
     public Task<ExternalApiResult> Get(ConnectionParameterValues parameters, CancellationToken cancellationToken)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, UrlTemplate.Resolve(definition.Url, parameters.Path));
+        var request = new HttpRequestMessage(HttpMethod.Get, UrlTemplate.Resolve(definition.Url, parameters.Path, definition.QueryParameters));
         return client.Send(request, cancellationToken);
     }
 }

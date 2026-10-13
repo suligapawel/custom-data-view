@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json.Nodes;
 
 namespace CustomDataView.Api.Tests.Connections;
 
@@ -37,5 +38,28 @@ public class TestConnectionTests : ConnectionApiTests
         await Client.PostAsJsonAsync($"{ConnectionsUrl}/{id}/test", new { parameters = new { path = new { id = "a/b" } } });
 
         Assert.That(Factory.ExternalApi.Requests.Single().Url, Is.EqualTo("https://api.example.com/contracts/a%2Fb/sellers"));
+    }
+
+    [TestCase("{}", "https://api.example.com/sellers?units=metric&pageSize=20")]
+    [Test(Description = "scenario_TEMP-007-014 - #29")]
+    public async Task Given_GetConnectionWithQueryParameters_When_UserTestsIt_Then_QueryIsAppended(string values, string address)
+    {
+        var id = await CreateConnection(new
+        {
+            name = "Sprzedawcy",
+            method = "GET",
+            url = "https://api.example.com/sellers?units=metric",
+            queryParameters = new object[]
+            {
+                new { name = "pageSize", required = false, defaultValue = "20" },
+                new { name = "status", required = false }
+            }
+        });
+
+        await Client.PostAsJsonAsync(
+            $"{ConnectionsUrl}/{id}/test",
+            new JsonObject { ["parameters"] = new JsonObject { ["query"] = JsonNode.Parse(values) } });
+
+        Assert.That(Factory.ExternalApi.Requests.Single().Url, Is.EqualTo(address));
     }
 }
