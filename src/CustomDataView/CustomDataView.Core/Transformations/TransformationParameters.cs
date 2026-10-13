@@ -20,4 +20,9 @@ public sealed class TransformationParameters
 
         return value.GetValue<int>();
     }
+
+    public string GetText(string key, string name)
+    {
+        return _values[name].GetValue<string>();
+    }
 }
