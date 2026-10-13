@@ -66,8 +66,8 @@
 
 ## Decyzje
 
-1. Jedna baza zapisu i odczytu. Repozytorium agregatu (dodanie, edycja, usunięcie, odczyt po id) oraz osobny interfejs
-   odczytu dla listy i szczegółów — bez osobnych tabel read-modelu.
+1. Jedna baza zapisu i odczytu. Jedno repozytorium `IConnectionRepository` (dodanie, edycja, usunięcie, odczyt po id,
+   lista) — bez osobnego interfejsu odczytu i bez osobnych tabel read-modelu.
 2. Rodzaj połączenia w kolumnie `method` z CHECK; repozytorium mapuje na `GetConnectionDefinition` /
    `PostConnectionDefinition`. Szablon treści dozwolony tylko dla POST (CHECK).
 3. Szablon treści w typie `json` (nie `jsonb`), aby zachować dokładny tekst i kolejność kluczy.

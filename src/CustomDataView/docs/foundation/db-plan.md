@@ -79,8 +79,8 @@ Wszystkie klucze obce: `ON DELETE CASCADE`.
 
 ## Design decisions
 
-1. **Jedna baza zapisu i odczytu.** Repozytorium agregatu (`IConnectionRepository`: dodanie, edycja, usunięcie,
-   odczyt po id) oraz osobny interfejs odczytu dla listy i szczegółów, zgodnie z `AGENTS.md`. Bez osobnych tabel
+1. **Jedna baza zapisu i odczytu.** Jedno repozytorium `IConnectionRepository` obsługuje dodanie, edycję, usunięcie,
+   odczyt po id i listę połączeń (decyzja dewelopera) — bez osobnego interfejsu odczytu i bez osobnych tabel
    read-modelu.
 2. **Rodzaj połączenia jako kolumna `method` z CHECK.** Jedna tabela upraszcza listę i przyszły FK z pól kafelków;
    repozytorium mapuje wiersz na `GetConnectionDefinition` albo `PostConnectionDefinition`. CHECK gwarantuje, że
