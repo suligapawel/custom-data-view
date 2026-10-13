@@ -19,8 +19,5 @@ public sealed class TransformationCatalogService : ITransformationCatalogService
             .AsReadOnly();
     }
 
-    public IReadOnlyList<TransformationDto> GetAll()
-    {
-        return _catalog;
-    }
+    public IReadOnlyList<TransformationDto> GetAll() => _catalog;
 }

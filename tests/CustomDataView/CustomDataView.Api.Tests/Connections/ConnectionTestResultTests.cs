@@ -111,10 +111,8 @@ public class ConnectionTestResultTests : ConnectionApiTests
     }
 
     private Task<HttpResponseMessage> TestConnection()
-    {
-        return Client.PostAsJsonAsync($"{ConnectionsUrl}/test", new
+        => Client.PostAsJsonAsync($"{ConnectionsUrl}/test", new
         {
             connection = new { name = "Sprzedawcy", method = "GET", url = "https://api.example.com/sellers" }
         });
-    }
 }

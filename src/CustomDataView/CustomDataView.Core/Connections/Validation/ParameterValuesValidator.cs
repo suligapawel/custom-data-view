@@ -67,10 +67,8 @@ public static class ParameterValuesValidator
     }
 
     private static bool IsQueryValue(JsonElement value)
-    {
-        return value.ValueKind == JsonValueKind.String
+        => value.ValueKind == JsonValueKind.String
             || (value.ValueKind == JsonValueKind.Array
                 && value.GetArrayLength() > 0
                 && value.EnumerateArray().All(item => item.ValueKind == JsonValueKind.String));
-    }
 }

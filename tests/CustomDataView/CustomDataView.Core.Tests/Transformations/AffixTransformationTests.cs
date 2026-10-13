@@ -66,7 +66,5 @@ public class AffixTransformationTests
     }
 
     private static TransformationParameters CreateText(JsonNode text)
-    {
-        return new TransformationParameters(new Dictionary<string, JsonNode> { ["text"] = text });
-    }
+        => new TransformationParameters(new Dictionary<string, JsonNode> { ["text"] = text });
 }

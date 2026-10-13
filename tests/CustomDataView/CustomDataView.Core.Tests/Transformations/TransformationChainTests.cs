@@ -92,7 +92,5 @@ public class TransformationChainTests
     }
 
     private static TransformationStep Step(string key, params (string Name, JsonNode Value)[] parameters)
-    {
-        return new TransformationStep(key, parameters.ToDictionary(parameter => parameter.Name, parameter => parameter.Value));
-    }
+        => new TransformationStep(key, parameters.ToDictionary(parameter => parameter.Name, parameter => parameter.Value));
 }

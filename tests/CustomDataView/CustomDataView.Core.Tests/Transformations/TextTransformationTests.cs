@@ -100,7 +100,5 @@ public class TextTransformationTests
     }
 
     private static TransformationParameters MaxLength(JsonNode maxLength)
-    {
-        return new TransformationParameters(new Dictionary<string, JsonNode> { ["max_length"] = maxLength });
-    }
+        => new TransformationParameters(new Dictionary<string, JsonNode> { ["max_length"] = maxLength });
 }

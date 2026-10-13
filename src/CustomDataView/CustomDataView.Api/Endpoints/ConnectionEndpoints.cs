@@ -85,7 +85,8 @@ public static class ConnectionEndpoints
         {
             endpoints.MapPost(
                 $"{ConnectionsUrl}/test",
-                async (ConnectionDraftTestRequest request, IConnectionTestService service, CancellationToken cancellationToken) =>
+                async (ConnectionDraftTestRequest request, IConnectionTestService service,
+                    CancellationToken cancellationToken) =>
                 {
                     var errors = request.Validate();
                     if (errors.Count > 0)
@@ -104,7 +105,8 @@ public static class ConnectionEndpoints
         {
             endpoints.MapPost(
                 $"{ConnectionUrl}/test",
-                async (Guid id, ConnectionTestRequest request, IConnectionTestService service, CancellationToken cancellationToken) =>
+                async (Guid id, ConnectionTestRequest request, IConnectionTestService service,
+                    CancellationToken cancellationToken) =>
                 {
                     var parameters = ConnectionTestRequest.ValuesOf(request);
                     return ConnectionTestResponses.From(await service.Test(id, parameters, cancellationToken));

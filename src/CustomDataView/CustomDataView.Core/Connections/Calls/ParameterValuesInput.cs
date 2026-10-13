@@ -9,17 +9,13 @@ public sealed record ParameterValuesInput(
     IReadOnlyDictionary<string, JsonElement> Body)
 {
     public ConnectionParameterValues ToValues()
-    {
-        return new ConnectionParameterValues(
+        => new ConnectionParameterValues(
             Path.ToDictionary(pair => pair.Key, pair => pair.Value.GetString()),
             Query.ToDictionary(pair => pair.Key, pair => QueryValues(pair.Value)),
             Body.ToDictionary(pair => pair.Key, pair => JsonNode.Parse(pair.Value.GetRawText())));
-    }
 
     private static IReadOnlyList<string> QueryValues(JsonElement value)
-    {
-        return value.ValueKind == JsonValueKind.Array
+        => value.ValueKind == JsonValueKind.Array
             ? value.EnumerateArray().Select(item => item.GetString()).ToList()
             : [value.GetString()];
-    }
 }

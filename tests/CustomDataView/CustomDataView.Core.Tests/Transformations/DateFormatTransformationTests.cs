@@ -87,7 +87,5 @@ public class DateFormatTransformationTests
     }
 
     private static TransformationParameters Pattern(JsonNode pattern)
-    {
-        return new TransformationParameters(new Dictionary<string, JsonNode> { ["pattern"] = pattern });
-    }
+        => new TransformationParameters(new Dictionary<string, JsonNode> { ["pattern"] = pattern });
 }

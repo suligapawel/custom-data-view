@@ -15,15 +15,13 @@ public sealed class ConnectionService(IConnectionRepository repository) : IConne
     }
 
     public IReadOnlyList<ConnectionSummaryDto> GetAll()
-    {
-        return repository.GetAll()
+        => repository.GetAll()
             .Select(connection => new ConnectionSummaryDto(
                 connection.Id,
                 connection.Definition.Name,
                 ConnectionMethods.Of(connection.Definition),
                 connection.Definition.Url))
             .ToList();
-    }
 
     public ConnectionDto Get(Guid id)
     {
@@ -55,14 +53,9 @@ public sealed class ConnectionService(IConnectionRepository repository) : IConne
     }
 
     private static List<ParameterDeclarationDto> ToDtos(IReadOnlyList<ParameterDeclaration> parameters)
-    {
-        return parameters
+        => parameters
             .Select(parameter => new ParameterDeclarationDto(parameter.Name, parameter.Required, ParseJson(parameter.DefaultValue)))
             .ToList();
-    }
 
-    private static JsonNode ParseJson(string json)
-    {
-        return json is null ? null : JsonNode.Parse(json);
-    }
+    private static JsonNode ParseJson(string json) => json is null ? null : JsonNode.Parse(json);
 }

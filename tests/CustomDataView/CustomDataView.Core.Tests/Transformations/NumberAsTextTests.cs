@@ -62,7 +62,5 @@ public class NumberAsTextTests
     }
 
     private static TransformationParameters CreateParameter(string name, JsonNode value)
-    {
-        return new TransformationParameters(new Dictionary<string, JsonNode> { [name] = value });
-    }
+        => new TransformationParameters(new Dictionary<string, JsonNode> { [name] = value });
 }

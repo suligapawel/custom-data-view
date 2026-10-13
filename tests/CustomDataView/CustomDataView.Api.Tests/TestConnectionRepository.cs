@@ -12,10 +12,7 @@ public sealed class TestConnectionRepository : IConnectionRepository
         connections.Add(connection);
     }
 
-    public Connection Get(Guid id)
-    {
-        return connections.SingleOrDefault(connection => connection.Id == id);
-    }
+    public Connection Get(Guid id) => connections.SingleOrDefault(connection => connection.Id == id);
 
     public void Update(Connection connection)
     {
@@ -28,8 +25,5 @@ public sealed class TestConnectionRepository : IConnectionRepository
         connections.RemoveAll(connection => connection.Id == id);
     }
 
-    public IReadOnlyList<Connection> GetAll()
-    {
-        return connections.ToList();
-    }
+    public IReadOnlyList<Connection> GetAll() => connections.ToList();
 }

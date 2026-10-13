@@ -144,7 +144,5 @@ public class RoundTransformationTests
     }
 
     private static TransformationParameters Decimals(JsonNode decimals)
-    {
-        return new TransformationParameters(new Dictionary<string, JsonNode> { ["decimals"] = decimals });
-    }
+        => new TransformationParameters(new Dictionary<string, JsonNode> { ["decimals"] = decimals });
 }

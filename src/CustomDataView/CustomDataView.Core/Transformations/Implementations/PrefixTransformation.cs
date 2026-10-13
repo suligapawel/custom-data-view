@@ -16,7 +16,5 @@ public sealed class PrefixTransformation : Transformation
     public override IReadOnlyList<TransformationParameterDescriptor> Parameters { get; } = [TextParameter];
 
     protected override object Transform(object value, TransformationParameters parameters)
-    {
-        return parameters.GetText(Key, TextParameter.Name) + TransformationValue.ToText(Key, value);
-    }
+        => parameters.GetText(Key, TextParameter.Name) + TransformationValue.ToText(Key, value);
 }

@@ -11,15 +11,9 @@ public sealed class TransformationParameters
         _values = values ?? new Dictionary<string, JsonNode>();
     }
 
-    public int GetInteger(string key, string name)
-    {
-        return GetRequired(key, name).GetValue<int>();
-    }
+    public int GetInteger(string key, string name) => GetRequired(key, name).GetValue<int>();
 
-    public string GetText(string key, string name)
-    {
-        return GetRequired(key, name).GetValue<string>();
-    }
+    public string GetText(string key, string name) => GetRequired(key, name).GetValue<string>();
 
     private JsonNode GetRequired(string key, string name)
     {

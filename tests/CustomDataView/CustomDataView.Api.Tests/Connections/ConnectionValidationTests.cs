@@ -278,8 +278,7 @@ public class ConnectionValidationTests : ConnectionApiTests
     }
 
     private static JsonObject ValidPostDefinition()
-    {
-        return new JsonObject
+        => new JsonObject
         {
             ["name"] = "Wyszukiwanie sprzedawców",
             ["method"] = "POST",
@@ -287,18 +286,15 @@ public class ConnectionValidationTests : ConnectionApiTests
             ["body"] = new JsonObject { ["contractId"] = "{id}" },
             ["bodyParameters"] = new JsonArray(new JsonObject { ["name"] = "id", ["required"] = true })
         };
-    }
 
     private static JsonObject ValidGetDefinition()
-    {
-        return new JsonObject
+        => new JsonObject
         {
             ["name"] = "Sprzedawcy kontraktu",
             ["method"] = "GET",
             ["url"] = "https://api.example.com/contracts/{id}/sellers",
             ["pathParameters"] = new JsonArray(new JsonObject { ["name"] = "id", ["required"] = true })
         };
-    }
 
     private async Task AssertAccepted(JsonObject definition)
     {

@@ -5,18 +5,13 @@ namespace CustomDataView.Api.Requests;
 
 public sealed record ConnectionTestRequest(ConnectionParametersRequest Parameters)
 {
-    public static ParameterValuesInput ValuesOf(ConnectionTestRequest request)
-    {
-        return ValuesOf(request?.Parameters);
-    }
+    public static ParameterValuesInput ValuesOf(ConnectionTestRequest request) => ValuesOf(request?.Parameters);
 
     public static ParameterValuesInput ValuesOf(ConnectionParametersRequest parameters)
-    {
-        return new ParameterValuesInput(
+        => new ParameterValuesInput(
             parameters?.Path ?? new Dictionary<string, JsonElement>(),
             parameters?.Query ?? new Dictionary<string, JsonElement>(),
             parameters?.Body ?? new Dictionary<string, JsonElement>());
-    }
 }
 
 public sealed record ConnectionParametersRequest(

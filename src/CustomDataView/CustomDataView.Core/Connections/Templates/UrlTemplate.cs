@@ -13,9 +13,7 @@ public static partial class UrlTemplate
     }
 
     public static bool HasUnclosedBraces(string url)
-    {
-        return PlaceholderPattern().Replace(url, string.Empty).IndexOfAny(['{', '}']) >= 0;
-    }
+        => PlaceholderPattern().Replace(url, string.Empty).IndexOfAny(['{', '}']) >= 0;
 
     public static Uri Resolve(
         string url,
@@ -40,9 +38,7 @@ public static partial class UrlTemplate
     }
 
     public static IReadOnlyList<string> PlaceholderNames(string url)
-    {
-        return PlaceholderPattern().Matches(url).Select(match => match.Value[1..^1]).Distinct().ToList();
-    }
+        => PlaceholderPattern().Matches(url).Select(match => match.Value[1..^1]).Distinct().ToList();
 
     private static string PathValue(
         string name,

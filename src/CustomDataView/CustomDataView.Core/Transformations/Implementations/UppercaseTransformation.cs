@@ -11,7 +11,5 @@ public sealed class UppercaseTransformation : Transformation
     public override string Description => "Zamienia tekst na wielkie litery w kulturze niezmiennej.";
 
     protected override object Transform(object value, TransformationParameters parameters)
-    {
-        return TransformationValue.ToText(Key, value).ToUpperInvariant();
-    }
+        => TransformationValue.ToText(Key, value).ToUpperInvariant();
 }
