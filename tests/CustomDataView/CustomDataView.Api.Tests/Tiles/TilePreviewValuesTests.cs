@@ -38,6 +38,33 @@ public class TilePreviewValuesTests : TileApiTests
         Assert.That(Factory.ExternalApi.Requests, Is.Empty);
     }
 
+    [Test(Description = "scenario_TEMP-015-023 - #39")]
+    public async Task Given_OnlyCustomerField_When_UserPreviewsWithRateValuesToo_Then_RateValuesAreIgnored()
+    {
+        var id = await CreateTile(new { name = "Klient", fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa") } });
+
+        var response = await Client.PostAsJsonAsync($"{TilesUrl}/{id}/preview", CustomerAndRateValues());
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var preview = await response.Content.ReadFromJsonAsync<JsonObject>();
+        Assert.That(preview["fields"]![0]!["value"]?.GetValue<string>(), Is.EqualTo("acme"));
+        Assert.That(Factory.ExternalApi.Requests.Select(request => request.Url), Is.EqualTo(new[] { CustomerUrl }));
+    }
+
+    [Test(Description = "scenario_TEMP-015-023 - #40")]
+    public async Task Given_CustomerTile_When_UserPreviewsItTwice_Then_TileAndListAreUnchanged()
+    {
+        var id = await CreateTile(new { name = "Klient", fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa") } });
+        var details = await Client.GetStringAsync($"{TilesUrl}/{id}");
+        var list = await Client.GetStringAsync(TilesUrl);
+
+        await Client.PostAsJsonAsync($"{TilesUrl}/{id}/preview", CustomerValues());
+        await Client.PostAsJsonAsync($"{TilesUrl}/{id}/preview", CustomerValues());
+
+        Assert.That(await Client.GetStringAsync($"{TilesUrl}/{id}"), Is.EqualTo(details));
+        Assert.That(await Client.GetStringAsync(TilesUrl), Is.EqualTo(list));
+    }
+
     private Task<Guid> CustomerAndRateTile()
         => CreateTile(new
         {
