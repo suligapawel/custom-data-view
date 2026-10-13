@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 
 namespace CustomDataView.Api.Tests.Tiles;
 
@@ -10,6 +11,18 @@ public class MissingTileTests : TileApiTests
     public async Task Given_TileDoesNotExist_When_UserViewsTileDetails_Then_TileIsNotFound(string id)
     {
         var response = await Client.GetAsync($"{TilesUrl}/{id}");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test(Description = "scenario_TEMP-015-023 - #22")]
+    public async Task Given_TileDoesNotExist_When_UserEditsIt_Then_TileIsNotFound()
+    {
+        var response = await Client.PutAsJsonAsync($"{TilesUrl}/{Guid.NewGuid()}", new
+        {
+            name = "Klient",
+            fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa") }
+        });
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }

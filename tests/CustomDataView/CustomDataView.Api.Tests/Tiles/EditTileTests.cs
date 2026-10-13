@@ -34,4 +34,20 @@ public class EditTileTests : TileApiTests
             tiles.Select(saved => (saved["id"]?.GetValue<Guid>(), saved["name"]?.GetValue<string>())),
             Is.EqualTo(new (Guid?, string)[] { (customerId, "Klient VIP"), (rateId, "Kurs") }));
     }
+
+    [Test(Description = "scenario_TEMP-015-023 - #21")]
+    public async Task Given_CustomerTileWithNameField_When_UserRemovesAllFields_Then_EditIsRejectedAndTileIsUnchanged()
+    {
+        var id = await CreateTile(new { name = "Klient", fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa") } });
+
+        var response = await Client.PutAsJsonAsync($"{TilesUrl}/{id}", new { name = "Klient", fields = Array.Empty<object>() });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        var problem = await response.Content.ReadFromJsonAsync<JsonObject>();
+        Assert.That(problem["errors"]!.AsObject().Select(error => error.Key), Does.Contain("fields"));
+        var tile = await GetTile(id);
+        Assert.That(
+            tile["fields"]!.AsArray().Select(field => field["label"]?.GetValue<string>()),
+            Is.EqualTo(new[] { "Nazwa" }));
+    }
 }
