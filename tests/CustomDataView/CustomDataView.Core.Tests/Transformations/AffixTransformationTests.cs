@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using CustomDataView.Core.Transformations;
+using CustomDataView.Core.Transformations.Prefix;
 using CustomDataView.Core.Transformations.Suffix;
 
 namespace CustomDataView.Core.Tests.Transformations;
@@ -14,6 +15,16 @@ public class AffixTransformationTests
         var result = transformation.Apply(21.5m);
 
         Assert.That(result, Is.EqualTo("21.5 °C"));
+    }
+
+    [Test(Description = "scenario_TEMP-001-006 - #9")]
+    public void Given_PrefixWithIdLabel_When_ValueIs7_Then_ResultIsId7()
+    {
+        var transformation = new PrefixTransformation(new IdentityTransformation(), CreateText("ID: "));
+
+        var result = transformation.Apply(7m);
+
+        Assert.That(result, Is.EqualTo("ID: 7"));
     }
 
     private static TransformationParameters CreateText(JsonNode text)
