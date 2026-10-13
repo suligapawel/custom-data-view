@@ -71,6 +71,11 @@ public static class ConnectionDefinitionValidator
             {
                 errors[$"headers[{index}].name"] = ["Nazwa nagłówka jest wymagana i nie może zawierać spacji ani dwukropka."];
             }
+
+            if (input.Headers[index].Value is null)
+            {
+                errors[$"headers[{index}].value"] = ["Wartość nagłówka jest wymagana (może być pusta)."];
+            }
         }
 
         for (var index = 0; index < input.QueryParameters.Count; index++)
@@ -93,6 +98,11 @@ public static class ConnectionDefinitionValidator
             if (!ParameterNames.IsHeaderToken(input.Headers[index].Name))
             {
                 errors[$"headers[{index}].name"] = ["Nazwa nagłówka jest wymagana i nie może zawierać spacji ani dwukropka."];
+            }
+
+            if (input.Headers[index].Value is null)
+            {
+                errors[$"headers[{index}].value"] = ["Wartość nagłówka jest wymagana (może być pusta)."];
             }
         }
 

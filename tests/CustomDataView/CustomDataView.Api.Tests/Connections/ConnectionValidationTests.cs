@@ -222,6 +222,7 @@ public class ConnectionValidationTests : ConnectionApiTests
 
     [TestCase("Accept Language", "pl", "headers[0].name")]
     [TestCase("Accept:Language", "pl", "headers[0].name")]
+    [TestCase("X-Trace", null, "headers[0].value")]
     [Test(Description = "scenario_TEMP-007-014 - #19")]
     public async Task Given_InvalidHeader_When_UserSavesConnection_Then_SavingIsRejected(string name, string value, string errorKey)
     {
