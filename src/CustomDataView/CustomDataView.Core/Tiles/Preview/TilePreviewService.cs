@@ -3,6 +3,8 @@ using System.Text.Json.Nodes;
 using CustomDataView.Core.Connections.Calls;
 using CustomDataView.Core.Connections.Http;
 using CustomDataView.Core.Connections.Persistence;
+using CustomDataView.Core.Connections.Validation;
+using CustomDataView.Core.Exceptions;
 using CustomDataView.Core.Tiles.Definitions;
 using CustomDataView.Core.Tiles.Paths;
 using CustomDataView.Core.Tiles.Persistence;
@@ -41,17 +43,25 @@ public sealed class TilePreviewService(
         IReadOnlyList<ConnectionValuesInput> values,
         CancellationToken cancellationToken)
     {
-        var calls = definition.Fields
+        var used = definition.Fields
             .Select(field => field.ConnectionId)
             .Distinct()
-            .Select(async connectionId =>
-            {
-                var connection = connections.Get(connectionId);
-                var parameters = values.FirstOrDefault(value => value.ConnectionId == connectionId)?.Parameters ?? NoValues;
-                var result = await factory.Create(connection.Definition).Get(parameters.ToValues(), cancellationToken);
-                return (connectionId, result);
-            });
-        var results = await Task.WhenAll(calls);
+            .Select(connectionId => (
+                Connection: connections.Get(connectionId),
+                Parameters: values.FirstOrDefault(value => value.ConnectionId == connectionId)?.Parameters ?? NoValues))
+            .ToList();
+        var errors = used
+            .SelectMany(call => ParameterValuesValidator.Validate(call.Connection.Definition, call.Parameters)
+                .Select(error => (Key: $"connections[{call.Connection.Id}].{error.Key}", error.Value)))
+            .ToDictionary(error => error.Key, error => error.Value);
+        if (errors.Count > 0)
+        {
+            throw new ValidationException(errors);
+        }
+
+        var results = await Task.WhenAll(used.Select(async call => (
+            connectionId: call.Connection.Id,
+            result: await factory.Create(call.Connection.Definition).Get(call.Parameters.ToValues(), cancellationToken))));
         return results.ToDictionary(call => call.connectionId, call => call.result);
     }
 
