@@ -26,6 +26,7 @@ public sealed record JsonPath(IReadOnlyList<JsonPathSegment> Segments)
                 && position >= 0 && position < array.Count
                 => new List<JsonNode> { array[position] },
             JsonPathSegment.Wildcard when node is JsonArray array => array.ToList(),
+            JsonPathSegment.Wildcard when node is JsonObject json => json.Select(property => property.Value).ToList(),
             _ => []
         };
 

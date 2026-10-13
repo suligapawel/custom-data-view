@@ -118,6 +118,7 @@ public class TilePreviewTests : TileApiTests
     [TestCase("$['unit-name']", "\"Sprzedaż\"")]
     [TestCase("$.tags[0]", "\"a\"")]
     [TestCase("$.tags[-1]", "\"c\"")]
+    [TestCase("$.address.*", "[\"Kraków\"]")]
     [Test(Description = "scenario_TEMP-015-023 - #33")]
     public async Task Given_FieldWithSupportedPathForm_When_UserPreviewsTile_Then_FieldHasPointedValue(string path, string value)
     {
