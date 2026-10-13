@@ -148,6 +148,15 @@ public class ConnectionValidationTests : ConnectionApiTests
         await AssertRejected(definition, $"{element}[0].name");
     }
 
+    [Test(Description = "scenario_TEMP-007-014 - #16")]
+    public async Task Given_QueryParameterNamedPageSize_When_UserSavesConnection_Then_ConnectionIsSaved()
+    {
+        var definition = ValidGetDefinition();
+        definition["queryParameters"] = new JsonArray(new JsonObject { ["name"] = "pageSize" });
+
+        await AssertAccepted(definition);
+    }
+
     private static JsonObject ValidPostDefinition()
     {
         return new JsonObject
@@ -169,6 +178,13 @@ public class ConnectionValidationTests : ConnectionApiTests
             ["url"] = "https://api.example.com/contracts/{id}/sellers",
             ["pathParameters"] = new JsonArray(new JsonObject { ["name"] = "id", ["required"] = true })
         };
+    }
+
+    private async Task AssertAccepted(JsonObject definition)
+    {
+        var response = await Client.PostAsJsonAsync(ConnectionsUrl, definition);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
     }
 
     private async Task<JsonObject> AssertRejected(JsonObject definition, string errorKey)
