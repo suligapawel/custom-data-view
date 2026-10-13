@@ -191,4 +191,18 @@ public class TestConnectionTests : ConnectionApiTests
         Assert.That(Factory.ExternalApi.Requests[1], Is.EqualTo(Factory.ExternalApi.Requests[0]));
         Assert.That(await unsaved.Content.ReadAsStringAsync(), Is.EqualTo(await saved.Content.ReadAsStringAsync()));
     }
+
+    [Test(Description = "scenario_TEMP-007-014 - #35")]
+    public async Task Given_UnsavedDefinitionWithFtpUrl_When_UserTestsIt_Then_TestIsRejectedWithUrlError()
+    {
+        var response = await Client.PostAsJsonAsync($"{ConnectionsUrl}/test", new
+        {
+            connection = new { name = "Pogoda", method = "GET", url = "ftp://api.example.com" }
+        });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        var problem = await response.Content.ReadFromJsonAsync<JsonObject>();
+        Assert.That(problem["errors"]!.AsObject().ContainsKey("connection.url"), Is.True);
+        Assert.That(Factory.ExternalApi.Requests, Is.Empty);
+    }
 }
