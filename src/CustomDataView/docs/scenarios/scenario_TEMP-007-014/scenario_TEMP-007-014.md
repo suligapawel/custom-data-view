@@ -86,8 +86,8 @@ sam walidator obsługuje dodanie, edycję i test niezapisanej definicji. Klucze 
   niedomknięte albo z pustą/niepoprawną nazwą → błąd `url`.
 - Nazwy parametrów ścieżki i body (`ParameterNames`): `^[a-z][a-z0-9_]{0,49}$` (snake_case, najwyżej 50 znaków).
   Nazwy parametrów query: niepuste, bez ograniczeń formatu (to klucze zewnętrznego API, np. `pageSize`, `api-version`).
-- Nazwy parametrów ścieżki i body są unikalne w obrębie swojej listy (porównanie ordinalne) → powtórzenie to błąd.
-  Nazwy parametrów query mogą się powtarzać (np. dwie deklaracje `tag` → `?tag=a&tag=b`). Ta sama nazwa w różnych
+- Nazwy parametrów ścieżki, query i body są unikalne w obrębie swojej listy (porównanie ordinalne) → powtórzenie to
+  błąd. Wiele wartości query przekazuje się w czasie wywołania jako listę (`tag: ["a", "b"]`). Ta sama nazwa w różnych
   listach jest dozwolona (np. `id` w ścieżce i w body).
 - Każdy placeholder w URL ma deklarację w `pathParameters` i każda deklaracja ścieżki jest użyta w URL. To samo dla
   body i `bodyParameters`. Placeholder może wystąpić kilka razy.
@@ -137,11 +137,9 @@ public sealed class PostConnection(PostConnectionDefinition definition, IExterna
   wartościami parametrów. `GetConnection` wysyła żądanie metodą GET, `PostConnection` — metodą POST.
 - Wspólne kroki obu implementacji (`UrlTemplate`):
   - placeholdery ścieżki są zastępowane wartościami zakodowanymi `Uri.EscapeDataString` (`/` → `%2F`),
-  - parametry query są dopisywane (zakodowane) do istniejącego query URL w kolejności deklaracji; nic nie jest
-    nadpisywane. Gdy dla nazwy podano wartości, w miejscu jej pierwszej deklaracji trafia po jednej parze na każdą
-    wartość (`tag: ["a", "b"]` → `tag=a&tag=b`), a kolejne deklaracje tej nazwy są pomijane. Gdy nie podano wartości,
-    każda deklaracja tej nazwy używa swojej wartości domyślnej albo jest pomijana; jeśli którakolwiek deklaracja nazwy
-    jest wymagana, wartość jest wymagana.
+  - parametry query są dopisywane (zakodowane) do istniejącego query URL ; nic nie jest nadpisywane. Gdy podano
+    wartości, trafia po jednej parze na każdą wartość (`tag: ["a", "b"]` → `tag=a&tag=b`). Gdy nie podano wartości,
+    używana jest wartość domyślna albo parametr jest pomijany. Kolejność parametrów w query stringu nie ma znaczenia.
 - `PostConnection` dodatkowo (`BodyTemplate`): klonuje szablon body, każdą wartość `"{name}"` zastępuje wartością JSON
   parametru (typ zachowany: `"{limit}"` + `10` → `10`), wysyła `StringContent(..., UTF-8, "application/json")`.
   `Content-Type: application/json` jest stały i nie da się go zmienić. POST bez body wysyła żądanie bez treści.
@@ -239,7 +237,7 @@ public interface IConnectionRepository
 - [ ] Placeholder w body bez deklaracji albo deklaracja body nieużyta w body → 400.
 - [ ] Nazwa parametru ścieżki/body niezgodna z snake_case (np. `Id`, `contract-id`) → 400.
 - [ ] Pusta nazwa parametru query → 400; nazwa query `pageSize` jest poprawna.
-- [ ] Powtórzona nazwa parametru ścieżki lub body → 400; powtórzona nazwa parametru query jest poprawna; ta sama
+- [ ] Powtórzona nazwa parametru ścieżki, query lub body → 400; ta sama
   nazwa w ścieżce i body jest poprawna.
 - [ ] Parametr wymagany z wartością domyślną → 400; opcjonalny parametr ścieżki bez wartości domyślnej → 400.
 - [ ] Przy błędzie walidacji nic nie zostaje zapisane (lista bez zmian).
@@ -253,7 +251,7 @@ public interface IConnectionRepository
 - [ ] Wartość ścieżki jest kodowana (`"a/b"` → `a%2Fb`).
 - [ ] Parametry query z wartości lub wartości domyślnej są dopisywane do istniejącego query URL; opcjonalny parametr
   query bez wartości jest pomijany.
-- [ ] Powtórzone deklaracje query `tag` z wartościami domyślnymi `a` i `b` dają `?tag=a&tag=b`; wartość
+- [ ] Deklaracja query `tag` z wartością domyślną `a` daje `?tag=a`; wartość
   `"tag": ["x", "y", "z"]` daje `?tag=x&tag=y&tag=z`.
 - [ ] Test połączenia POST wysyła POST z body, w którym `"{id}"` i `"{limit}"` zastąpiono wartościami z zachowaniem typu
   (`"limit": 10`), z `Content-Type: application/json`.
@@ -359,7 +357,7 @@ rejestrowany w bootstrapperze).
 - `url`: wymagany, bezwzględny `http`/`https` po podstawieniu placeholderów; `{name}` tylko w ścieżce.
 - `pathParameters`: nazwy snake_case ≤ 50, unikalne, zgodne 1:1 z placeholderami URL; wymagany albo z niepustą
   wartością domyślną (tekst).
-- `queryParameters`: nazwy niepuste, mogą się powtarzać; `defaultValue` tekst; `required` wyklucza `defaultValue`.
+- `queryParameters`: nazwy niepuste i unikalne; `defaultValue` tekst; `required` wyklucza `defaultValue`.
 - `body`: opcjonalna wartość JSON, tylko dla POST.
 - `bodyParameters`: tylko dla POST; nazwy snake_case ≤ 50, unikalne, zgodne 1:1 z placeholderami body;
   `defaultValue` dowolny JSON; `required` wyklucza `defaultValue`.
@@ -412,12 +410,11 @@ Brak zmian.
 Testy w NUnit bez mocków, na prawdziwych obiektach:
 
 - **`ConnectionDefinitionValidator`:** każda reguła z sekcji walidacji, w tym placeholdery w hoście/query,
-  niedomknięte klamry, zgodność placeholderów z deklaracjami (ścieżka i body), snake_case, unikalność ścieżki i body
-  (powtórzenia query dozwolone), `required` z `defaultValue`, body dla GET, duplikaty nazw połączeń.
+  niedomknięte klamry, zgodność placeholderów z deklaracjami (ścieżka i body), snake_case, unikalność nazw ścieżki, query
+  i body, `required` z `defaultValue`, body dla GET, duplikaty nazw połączeń.
 - **`ParameterValuesValidator` i `ParameterValueResolver`:** niezadeklarowane, brakujące wymagane, wartości domyślne,
   pominięcie opcjonalnego query, `null` dla opcjonalnego body, typy wartości ścieżki/query, wiele wartości query.
-- **`UrlTemplate` (query):** powtórzone deklaracje z wartościami domyślnymi, tablica wartości zastępująca wszystkie
-  deklaracje nazwy.
+- **`UrlTemplate` (query):** wartość domyślna, tablica wartości zastępująca wartość domyślną.
 - **`UrlTemplate` i `BodyTemplate`:** kodowanie wartości ścieżki, wielokrotne wystąpienie placeholdera, dopisanie query
   do istniejącego, zachowanie typu wartości w body, brak podmiany kluczy i fragmentów tekstu.
 - **`GetConnection` / `PostConnection`:** na prawdziwym `ExternalApiClient` z własnym `HttpMessageHandler` (testowa

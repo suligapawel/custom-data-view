@@ -91,6 +91,10 @@ public static class ConnectionRequestValidator
             {
                 errors[$"queryParameters[{index}].name"] = ["Nazwa parametru zapytania jest wymagana."];
             }
+            else if (request.QueryParameters.Take(index).Any(previous => previous.Name == parameter.Name))
+            {
+                errors[$"queryParameters[{index}].name"] = [RepeatedNameMessage];
+            }
 
             if (parameter.Required && parameter.DefaultValue is not null)
             {

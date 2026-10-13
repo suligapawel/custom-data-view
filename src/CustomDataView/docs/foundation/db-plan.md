@@ -28,42 +28,39 @@ zostaną dodane w kolejnych wersjach planu.
 | Column        | Type        | Constraints                                         | Description                                  |
 |---------------|-------------|-----------------------------------------------------|----------------------------------------------|
 | connection_id | uuid        | PK, NOT NULL, FK → connections.id ON DELETE CASCADE | Połączenie                                   |
-| position      | int         | PK, NOT NULL, CHECK (position >= 0)                 | Kolejność deklaracji                         |
-| name          | varchar(50) | NOT NULL                                            | Nazwa placeholdera `{name}` w URL (snake_case) |
+| name          | varchar(50) | PK, NOT NULL                                        | Nazwa placeholdera `{name}` w URL (snake_case) |
 | required      | boolean     | NOT NULL                                            | Czy wartość jest wymagana przy wywołaniu     |
 | default_value | text        | NULL                                                | Wartość domyślna; NULL = brak                |
 | created_at    | timestamptz | NOT NULL, DEFAULT now()                             | Moment zapisu wiersza                        |
 | updated_at    | timestamptz | NOT NULL, DEFAULT now()                             | Moment ostatniej zmiany wiersza              |
 
-PK: `(connection_id, position)`.
+PK: `(connection_id, name)`.
 
 ### custom_data_view.connection_query_parameters
 
 | Column        | Type    | Constraints                                         | Description                                   |
 |---------------|---------|-----------------------------------------------------|-----------------------------------------------|
 | connection_id | uuid    | PK, NOT NULL, FK → connections.id ON DELETE CASCADE | Połączenie                                    |
-| position      | int     | PK, NOT NULL, CHECK (position >= 0)                 | Kolejność deklaracji (kolejność w query string) |
-| name          | text    | NOT NULL                                            | Klucz query zewnętrznego API; powtórzenia dozwolone |
+| name          | text    | PK, NOT NULL                                        | Klucz query zewnętrznego API; unikalny         |
 | required      | boolean | NOT NULL                                            | Czy wartość jest wymagana przy wywołaniu      |
 | default_value | text    | NULL                                                | Wartość domyślna; NULL = brak                 |
 | created_at    | timestamptz | NOT NULL, DEFAULT now()                         | Moment zapisu wiersza                         |
 | updated_at    | timestamptz | NOT NULL, DEFAULT now()                         | Moment ostatniej zmiany wiersza               |
 
-PK: `(connection_id, position)`.
+PK: `(connection_id, name)`.
 
 ### custom_data_view.connection_body_parameters
 
 | Column        | Type        | Constraints                                         | Description                                        |
 |---------------|-------------|-----------------------------------------------------|----------------------------------------------------|
 | connection_id | uuid        | PK, NOT NULL, FK → connections.id ON DELETE CASCADE | Połączenie (tylko POST — pilnuje aplikacja)        |
-| position      | int         | PK, NOT NULL, CHECK (position >= 0)                 | Kolejność deklaracji                               |
-| name          | varchar(50) | NOT NULL                                            | Nazwa miejsca `"{name}"` w szablonie treści (snake_case) |
+| name          | varchar(50) | PK, NOT NULL                                        | Nazwa miejsca `"{name}"` w szablonie treści (snake_case) |
 | required      | boolean     | NOT NULL                                            | Czy wartość jest wymagana przy wywołaniu           |
 | default_value | json        | NULL                                                | Wartość domyślna (dowolna wartość JSON); NULL = brak |
 | created_at    | timestamptz | NOT NULL, DEFAULT now()                             | Moment zapisu wiersza                              |
 | updated_at    | timestamptz | NOT NULL, DEFAULT now()                             | Moment ostatniej zmiany wiersza                    |
 
-PK: `(connection_id, position)`.
+PK: `(connection_id, name)`.
 
 ### custom_data_view.__migration_history
 
@@ -88,9 +85,9 @@ Wszystkie klucze obce: `ON DELETE CASCADE`.
 - `ix_connections_created_at_id` (`connections(created_at, id)`) — lista połączeń w kolejności dodania:
   `ORDER BY created_at, id` (TEMP-010).
 - `pk_connection_path_parameters`, `pk_connection_query_parameters`, `pk_connection_body_parameters`
-  (`(connection_id, position)`) — wczytanie parametrów połączenia
-  w kolejności definicji (`WHERE connection_id = @id ORDER BY position`) oraz kaskadowe usuwanie. Wiodąca kolumna
-  `connection_id` obsługuje FK, więc dodatkowe indeksy nie są potrzebne.
+  (`(connection_id, name)`) — wczytanie parametrów połączenia (`WHERE connection_id = @id ORDER BY name`), kaskadowe
+  usuwanie i unikalność nazw w obrębie połączenia. Wiodąca kolumna `connection_id` obsługuje FK, więc dodatkowe
+  indeksy nie są potrzebne.
 
 ## Design decisions
 
@@ -103,20 +100,22 @@ Wszystkie klucze obce: `ON DELETE CASCADE`.
 3. **Szablon treści w `json`, nie `jsonb`.** PRD wymaga zwracania body bez zmian; `json` zachowuje dokładny tekst
    i kolejność kluczy, a nadal waliduje składnię. Zawartość body nie jest filtrowana ani indeksowana.
 4. **Każdy typ parametru w osobnej tabeli** (decyzja dewelopera). Różne typy wartości domyślnych (text vs json),
-   różne limity nazw i niezależna kolejność w każdej sekcji.
-5. **PK `(connection_id, position)` bez własnego id parametru.** Parametry nie mają tożsamości poza połączeniem;
-   edycja zastępuje całą definicję: `UPDATE connections` + `DELETE` i ponowny `INSERT` wierszy parametrów w jednej
+   i różne limity nazw w każdej sekcji.
+5. **PK `(connection_id, name)` bez własnego id parametru i bez kolumny kolejności** (decyzja dewelopera). Parametry
+   są identyfikowane nazwą, a kolejność deklaracji nie wpływa na wywołanie: ścieżka i treść podstawiają wartości po
+   nazwie, a kolejność w query stringu jest nieistotna. Odczyt zwraca parametry posortowane po `name`. Edycja
+   zastępuje całą definicję: `UPDATE connections` + `DELETE` i ponowny `INSERT` wierszy parametrów w jednej
    transakcji.
 6. **Wartości domyślne:** `text` dla ścieżki i query (zawsze tekst), `json` dla treści (dowolna wartość JSON).
    Repozytorium mapuje je na obecny model w kodzie (surowy tekst JSON w `ParameterDeclaration.DefaultValue`).
 7. **Kolejność listy po `created_at, id`.** `created_at` ustawiane przy dodaniu i niezmieniane przy edycji, więc
    edytowane połączenie zachowuje pozycję; `id` rozstrzyga remisy.
-8. **Unikalność nazw parametrów tylko w aplikacji** (decyzja dewelopera). Baza nie ma UNIQUE na nazwach; reguły
-   (unikalne nazwy ścieżki i treści, powtórzenia query dozwolone, zgodność placeholderów z deklaracjami, parametry
-   treści tylko dla POST) egzekwuje walidator.
-9. **W bazie tylko podstawowe ograniczenia:** NOT NULL, CHECK metody i treści, `CHECK (position >= 0)`,
-   `name varchar(100)`, nazwy parametrów ścieżki i treści `varchar(50)`. Format URL i snake_case pozostają
-   w aplikacji.
+8. **Unikalność nazw parametrów w aplikacji i w bazie.** Nazwy ścieżki, query i treści są unikalne w obrębie
+   połączenia; walidator zwraca czytelny błąd, a PK `(connection_id, name)` jest zabezpieczeniem w bazie. Wiele
+   wartości query przekazuje się w czasie wywołania jako listę, więc powtarzanie deklaracji nie jest potrzebne.
+   Zgodność placeholderów z deklaracjami i parametry treści tylko dla POST egzekwuje walidator.
+9. **W bazie tylko podstawowe ograniczenia:** NOT NULL, PK, CHECK metody i treści, `name varchar(100)`, nazwy
+   parametrów ścieżki i treści `varchar(50)`. Format URL i snake_case pozostają w aplikacji.
 10. **Twarde usuwanie z kaskadą.** PRD nie wymaga historii ani przywracania. Blokadę usunięcia połączenia używanego
     przez pola kafelków (TEMP-020) zapewni przyszły FK z tabeli pól kafelka z `ON DELETE RESTRICT`.
 11. **Brak outboxa dla połączeń.** Operacje na połączeniach nie publikują zdarzeń integracyjnych w MVP.

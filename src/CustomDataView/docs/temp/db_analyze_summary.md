@@ -27,8 +27,7 @@
 | Kolumna       | Typ         | Ograniczenia                                    |
 |---------------|-------------|-------------------------------------------------|
 | connection_id | uuid        | PK (1/2), FK → connections.id ON DELETE CASCADE |
-| position      | int         | PK (2/2), NOT NULL, CHECK (position >= 0)       |
-| name          | varchar(50) | NOT NULL                                        |
+| name          | varchar(50) | PK (2/2), NOT NULL                              |
 | required      | boolean     | NOT NULL                                        |
 | default_value | text        | NULL                                            |
 | created_at    | timestamptz | NOT NULL, DEFAULT now()                         |
@@ -39,8 +38,7 @@
 | Kolumna       | Typ     | Ograniczenia                                    |
 |---------------|---------|-------------------------------------------------|
 | connection_id | uuid    | PK (1/2), FK → connections.id ON DELETE CASCADE |
-| position      | int     | PK (2/2), NOT NULL, CHECK (position >= 0)       |
-| name          | text    | NOT NULL (powtórzenia dozwolone)                |
+| name          | text    | PK (2/2), NOT NULL                              |
 | required      | boolean | NOT NULL                                        |
 | default_value | text    | NULL                                            |
 | created_at    | timestamptz | NOT NULL, DEFAULT now()                     |
@@ -51,8 +49,7 @@
 | Kolumna       | Typ         | Ograniczenia                                    |
 |---------------|-------------|-------------------------------------------------|
 | connection_id | uuid        | PK (1/2), FK → connections.id ON DELETE CASCADE |
-| position      | int         | PK (2/2), NOT NULL, CHECK (position >= 0)       |
-| name          | varchar(50) | NOT NULL                                        |
+| name          | varchar(50) | PK (2/2), NOT NULL                              |
 | required      | boolean     | NOT NULL                                        |
 | default_value | json        | NULL (dowolna wartość JSON)                     |
 | created_at    | timestamptz | NOT NULL, DEFAULT now()                         |
@@ -67,8 +64,8 @@
 
 - PK `connections(id)` — odczyt, edycja, usunięcie, test po id.
 - `ix_connections_created_at_id` na `connections(created_at, id)` — lista w kolejności dodania.
-- PK `(connection_id, position)` w tabelach parametrów — wczytanie parametrów połączenia w kolejności; osobne indeksy
-  nie są potrzebne.
+- PK `(connection_id, name)` w tabelach parametrów — wczytanie parametrów połączenia (`ORDER BY name`) i unikalność
+  nazw; osobne indeksy nie są potrzebne.
 
 ## RLS
 
@@ -81,12 +78,14 @@
 2. Rodzaj połączenia w kolumnie `method` z CHECK; repozytorium mapuje na `GetConnectionDefinition` /
    `PostConnectionDefinition`. Szablon treści dozwolony tylko dla POST (CHECK).
 3. Szablon treści w typie `json` (nie `jsonb`), aby zachować dokładny tekst i kolejność kluczy.
-4. Każdy typ parametru w osobnej tabeli. PK `(connection_id, position)`; edycja zastępuje wszystkie wiersze parametrów
+4. Każdy typ parametru w osobnej tabeli. PK `(connection_id, name)`, bez kolumny kolejności — kolejność deklaracji nie
+   wpływa na wywołanie; odczyt sortuje po `name`. Edycja zastępuje wszystkie wiersze parametrów
    (DELETE + INSERT) w jednej transakcji z aktualizacją `connections`.
 5. Wartości domyślne: `text` dla ścieżki i query, `json` dla treści.
 6. Kolejność listy: `ORDER BY created_at, id`; `created_at` nie zmienia się przy edycji, `updated_at` ustawia
    repozytorium.
-7. Unikalność nazw parametrów (ścieżka, treść) oraz zgodność placeholderów z deklaracjami — tylko w aplikacji.
+7. Unikalność nazw parametrów (ścieżka, query, treść) — w walidatorze i przez PK w bazie. Zgodność placeholderów
+   z deklaracjami — tylko w aplikacji.
    Parametry treści tylko dla POST — tylko w aplikacji (reguła międzytabelowa).
 8. W bazie tylko podstawowe ograniczenia: NOT NULL, CHECK metody i treści, `name varchar(100)`, nazwy parametrów
    ścieżki i treści `varchar(50)`. Format URL i snake_case — w aplikacji.

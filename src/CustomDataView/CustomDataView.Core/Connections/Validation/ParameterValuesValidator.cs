@@ -53,7 +53,7 @@ public static class ParameterValuesValidator
                     errors[key] = [invalidValueMessage];
                 }
             }
-            else if (parameters.Any(declaration => declaration.Name == parameter.Name && declaration.Required))
+            else if (parameter.Required)
             {
                 errors[key] = [MissingValueMessage];
             }

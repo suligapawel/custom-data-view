@@ -256,7 +256,7 @@ Examples:
   | declarations                                        | outcome                                                     |
   | dwoma parametrami adresu "id"                       | zapis zostaje odrzucony z informacją o powtórzonej nazwie   |
   | dwoma parametrami treści "limit"                    | zapis zostaje odrzucony z informacją o powtórzonej nazwie   |
-  | dwoma parametrami zapytania "tag"                   | połączenie zostaje zapisane                                 |
+  | dwoma parametrami zapytania "tag"                   | zapis zostaje odrzucony z informacją o powtórzonej nazwie   |
   | parametrem adresu "id" i parametrem treści "id"     | połączenie zostaje zapisane                                 |
 ```
 
@@ -403,18 +403,18 @@ Examples:
 
 #### Scenario #29
 
-Powtórzone parametry zapytania
+Wiele wartości parametru zapytania
 
 ```
 Scenario Outline: wiele wartości parametru zapytania
 Given istnieje połączenie GET z adresem "https://api.example.com/sellers"
-And   połączenie deklaruje dwa opcjonalne parametry zapytania "tag" z wartościami domyślnymi "a" oraz "b"
+And   połączenie deklaruje opcjonalny parametr zapytania "tag" z wartością domyślną "a"
 When  użytkownik testuje połączenie z wartościami parametru "tag" <values>
 Then  zewnętrzne API otrzymuje zapytanie na adres <address>
 
 Examples:
   | values               | address                                                 |
-  | brak                 | "https://api.example.com/sellers?tag=a&tag=b"           |
+  | brak                 | "https://api.example.com/sellers?tag=a"                 |
   | "x", "y", "z"        | "https://api.example.com/sellers?tag=x&tag=y&tag=z"     |
 ```
 

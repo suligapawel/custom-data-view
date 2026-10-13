@@ -179,14 +179,14 @@ public class ConnectionValidationTests : ConnectionApiTests
     }
 
     [Test(Description = "scenario_TEMP-007-014 - #17")]
-    public async Task Given_TwoQueryParametersNamedTag_When_UserSavesConnection_Then_ConnectionIsSaved()
+    public async Task Given_TwoQueryParametersNamedTag_When_UserSavesConnection_Then_SavingIsRejected()
     {
         var definition = ValidGetDefinition();
         definition["queryParameters"] = new JsonArray(
             new JsonObject { ["name"] = "tag", ["defaultValue"] = "a" },
             new JsonObject { ["name"] = "tag", ["defaultValue"] = "b" });
 
-        await AssertAccepted(definition);
+        await AssertRejected(definition, "queryParameters[1].name");
     }
 
     [Test(Description = "scenario_TEMP-007-014 - #17")]
