@@ -50,5 +50,8 @@ public class ConnectionDetailsTests : ConnectionApiTests
                      {"name": "limit", "required": false, "defaultValue": 10}]
                     """)),
             Is.True);
+        Assert.That(
+            JsonNode.DeepEquals(details["body"], JsonNode.Parse("""{"contractId": "{id}", "limit": "{limit}"}""")),
+            Is.True);
     }
 }
