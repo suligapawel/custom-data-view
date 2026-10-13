@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json.Nodes;
 
 namespace CustomDataView.Core.Transformations;
 
@@ -31,6 +32,11 @@ public static class TransformationValue
         if (value is decimal number)
         {
             return number.ToString(NumberTextFormat, CultureInfo.InvariantCulture);
+        }
+
+        if (value is JsonNode)
+        {
+            throw new TransformationFailedException(key, TransformationFailureReasons.InvalidValue);
         }
 
         return Convert.ToString(value, CultureInfo.InvariantCulture);

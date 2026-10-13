@@ -28,4 +28,15 @@ public class MissingAndComplexValueTests
 
         Assert.That(result, Is.Null);
     }
+
+    [Test(Description = "scenario_TEMP-001-006 - #14")]
+    public void Given_Uppercase_When_ValueIsObject_Then_FailsWithInvalidValue()
+    {
+        var transformation = new UppercaseTransformation(new IdentityTransformation(), new TransformationParameters(null));
+
+        var exception = Assert.Throws<TransformationFailedException>(() => transformation.Apply(new JsonObject { ["temperature"] = 21.5 }));
+
+        Assert.That(exception.Key, Is.EqualTo("uppercase"));
+        Assert.That(exception.Reason, Is.EqualTo(TransformationFailureReasons.InvalidValue));
+    }
 }
