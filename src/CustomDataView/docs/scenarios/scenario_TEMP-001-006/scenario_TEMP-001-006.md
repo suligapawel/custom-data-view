@@ -83,16 +83,17 @@ Każde z zadań 2-5 dodaje klasę `XxxTransformation` i rejestruje ją w DI jako
 
 ### Zadanie 6 — Katalog (TEMP-001)
 
-- `ITransformationCatalog` / `TransformationCatalog` (singleton) przyjmuje `IEnumerable<ITransformation>` z DI.
-- `GetAll()` zwraca transformacje posortowane po kluczu (ordinalnie); `Find(key)` zwraca transformację albo `null`.
-- Katalog nie ma operacji zapisu. Nowa transformacja to nowa klasa i jej rejestracja w DI.
-- `ITransformationCatalogService.GetAll()` mapuje katalog na `TransformationDto` dla endpointu.
+- `ITransformationService` / `TransformationService` (singleton) przyjmuje `IEnumerable<ITransformation>` z DI; nie ma
+  osobnych klas katalogu.
+- `GetAll()` zwraca katalog jako `TransformationDto` posortowane po kluczu (ordinalnie), tylko do odczytu;
+  `Find(key)` zwraca transformację albo `null` (używane przez łańcuch).
+- Serwis nie ma operacji zapisu. Nowa transformacja to nowa klasa i jej rejestracja w DI.
 
 ### Zadanie 7 — Łańcuch transformacji (TEMP-006)
 
 - `TransformationStep(Key, Parameters)` to jeden element listy z pola kafelka.
 - `TransformationChainExecutor.Execute(value, steps)` przechodzi po krokach w kolejności listy:
-  `value = catalog.Find(key).Apply(value, parameters)`. Nieznany klucz kończy się `unknown_transformation`.
+  `value = service.Find(key).Apply(value, parameters)`. Nieznany klucz kończy się `unknown_transformation`.
   Powtórzenia są dozwolone.
 - Wynik `TransformationChainResult`: sukces z wartością albo `transformation_failed` z kluczem i powodem (bez pozycji).
   Pierwszy błąd przerywa łańcuch. Inne wyjątki nie są przechwytywane.
@@ -126,7 +127,7 @@ Każde z zadań 2-5 dodaje klasę `XxxTransformation` i rejestruje ją w DI jako
 
 ## Endpoint
 
-`GET /api/custom-data-view/transformations` → `ITransformationCatalogService.GetAll()` →
+`GET /api/custom-data-view/transformations` → `ITransformationService.GetAll()` →
 `IReadOnlyList<TransformationDto>` (200), bez opakowania w `ApiResponse`.
 
 ```json
@@ -142,8 +143,8 @@ Endpoint katalogu nie przyjmuje danych wejściowych. Parametry transformacji są
 
 ## Handler i sekwencja wykonania
 
-1. Endpoint (minimal API) wstrzykuje `ITransformationCatalogService`.
-2. Serwis pobiera `ITransformationCatalog.GetAll()` i mapuje transformacje na `TransformationDto`.
+1. Endpoint (minimal API) wstrzykuje `ITransformationService`.
+2. Serwis zwraca transformacje z DI zmapowane na `TransformationDto`.
 3. Endpoint zwraca listę z kodem 200. `CustomDataView.Bootstrapper` rejestruje usługi i mapuje endpoint.
 
 ## Baza danych
@@ -162,8 +163,7 @@ Brak zmian.
 
 ### Testy jednostkowe
 
-Testy w NUnit bez mocków, na prawdziwych obiektach: katalog (zbudowany z listy prawdziwych definicji; także duplikat
-klucza), metadane każdej definicji, `TransformationParameters`, `TransformationValue`,
+Testy w NUnit bez mocków, na prawdziwych obiektach: serwis transformacji (katalog z prawdziwej rejestracji DI), `TransformationParameters`, `TransformationValue`,
 każda transformacja (przypadki z kryteriów akceptacji) oraz łańcuch (kolejność, pusta lista, przerwanie, nieznany klucz,
 powtórzenia).
 
