@@ -36,6 +36,11 @@ public static class ConnectionEndpoints
             service.Update(id, request.ToInput().ToDefinition());
             return Results.NoContent();
         });
+        endpoints.MapDelete($"{ConnectionsUrl}/{{id:guid}}", (Guid id, IConnectionService service) =>
+        {
+            service.Delete(id);
+            return Results.NoContent();
+        });
         return endpoints;
     }
 }

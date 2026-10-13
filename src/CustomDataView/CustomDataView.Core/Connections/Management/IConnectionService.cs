@@ -8,4 +8,5 @@ public interface IConnectionService
     IReadOnlyList<ConnectionSummaryDto> GetAll();
     ConnectionDto Get(Guid id);
     void Update(Guid id, ConnectionDefinition definition);
+    void Delete(Guid id);
 }
