@@ -25,6 +25,7 @@ if (app.Environment.IsDevelopment())
 
 app.MapTransformationEndpoints();
 app.MapConnectionEndpoints();
+app.MapTileEndpoints();
 
 app.Run();
 
