@@ -73,4 +73,34 @@ public class TileDetailsTests : TileApiTests
             tile["fields"]!.AsArray().Select(field => field["label"]?.GetValue<string>()),
             Is.EqualTo(new[] { "Kurs EUR", "Nazwa", "Miasto" }));
     }
+
+    [Test(Description = "scenario_TEMP-015-023 - #18")]
+    public async Task Given_TileWithRateField_When_UserViewsTileDetails_Then_NameAndFieldDefinitionAreShown()
+    {
+        var id = await CreateTile(new
+        {
+            name = "Klient i kurs",
+            fields = new[] { Field(RateConnectionId, "$.rate", "Kurs EUR", Transformation("round", new { decimals = 2 })) }
+        });
+
+        var tile = await GetTile(id);
+
+        Assert.That(
+            JsonNode.DeepEquals(
+                tile,
+                new JsonObject
+                {
+                    ["id"] = id,
+                    ["name"] = "Klient i kurs",
+                    ["fields"] = new JsonArray(new JsonObject
+                    {
+                        ["connectionId"] = RateConnectionId,
+                        ["path"] = "$.rate",
+                        ["label"] = "Kurs EUR",
+                        ["transformations"] = JsonNode.Parse("""[{"key": "round", "parameters": {"decimals": 2}}]""")
+                    })
+                }),
+            Is.True,
+            tile.ToJsonString());
+    }
 }

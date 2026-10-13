@@ -29,4 +29,12 @@ public class ListTilesTests : TileApiTests
                 tile["fieldCount"]?.GetValue<int>())),
             Is.EqualTo(new (Guid?, string, int?)[] { (customerId, "Klient", 3), (rateId, "Kurs", 1) }));
     }
+
+    [Test(Description = "scenario_TEMP-015-023 - #17")]
+    public async Task Given_NoTiles_When_UserViewsTileList_Then_ListIsEmpty()
+    {
+        var tiles = await Client.GetFromJsonAsync<JsonArray>(TilesUrl);
+
+        Assert.That(tiles, Is.Empty);
+    }
 }
