@@ -87,6 +87,16 @@ public class RoundTransformationTests
         Assert.That(exception.Reason, Is.EqualTo(TransformationFailureReasons.InvalidValue));
     }
 
+    [Test(Description = "scenario_TEMP-001-006 - #5")]
+    public void Given_RoundWithTwoDecimals_When_ValueIsBoolean_Then_FailsWithInvalidValue()
+    {
+        var transformation = CreateRound(2);
+
+        var exception = Assert.Throws<TransformationFailedException>(() => transformation.Apply(true));
+
+        Assert.That(exception.Reason, Is.EqualTo(TransformationFailureReasons.InvalidValue));
+    }
+
     private static RoundTransformation CreateRound(JsonNode decimals)
     {
         var parameters = new TransformationParameters(new Dictionary<string, JsonNode> { ["decimals"] = decimals });

@@ -8,14 +8,19 @@ public static class TransformationValue
     {
         if (value is string text)
         {
-            if (decimal.TryParse(text.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out var number))
+            if (decimal.TryParse(text.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed))
             {
-                return number;
+                return parsed;
             }
 
             throw new TransformationFailedException(key, TransformationFailureReasons.InvalidValue);
         }
 
-        return (decimal)value;
+        if (value is decimal number)
+        {
+            return number;
+        }
+
+        throw new TransformationFailedException(key, TransformationFailureReasons.InvalidValue);
     }
 }
