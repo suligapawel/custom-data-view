@@ -142,6 +142,7 @@ public class TestConnectionTests : ConnectionApiTests
     }
 
     [TestCase("{}", "parameters.path.id")]
+    [TestCase("""{"id": "42", "foo": "x"}""", "parameters.path.foo")]
     [Test(Description = "scenario_TEMP-007-014 - #33")]
     public async Task Given_GetConnectionWithRequiredPathParameter_When_UserTestsItWithInvalidValues_Then_TestIsRejected(
         string pathValues,

@@ -16,6 +16,12 @@ public static class ParameterValuesValidator
             }
         }
 
+        var declared = definition.PathParameters.Select(parameter => parameter.Name).ToHashSet();
+        foreach (var name in values.Path.Keys.Where(name => !declared.Contains(name)))
+        {
+            errors[$"parameters.path.{name}"] = ["Parametr nie został zadeklarowany w połączeniu."];
+        }
+
         return errors;
     }
 }
