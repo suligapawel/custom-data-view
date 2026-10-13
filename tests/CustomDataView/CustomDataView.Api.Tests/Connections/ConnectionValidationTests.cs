@@ -81,13 +81,22 @@ public class ConnectionValidationTests : ConnectionApiTests
         Assert.That(connections, Is.Empty);
     }
 
+    [TestCase("https://api.example.com/contracts/{id}", false, "url")]
+    [TestCase("https://api.example.com/contracts", true, "pathParameters[0].name")]
     [Test(Description = "scenario_TEMP-007-014 - #13")]
-    public async Task Given_UndeclaredPathPlaceholder_When_UserSavesConnection_Then_SavingIsRejectedWithUrlError()
+    public async Task Given_PathParametersNotMatchingUrl_When_UserSavesConnection_Then_SavingIsRejected(
+        string url,
+        bool declaresId,
+        string errorKey)
     {
         var definition = ValidGetDefinition();
-        definition.Remove("pathParameters");
+        definition["url"] = url;
+        if (!declaresId)
+        {
+            definition.Remove("pathParameters");
+        }
 
-        await AssertRejected(definition, "url");
+        await AssertRejected(definition, errorKey);
     }
 
     private static JsonObject ValidGetDefinition()

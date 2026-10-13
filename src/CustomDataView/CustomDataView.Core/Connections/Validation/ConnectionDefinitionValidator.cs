@@ -23,11 +23,20 @@ public static class ConnectionDefinitionValidator
         }
         else
         {
+            var placeholders = UrlTemplate.PlaceholderNames(input.Url);
             var declared = input.PathParameters.Select(parameter => parameter.Name).ToHashSet();
-            var undeclared = UrlTemplate.PlaceholderNames(input.Url).Where(name => !declared.Contains(name)).ToList();
+            var undeclared = placeholders.Where(name => !declared.Contains(name)).ToList();
             if (undeclared.Count > 0)
             {
                 errors["url"] = undeclared.Select(name => $"Parametr adresu \"{name}\" nie został zadeklarowany.").ToArray();
+            }
+
+            for (var index = 0; index < input.PathParameters.Count; index++)
+            {
+                if (!placeholders.Contains(input.PathParameters[index].Name))
+                {
+                    errors[$"pathParameters[{index}].name"] = ["Parametr adresu nie występuje w adresie."];
+                }
             }
         }
 
