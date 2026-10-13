@@ -49,5 +49,9 @@ public class ListConnectionsTests
         Assert.That(
             connections.Select(connection => connection["method"]?.GetValue<string>()),
             Is.EqualTo(new[] { "GET", "POST" }));
+        Assert.That(
+            connections.Select(connection => connection["url"]?.GetValue<string>()),
+            Is.EqualTo(new[] { "https://api.example.com/contracts/{id}/sellers", "https://api.example.com/sellers/search" }));
+        Assert.That(connections.Select(connection => connection["id"]?.GetValue<Guid>()), Has.All.Not.EqualTo(Guid.Empty));
     }
 }

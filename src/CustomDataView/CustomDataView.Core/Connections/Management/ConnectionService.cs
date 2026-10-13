@@ -19,7 +19,8 @@ public sealed class ConnectionService(IConnectionRepository repository) : IConne
             .Select(connection => new ConnectionSummaryDto(
                 connection.Id,
                 connection.Definition.Name,
-                MethodOf(connection.Definition)))
+                MethodOf(connection.Definition),
+                connection.Definition.Url))
             .ToList();
     }
 

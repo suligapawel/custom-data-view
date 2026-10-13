@@ -1,3 +1,3 @@
 namespace CustomDataView.Core.Connections.Definitions;
 
-public abstract record ConnectionDefinition(string Name);
+public abstract record ConnectionDefinition(string Name, string Url);
