@@ -52,4 +52,25 @@ public class TileDetailsTests : TileApiTests
         Assert.That(tile["fields"]![0]!["label"]?.GetValue<string>(), Is.EqualTo("Miasto"));
         Assert.That(tile["fields"]![0]!["transformations"]!.AsArray(), Is.Empty);
     }
+
+    [Test(Description = "scenario_TEMP-015-023 - #5")]
+    public async Task Given_TileWithFieldsInGivenOrder_When_UserViewsTileDetails_Then_FieldsKeepThatOrder()
+    {
+        var id = await CreateTile(new
+        {
+            name = "Klient i kurs",
+            fields = new[]
+            {
+                Field(RateConnectionId, "$.rate", "Kurs EUR"),
+                Field(CustomerConnectionId, "$.name", "Nazwa"),
+                Field(CustomerConnectionId, "$.address.city", "Miasto")
+            }
+        });
+
+        var tile = await GetTile(id);
+
+        Assert.That(
+            tile["fields"]!.AsArray().Select(field => field["label"]?.GetValue<string>()),
+            Is.EqualTo(new[] { "Kurs EUR", "Nazwa", "Miasto" }));
+    }
 }

@@ -55,4 +55,28 @@ public class AddTileTests : TileApiTests
                 (CustomerConnectionId, "$.address.city", "Miasto")
             }));
     }
+
+    [Test(Description = "scenario_TEMP-015-023 - #6")]
+    public async Task Given_TileNamedCustomer_When_UserSavesAnotherCustomerTileWithRepeatedLabels_Then_BothTilesAreListed()
+    {
+        var firstId = await CreateTile(new { name = "Klient", fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa") } });
+
+        var response = await Client.PostAsJsonAsync(TilesUrl, new
+        {
+            name = "Klient",
+            fields = new[]
+            {
+                Field(CustomerConnectionId, "$.name", "Wartość"),
+                Field(CustomerConnectionId, "$.balance", "Wartość")
+            }
+        });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        var secondId = (await response.Content.ReadFromJsonAsync<CreatedTile>()).Id;
+        var tiles = await Client.GetFromJsonAsync<JsonArray>(TilesUrl);
+        Assert.That(
+            tiles.Select(tile => (tile["id"]?.GetValue<Guid>(), tile["name"]?.GetValue<string>())),
+            Is.EqualTo(new (Guid?, string)[] { (firstId, "Klient"), (secondId, "Klient") }));
+        Assert.That(secondId, Is.Not.EqualTo(firstId));
+    }
 }
