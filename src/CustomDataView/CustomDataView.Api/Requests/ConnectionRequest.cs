@@ -7,7 +7,6 @@ public sealed record ConnectionRequest(
     string Name,
     string Method,
     string Url,
-    IReadOnlyList<NameValuePair> Headers,
     IReadOnlyList<ParameterDeclarationRequest> PathParameters,
     IReadOnlyList<ParameterDeclarationRequest> QueryParameters,
     JsonElement? Body,
@@ -17,16 +16,14 @@ public sealed record ConnectionRequest(
 
     public ConnectionDefinition ToDefinition()
     {
-        var headers = Headers ?? [];
         var pathParameters = ToDeclarations(PathParameters);
         var queryParameters = ToDeclarations(QueryParameters);
 
         return ConnectionMethods.IsGet(Method)
-            ? new GetConnectionDefinition(Name, Url, headers, pathParameters, queryParameters)
+            ? new GetConnectionDefinition(Name, Url, pathParameters, queryParameters)
             : new PostConnectionDefinition(
                 Name,
                 Url,
-                headers,
                 pathParameters,
                 queryParameters,
                 RawJson(Body),

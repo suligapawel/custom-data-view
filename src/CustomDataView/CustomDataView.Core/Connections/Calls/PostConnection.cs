@@ -7,6 +7,8 @@ namespace CustomDataView.Core.Connections.Calls;
 
 public sealed class PostConnection(PostConnectionDefinition definition, IExternalApiClient client) : IConnection
 {
+    private const string JsonMediaType = "application/json";
+
     public Task<ExternalApiResult> Get(ConnectionParameterValues parameters, CancellationToken cancellationToken)
     {
         var content = definition.Body is null
@@ -14,8 +16,10 @@ public sealed class PostConnection(PostConnectionDefinition definition, IExterna
             : new StringContent(
                 BodyTemplate.Resolve(definition.Body, definition.BodyParameters, parameters.Body),
                 Encoding.UTF8,
-                "application/json");
+                JsonMediaType);
+        
         var request = ConnectionRequestBuilder.Build(HttpMethod.Post, definition, parameters, content);
+        
         return client.Send(request, cancellationToken);
     }
 }

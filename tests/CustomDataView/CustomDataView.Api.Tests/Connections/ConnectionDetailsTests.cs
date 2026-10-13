@@ -5,7 +5,7 @@ namespace CustomDataView.Api.Tests.Connections;
 
 public class ConnectionDetailsTests : ConnectionApiTests
 {
-    [Test(Description = "scenario_TEMP-007-014 - #22")]
+    [Test(Description = "scenario_TEMP-007-014 - #21")]
     public async Task Given_PostConnectionWithParameters_When_UserBrowsesDetails_Then_FullDefinitionIsShown()
     {
         var id = await CreateConnection(new
@@ -13,7 +13,6 @@ public class ConnectionDetailsTests : ConnectionApiTests
             name = "Wyszukiwanie sprzedawców",
             method = "POST",
             url = "https://api.example.com/contracts/{contract_id}/sellers/search",
-            headers = new[] { new { name = "Accept-Language", value = "pl" } },
             pathParameters = new[] { new { name = "contract_id", required = true } },
             queryParameters = new[] { new { name = "pageSize", required = false, defaultValue = "20" } },
             body = new { contractId = "{id}", limit = "{limit}" },
@@ -29,9 +28,6 @@ public class ConnectionDetailsTests : ConnectionApiTests
         Assert.That(details["name"]?.GetValue<string>(), Is.EqualTo("Wyszukiwanie sprzedawców"));
         Assert.That(details["method"]?.GetValue<string>(), Is.EqualTo("POST"));
         Assert.That(details["url"]?.GetValue<string>(), Is.EqualTo("https://api.example.com/contracts/{contract_id}/sellers/search"));
-        Assert.That(
-            JsonNode.DeepEquals(details["headers"], JsonNode.Parse("""[{"name": "Accept-Language", "value": "pl"}]""")),
-            Is.True);
         Assert.That(
             JsonNode.DeepEquals(
                 details["pathParameters"],

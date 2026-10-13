@@ -6,7 +6,7 @@ namespace CustomDataView.Api.Tests.Connections;
 
 public class EditConnectionTests : ConnectionApiTests
 {
-    [Test(Description = "scenario_TEMP-007-014 - #24")]
+    [Test(Description = "scenario_TEMP-007-014 - #23")]
     public async Task Given_GetConnectionOnSecondPosition_When_UserReplacesItWithPostConnection_Then_OnlyNewDefinitionIsShown()
     {
         await CreateConnection(new { name = "Pogoda", method = "GET", url = "https://api.example.com/weather" });
@@ -38,7 +38,7 @@ public class EditConnectionTests : ConnectionApiTests
         Assert.That(connections[1]!["id"]!.GetValue<Guid>(), Is.EqualTo(id));
     }
 
-    [Test(Description = "scenario_TEMP-007-014 - #25")]
+    [Test(Description = "scenario_TEMP-007-014 - #24")]
     public async Task Given_PostConnectionWithBody_When_UserChangesItToGetKeepingBody_Then_ChangeIsRejected()
     {
         var id = await CreateConnection(new

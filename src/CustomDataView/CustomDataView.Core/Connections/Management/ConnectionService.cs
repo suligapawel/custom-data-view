@@ -33,7 +33,6 @@ public sealed class ConnectionService(IConnectionRepository repository) : IConne
             definition.Name,
             ConnectionMethods.Of(definition),
             definition.Url,
-            definition.Headers,
             ToDtos(definition.PathParameters),
             ToDtos(definition.QueryParameters),
             ParseJson(post?.Body),

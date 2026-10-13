@@ -10,7 +10,7 @@ namespace CustomDataView.Api.Tests.Connections;
 
 public class ConnectionTestResultTests : ConnectionApiTests
 {
-    [Test(Description = "scenario_TEMP-007-014 - #36")]
+    [Test(Description = "scenario_TEMP-007-014 - #35")]
     public async Task Given_ExternalApiRespondingWithJson_When_UserTestsConnection_Then_ResultContainsStatusTimeAndFullBody()
     {
         Factory.ExternalApi.Respond = (_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
@@ -27,7 +27,7 @@ public class ConnectionTestResultTests : ConnectionApiTests
         Assert.That(JsonNode.DeepEquals(result["body"], JsonNode.Parse("""{"sellers": [{"name": "ACME"}]}""")), Is.True);
     }
 
-    [Test(Description = "scenario_TEMP-007-014 - #37")]
+    [Test(Description = "scenario_TEMP-007-014 - #36")]
     public async Task Given_ExternalApiRefusingConnections_When_UserTestsConnection_Then_TestFailsWithSourceUnavailable()
     {
         Factory.ExternalApi.Respond = (_, _) => throw new HttpRequestException("Connection refused");
@@ -37,7 +37,7 @@ public class ConnectionTestResultTests : ConnectionApiTests
         await AssertFailure(response, "source_unavailable");
     }
 
-    [Test(Description = "scenario_TEMP-007-014 - #37")]
+    [Test(Description = "scenario_TEMP-007-014 - #36")]
     public async Task Given_ExternalApiNotRespondingWithinTimeout_When_UserTestsConnection_Then_TestFailsWithSourceUnavailable()
     {
         Factory.Services.GetRequiredService<IOptions<ExternalApiOptions>>().Value.Timeout = TimeSpan.FromMilliseconds(200);
@@ -55,7 +55,7 @@ public class ConnectionTestResultTests : ConnectionApiTests
     [TestCase(302)]
     [TestCase(404)]
     [TestCase(503)]
-    [Test(Description = "scenario_TEMP-007-014 - #38")]
+    [Test(Description = "scenario_TEMP-007-014 - #37")]
     public async Task Given_ExternalApiRespondingWithNonSuccessStatus_When_UserTestsConnection_Then_TestFailsWithUnexpectedStatus(int status)
     {
         Factory.ExternalApi.Respond = (_, _) =>
@@ -74,7 +74,7 @@ public class ConnectionTestResultTests : ConnectionApiTests
 
     [TestCase(200, "<html>…</html>")]
     [TestCase(204, "")]
-    [Test(Description = "scenario_TEMP-007-014 - #39")]
+    [Test(Description = "scenario_TEMP-007-014 - #38")]
     public async Task Given_ExternalApiRespondingWithInvalidJson_When_UserTestsConnection_Then_TestFailsWithInvalidJson(int status, string content)
     {
         Factory.ExternalApi.Respond = (_, _) => Task.FromResult(new HttpResponseMessage((HttpStatusCode)status)
@@ -87,7 +87,7 @@ public class ConnectionTestResultTests : ConnectionApiTests
         await AssertFailure(response, "invalid_json");
     }
 
-    [Test(Description = "scenario_TEMP-007-014 - #40")]
+    [Test(Description = "scenario_TEMP-007-014 - #39")]
     public async Task Given_ExternalApiRespondingWithMoreThanOneMegabyte_When_UserTestsConnection_Then_TestFailsWithResponseTooLarge()
     {
         var stream = new CountingStream(5 * 1024 * 1024);

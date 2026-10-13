@@ -16,7 +16,6 @@ public static class ConnectionRequestValidator
     {
         var normalized = request with
         {
-            Headers = request.Headers ?? [],
             PathParameters = request.PathParameters ?? [],
             QueryParameters = request.QueryParameters ?? [],
             BodyParameters = request.BodyParameters ?? []
@@ -25,7 +24,6 @@ public static class ConnectionRequestValidator
         ValidateName(normalized, errors);
         ValidateMethod(normalized, errors);
         ValidateUrl(normalized, errors);
-        ValidateHeaders(normalized, errors);
         ValidateQueryParameters(normalized, errors);
         ValidateBody(normalized, errors);
         return errors;
@@ -80,22 +78,6 @@ public static class ConnectionRequestValidator
                     || defaultValue.GetString() == string.Empty))
             {
                 errors[$"{key}.defaultValue"] = ["Parametr adresu musi być wymagany albo mieć niepustą wartość domyślną."];
-            }
-        }
-    }
-
-    private static void ValidateHeaders(ConnectionRequest request, Dictionary<string, string[]> errors)
-    {
-        for (var index = 0; index < request.Headers.Count; index++)
-        {
-            if (!ParameterNames.IsHeaderToken(request.Headers[index].Name))
-            {
-                errors[$"headers[{index}].name"] = ["Nazwa nagłówka jest wymagana i nie może zawierać spacji ani dwukropka."];
-            }
-
-            if (request.Headers[index].Value is null)
-            {
-                errors[$"headers[{index}].value"] = ["Wartość nagłówka jest wymagana (może być pusta)."];
             }
         }
     }

@@ -137,15 +137,13 @@ public class ConnectionValidationTests : ConnectionApiTests
         Assert.That(errors[$"{section}Parameters[0].name"]![0]!.GetValue<string>(), Does.Contain("snake_case"));
     }
 
-    [TestCase("queryParameters")]
-    [TestCase("headers")]
     [Test(Description = "scenario_TEMP-007-014 - #16")]
-    public async Task Given_EmptyQueryParameterOrHeaderName_When_UserSavesConnection_Then_SavingIsRejected(string element)
+    public async Task Given_EmptyQueryParameterName_When_UserSavesConnection_Then_SavingIsRejected()
     {
         var definition = ValidGetDefinition();
-        definition[element] = new JsonArray(new JsonObject { ["name"] = "", ["value"] = "pl" });
+        definition["queryParameters"] = new JsonArray(new JsonObject { ["name"] = "" });
 
-        await AssertRejected(definition, $"{element}[0].name");
+        await AssertRejected(definition, "queryParameters[0].name");
     }
 
     [Test(Description = "scenario_TEMP-007-014 - #16")]
@@ -220,28 +218,7 @@ public class ConnectionValidationTests : ConnectionApiTests
         await AssertRejected(definition, "pathParameters[0].defaultValue");
     }
 
-    [TestCase("Accept Language", "pl", "headers[0].name")]
-    [TestCase("Accept:Language", "pl", "headers[0].name")]
-    [TestCase("X-Trace", null, "headers[0].value")]
     [Test(Description = "scenario_TEMP-007-014 - #19")]
-    public async Task Given_InvalidHeader_When_UserSavesConnection_Then_SavingIsRejected(string name, string value, string errorKey)
-    {
-        var definition = ValidGetDefinition();
-        definition["headers"] = new JsonArray(new JsonObject { ["name"] = name, ["value"] = value });
-
-        await AssertRejected(definition, errorKey);
-    }
-
-    [Test(Description = "scenario_TEMP-007-014 - #19")]
-    public async Task Given_HeaderWithEmptyValue_When_UserSavesConnection_Then_ConnectionIsSaved()
-    {
-        var definition = ValidGetDefinition();
-        definition["headers"] = new JsonArray(new JsonObject { ["name"] = "X-Trace", ["value"] = "" });
-
-        await AssertAccepted(definition);
-    }
-
-    [Test(Description = "scenario_TEMP-007-014 - #20")]
     public async Task Given_TwoSavedConnections_When_UserSavesInvalidDefinition_Then_ListStillHasTwoConnections()
     {
         await AssertAccepted(ValidGetDefinition());
@@ -258,7 +235,7 @@ public class ConnectionValidationTests : ConnectionApiTests
     [TestCase("pathParameters", "id", true, "\"42\"")]
     [TestCase("bodyParameters", "limit", true, "10")]
     [TestCase("queryParameters", "pageSize", false, "20")]
-    [Test(Description = "scenario_TEMP-007-014 - #45")]
+    [Test(Description = "scenario_TEMP-007-014 - #43")]
     public async Task Given_ContradictoryParameterDeclaration_When_UserSavesConnection_Then_SavingIsRejected(
         string section,
         string name,

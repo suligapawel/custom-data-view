@@ -20,7 +20,7 @@ połączeń używanych przez kafelki należy do TEMP-020 i nie jest częścią t
 Folder `CustomDataView.Core/Connections/`:
 
 - `Definitions/` — `Connection`, `ConnectionDefinition`, `GetConnectionDefinition`, `PostConnectionDefinition`,
-  `ParameterDeclaration`, `NameValuePair`, `ConnectionInput`, `ParameterDeclarationInput`, `ConnectionMethods`.
+  `ParameterDeclaration`, `ConnectionInput`, `ParameterDeclarationInput`, `ConnectionMethods`.
 - `Validation/` — `ConnectionDefinitionValidator`, `ParameterValuesValidator`, `ParameterNames`.
 - `Templates/` — `UrlTemplate`, `BodyTemplate` (podstawianie wartości i wartości domyślnych).
 - `Calls/` — `IConnection`, `GetConnection`, `PostConnection`, `IConnectionFactory`, `ConnectionFactory`,
@@ -36,14 +36,11 @@ Wspólne wyjątki w `CustomDataView.Core/Exceptions/`: `NotFoundException(id)` o
 ### Zadanie 1 — Definicja połączenia jako szablon (TEMP-007, TEMP-008)
 
 ```csharp
-public sealed record NameValuePair(string Name, string Value);
-
 public sealed record ParameterDeclaration(string Name, bool Required, string DefaultValue);
 
 public abstract record ConnectionDefinition(
     string Name,
     string Url,
-    IReadOnlyList<NameValuePair> Headers,
     IReadOnlyList<ParameterDeclaration> PathParameters,
     IReadOnlyList<ParameterDeclaration> QueryParameters);
 
@@ -63,7 +60,8 @@ public sealed record Connection(Guid Id, ConnectionDefinition Definition);
   GET ↔ POST).
 - `Url` to szablon: parametr ścieżki zapisuje się jako `{name}`, np.
   `https://api.example.com/contracts/{id}/sellers?units=metric`. Stałe query można zostawić w samym URL.
-- `Headers` to stała, uporządkowana lista par; powtórzenia nazw są dozwolone.
+- Definicja nie ma nagłówków: każde połączenie wysyła te same, predefiniowane w kodzie nagłówki — treść POST zawsze
+  jako `Content-Type: application/json`.
 - `PathParameters`, `QueryParameters`, `BodyParameters` to deklaracje: nazwa, czy wymagany, opcjonalna wartość
   domyślna. `DefaultValue` jest przechowywane jako surowy tekst JSON; dla ścieżki i query musi to być tekst JSON, dla
   body dowolna wartość JSON.
@@ -78,7 +76,7 @@ public sealed record Connection(Guid Id, ConnectionDefinition Definition);
 
 `ConnectionDefinitionValidator.Validate(input)` zwraca słownik `pole → komunikaty` (pusty = poprawna definicja). Ten
 sam walidator obsługuje dodanie, edycję i test niezapisanej definicji. Klucze błędów: `name`, `url`, `method`, `body`,
-`headers[i].name|value`, `pathParameters[i].name|defaultValue|required`, `queryParameters[i].…`,
+`pathParameters[i].name|defaultValue|required`, `queryParameters[i].…`,
 `bodyParameters[i].…`.
 
 - `name`: wymagana, po obcięciu spacji niepusta, najwyżej 100 znaków; unikalność nie jest wymagana.
@@ -98,7 +96,6 @@ sam walidator obsługuje dodanie, edycję i test niezapisanej definicji. Klucze 
 - `body` i `bodyParameters` są dozwolone tylko dla POST. POST bez body jest poprawny (wtedy `bodyParameters` musi być
   puste). Wartość JSON `null` i brak pola `body` oznaczają brak body. Niepoprawny składniowo JSON w treści żądania nie
   dociera do walidatora — kończy się 400 przy deserializacji.
-- Nagłówki: nazwa niepusta i zgodna z tokenem RFC 9110; wartość `""` dozwolona, `null` → błąd.
 - Przy błędzie walidacji nic nie jest zapisywane ani wysyłane.
 
 ### Zadanie 3 — Wartości parametrów w czasie wykonania (TEMP-013)
@@ -144,12 +141,10 @@ public sealed class PostConnection(PostConnectionDefinition definition, IExterna
     nadpisywane. Gdy dla nazwy podano wartości, w miejscu jej pierwszej deklaracji trafia po jednej parze na każdą
     wartość (`tag: ["a", "b"]` → `tag=a&tag=b`), a kolejne deklaracje tej nazwy są pomijane. Gdy nie podano wartości,
     każda deklaracja tej nazwy używa swojej wartości domyślnej albo jest pomijana; jeśli którakolwiek deklaracja nazwy
-    jest wymagana, wartość jest wymagana,
-  - stałe nagłówki są dodawane w kolejności listy (`TryAddWithoutValidation`); nagłówki `Content-*` trafiają do
-    `Content`, a przy żądaniu bez body są pomijane.
+    jest wymagana, wartość jest wymagana.
 - `PostConnection` dodatkowo (`BodyTemplate`): klonuje szablon body, każdą wartość `"{name}"` zastępuje wartością JSON
   parametru (typ zachowany: `"{limit}"` + `10` → `10`), wysyła `StringContent(..., UTF-8, "application/json")`.
-  Nagłówek `Content-Type` z definicji nadpisuje domyślny. POST bez body wysyła żądanie bez treści.
+  `Content-Type: application/json` jest stały i nie da się go zmienić. POST bez body wysyła żądanie bez treści.
 - `Get` zakłada wartości zwalidowane przez `ParameterValuesValidator`; naruszenie (np. brak wymaganej ścieżki) →
   `InvalidOperationException`.
 - `ConnectionFactory` (singleton) przyjmuje `IExternalApiClient`; `Create(definition)` zwraca `GetConnection` albo
@@ -207,7 +202,7 @@ public interface IConnectionRepository
 - `Add(definition)` → `Guid`: nadaje id, zapisuje.
 - `GetAll()` → `ConnectionSummaryDto(Id, Name, Method, Url)` w kolejności dodania; `Method` = `"GET"` / `"POST"`
   według typu definicji.
-- `Get(id)` → `ConnectionDto(Id, Name, Method, Url, Headers, PathParameters, QueryParameters, Body, BodyParameters)`;
+- `Get(id)` → `ConnectionDto(Id, Name, Method, Url, PathParameters, QueryParameters, Body, BodyParameters)`;
   `Body` i domyślne wartości body jako `JsonNode`; dla GET `Body = null`, `BodyParameters = []`. Brak →
   `NotFoundException(id)`.
 - `Update(id, definition)`: brak → `NotFoundException(id)`; w przeciwnym razie zastępuje całą definicję (także jej
@@ -226,7 +221,7 @@ public interface IConnectionRepository
 
 ## Kryteria akceptacji
 
-- [ ] Połączenie GET z nazwą, szablonem URL `…/contracts/{id}/sellers`, nagłówkami i deklaracjami parametrów ścieżki
+- [ ] Połączenie GET z nazwą, szablonem URL `…/contracts/{id}/sellers` i deklaracjami parametrów ścieżki
   i query zapisuje się (201) i zwraca `id`.
 - [ ] Połączenie POST z szablonem body `{"contractId": "{id}", "limit": "{limit}"}` i deklaracjami `bodyParameters`
   zapisuje się, a szczegóły zwracają ten sam szablon body.
@@ -243,14 +238,13 @@ public interface IConnectionRepository
 - [ ] Placeholder w URL bez deklaracji ścieżki albo deklaracja ścieżki nieużyta w URL → 400.
 - [ ] Placeholder w body bez deklaracji albo deklaracja body nieużyta w body → 400.
 - [ ] Nazwa parametru ścieżki/body niezgodna z snake_case (np. `Id`, `contract-id`) → 400.
-- [ ] Pusta nazwa parametru query lub nagłówka → 400; nazwa query `pageSize` jest poprawna.
+- [ ] Pusta nazwa parametru query → 400; nazwa query `pageSize` jest poprawna.
 - [ ] Powtórzona nazwa parametru ścieżki lub body → 400; powtórzona nazwa parametru query jest poprawna; ta sama
   nazwa w ścieżce i body jest poprawna.
 - [ ] Parametr wymagany z wartością domyślną → 400; opcjonalny parametr ścieżki bez wartości domyślnej → 400.
-- [ ] Nazwa nagłówka ze spacją lub dwukropkiem → 400; wartość `null` → 400, `""` dozwolona.
 - [ ] Przy błędzie walidacji nic nie zostaje zapisane (lista bez zmian).
 - [ ] Lista jest pusta, gdy nie ma połączeń.
-- [ ] Szczegóły zwracają nazwę, metodę, szablon URL, nagłówki, deklaracje parametrów i szablon body.
+- [ ] Szczegóły zwracają nazwę, metodę, szablon URL, deklaracje parametrów i szablon body.
 - [ ] Szczegóły, edycja, usunięcie i test nieistniejącego (lub niepoprawnego Guid) połączenia → 404.
 - [ ] Edycja zastępuje całą definicję (także GET ↔ POST), zachowuje id i pozycję na liście i podlega tym samym regułom
   walidacji (400).
@@ -290,7 +284,6 @@ Odpowiedzi bez opakowania w `ApiResponse` (jak katalog transformacji).
   "name": "Sprzedawcy kontraktu",
   "method": "GET",
   "url": "https://api.example.com/contracts/{id}/sellers?units=metric",
-  "headers": [ { "name": "Accept-Language", "value": "pl" } ],
   "pathParameters": [ { "name": "id", "required": true } ],
   "queryParameters": [ { "name": "pageSize", "required": false, "defaultValue": "20" } ]
 }
@@ -303,7 +296,6 @@ Odpowiedzi bez opakowania w `ApiResponse` (jak katalog transformacji).
   "name": "Wyszukiwanie sprzedawców",
   "method": "POST",
   "url": "https://api.example.com/sellers/search",
-  "headers": [],
   "pathParameters": [],
   "queryParameters": [],
   "body": { "contractId": "{id}", "limit": "{limit}" },
@@ -365,7 +357,6 @@ rejestrowany w bootstrapperze).
 - `name`: wymagana, niepusta po obcięciu spacji, 1-100 znaków, bez unikalności.
 - `method`: wymagana, `GET` lub `POST` (bez rozróżniania wielkości liter).
 - `url`: wymagany, bezwzględny `http`/`https` po podstawieniu placeholderów; `{name}` tylko w ścieżce.
-- `headers`: opcjonalna lista; `name` niepusta i będąca tokenem RFC 9110, `value` nie-`null` (może być `""`).
 - `pathParameters`: nazwy snake_case ≤ 50, unikalne, zgodne 1:1 z placeholderami URL; wymagany albo z niepustą
   wartością domyślną (tekst).
 - `queryParameters`: nazwy niepuste, mogą się powtarzać; `defaultValue` tekst; `required` wyklucza `defaultValue`.
@@ -430,7 +421,7 @@ Testy w NUnit bez mocków, na prawdziwych obiektach:
 - **`UrlTemplate` i `BodyTemplate`:** kodowanie wartości ścieżki, wielokrotne wystąpienie placeholdera, dopisanie query
   do istniejącego, zachowanie typu wartości w body, brak podmiany kluczy i fragmentów tekstu.
 - **`GetConnection` / `PostConnection`:** na prawdziwym `ExternalApiClient` z własnym `HttpMessageHandler` (testowa
-  implementacja przechwytująca żądanie, nie biblioteka mocków): metoda HTTP, URL, nagłówki, body i `Content-Type`.
+  implementacja przechwytująca żądanie, nie biblioteka mocków): metoda HTTP, URL, body i `Content-Type`.
 - **`ExternalApiClient`:** sukces 2xx z JSON, `unexpected_status` (404, 500, 302 bez podążania), `invalid_json`
   (niepoprawny i pusty 204), `response_too_large` (po `Content-Length` i przy strumieniu bez `Content-Length`),
   `source_unavailable` (`HttpRequestException` i przekroczenie skróconego timeoutu).

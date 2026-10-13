@@ -6,7 +6,7 @@ namespace CustomDataView.Api.Tests.Connections;
 
 public class DeleteConnectionTests : ConnectionApiTests
 {
-    [Test(Description = "scenario_TEMP-007-014 - #26")]
+    [Test(Description = "scenario_TEMP-007-014 - #25")]
     public async Task Given_WeatherConnection_When_UserDeletesIt_Then_ItDisappearsFromListAndDetails()
     {
         var id = await CreateConnection(new { name = "Pogoda", method = "GET", url = "https://api.example.com/weather" });

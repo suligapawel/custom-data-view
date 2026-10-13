@@ -39,8 +39,10 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
 
 - Dodawanie, odczyt listy, odczyt szczegółów, edycja i usuwanie definicji połączenia.
 - Połączenie jest szablonem żądania: nazwa (wymagana, 1-100 znaków, bez wymogu unikalności), szablon URL (http lub
-  https) z parametrami ścieżki `{name}`, rodzaj GET lub POST, stałe nagłówki, deklaracje parametrów ścieżki i query oraz
-  dla POST szablon body JSON z deklaracjami parametrów body.
+  https) z parametrami ścieżki `{name}`, rodzaj GET lub POST, deklaracje parametrów ścieżki i query oraz dla POST szablon
+  body JSON z deklaracjami parametrów body.
+- Połączenie nie definiuje nagłówków: wszystkie połączenia wysyłają te same nagłówki predefiniowane w aplikacji (treść
+  POST zawsze jako `Content-Type: application/json`).
 - Deklaracja parametru zawiera nazwę, informację, czy jest wymagany, oraz opcjonalną wartość domyślną. Wartości
   parametrów są przekazywane w czasie wykonania i podmieniane w szablonie.
 - Brak obsługi uwierzytelniania do zewnętrznych API.

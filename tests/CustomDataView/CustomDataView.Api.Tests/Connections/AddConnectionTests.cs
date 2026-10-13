@@ -14,7 +14,6 @@ public class AddConnectionTests : ConnectionApiTests
             name = "Sprzedawcy kontraktu",
             method = "GET",
             url = "https://api.example.com/contracts/{id}/sellers?units=metric",
-            headers = new[] { new { name = "Accept-Language", value = "pl" } },
             pathParameters = new[] { new { name = "id", required = true } },
             queryParameters = new[] { new { name = "pageSize", required = false, defaultValue = "20" } }
         });

@@ -20,7 +20,6 @@ Dodanie połączenia GET z parametrem w adresie
 ```
 Given użytkownik nie zdefiniował jeszcze połączenia "Sprzedawcy kontraktu"
 When  użytkownik zapisuje połączenie GET "Sprzedawcy kontraktu" z adresem "https://api.example.com/contracts/{id}/sellers?units=metric"
-And   połączenie ma nagłówek "Accept-Language" o wartości "pl"
 And   połączenie deklaruje wymagany parametr adresu "id"
 And   połączenie deklaruje opcjonalny parametr zapytania "pageSize" z wartością domyślną "20"
 Then  połączenie zostaje zapisane
@@ -229,10 +228,10 @@ Examples:
 
 #### Scenario #16
 
-Nazwy parametrów zapytania i nagłówków
+Nazwy parametrów zapytania
 
 ```
-Scenario Outline: nazwy parametrów zapytania i nagłówków
+Scenario Outline: nazwy parametrów zapytania
 Given użytkownik definiuje połączenie z <element> o nazwie <name>
 When  użytkownik zapisuje połączenie
 Then  <outcome>
@@ -240,7 +239,6 @@ Then  <outcome>
 Examples:
   | element               | name       | outcome                                                |
   | parametrem zapytania  | ""         | zapis zostaje odrzucony z informacją o pustej nazwie    |
-  | nagłówkiem            | ""         | zapis zostaje odrzucony z informacją o pustej nazwie    |
   | parametrem zapytania  | "pageSize" | połączenie zostaje zapisane                             |
 ```
 
@@ -280,24 +278,6 @@ Examples:
 
 #### Scenario #19
 
-Niepoprawne nagłówki
-
-```
-Scenario Outline: nagłówki połączenia
-Given użytkownik definiuje połączenie z nagłówkiem <name> o wartości <value>
-When  użytkownik zapisuje połączenie
-Then  <outcome>
-
-Examples:
-  | name             | value        | outcome                                                  |
-  | "Accept Language" | "pl"        | zapis zostaje odrzucony z informacją o błędzie nagłówka  |
-  | "Accept:Language" | "pl"        | zapis zostaje odrzucony z informacją o błędzie nagłówka  |
-  | "X-Trace"        | brak wartości | zapis zostaje odrzucony z informacją o błędzie nagłówka  |
-  | "X-Trace"        | ""           | połączenie zostaje zapisane                              |
-```
-
-#### Scenario #20
-
 Błędna definicja niczego nie zapisuje
 
 ```
@@ -307,7 +287,7 @@ Then  zapis zostaje odrzucony
 And   lista połączeń nadal zawiera 2 połączenia
 ```
 
-#### Scenario #21
+#### Scenario #20
 
 Pusta lista połączeń
 
@@ -317,19 +297,19 @@ When  użytkownik przegląda listę połączeń
 Then  lista połączeń jest pusta
 ```
 
-#### Scenario #22
+#### Scenario #21
 
 Szczegóły połączenia
 
 ```
-Given istnieje połączenie POST "Wyszukiwanie sprzedawców" z nagłówkami, parametrami i szablonem treści
+Given istnieje połączenie POST "Wyszukiwanie sprzedawców" z parametrami i szablonem treści
 When  użytkownik przegląda szczegóły tego połączenia
-Then  widzi nazwę, rodzaj POST, szablon adresu i nagłówki
+Then  widzi nazwę, rodzaj POST i szablon adresu
 And   widzi deklaracje parametrów adresu, zapytania i treści z wymagalnością i wartościami domyślnymi
 And   widzi szablon treści
 ```
 
-#### Scenario #23
+#### Scenario #22
 
 Nieistniejące połączenie
 
@@ -348,7 +328,7 @@ Examples:
   | o identyfikatorze "abc"         | wyświetlić szczegóły    |
 ```
 
-#### Scenario #24
+#### Scenario #23
 
 Edycja połączenia zastępuje całą definicję
 
@@ -360,7 +340,7 @@ And   identyfikator połączenia się nie zmienia
 And   połączenie pozostaje na drugiej pozycji listy
 ```
 
-#### Scenario #25
+#### Scenario #24
 
 Edycja podlega tym samym regułom co dodanie
 
@@ -371,7 +351,7 @@ Then  zmiana zostaje odrzucona z informacją, że treść jest dozwolona tylko d
 And   połączenie zachowuje poprzednią definicję
 ```
 
-#### Scenario #26
+#### Scenario #25
 
 Usunięcie połączenia
 
@@ -382,7 +362,7 @@ Then  połączenie "Pogoda" nie występuje na liście
 And   próba wyświetlenia jego szczegółów kończy się informacją, że połączenie nie zostało znalezione
 ```
 
-#### Scenario #27
+#### Scenario #26
 
 Test połączenia GET z parametrem w adresie
 
@@ -392,7 +372,7 @@ When  użytkownik testuje połączenie z wartością parametru adresu "id" równ
 Then  zewnętrzne API otrzymuje zapytanie GET na adres "https://api.example.com/contracts/42/sellers"
 ```
 
-#### Scenario #28
+#### Scenario #27
 
 Wartość parametru adresu jest bezpiecznie wstawiana
 
@@ -402,7 +382,7 @@ When  użytkownik testuje połączenie z wartością parametru adresu "id" równ
 Then  zewnętrzne API otrzymuje zapytanie na adres "https://api.example.com/contracts/a%2Fb/sellers"
 ```
 
-#### Scenario #29
+#### Scenario #28
 
 Parametry zapytania z wartości i wartości domyślnych
 
@@ -421,7 +401,7 @@ Examples:
   | status = "active"  | "https://api.example.com/sellers?units=metric&pageSize=20&status=active" |
 ```
 
-#### Scenario #30
+#### Scenario #29
 
 Powtórzone parametry zapytania
 
@@ -438,7 +418,7 @@ Examples:
   | "x", "y", "z"        | "https://api.example.com/sellers?tag=x&tag=y&tag=z"     |
 ```
 
-#### Scenario #31
+#### Scenario #30
 
 Test połączenia POST z parametrami treści
 
@@ -449,7 +429,7 @@ Then  zewnętrzne API otrzymuje zapytanie POST z treścią {"contractId": "C-42"
 And   treść jest oznaczona jako JSON
 ```
 
-#### Scenario #32
+#### Scenario #31
 
 Opcjonalny parametr treści bez wartości
 
@@ -466,7 +446,7 @@ Examples:
   | bez wartości domyślnej      | {"contractId": "C-42", "limit": null}     |
 ```
 
-#### Scenario #33
+#### Scenario #32
 
 Niepoprawne wartości parametrów przy teście
 
@@ -485,7 +465,7 @@ Examples:
   | "id" = 42 jako liczba                    | adresu "id"        |
 ```
 
-#### Scenario #34
+#### Scenario #33
 
 Test zapisanego i niezapisanego połączenia daje ten sam wynik
 
@@ -497,7 +477,7 @@ Then  oba testy wysyłają takie samo zapytanie do zewnętrznego API
 And   oba testy zwracają taki sam wynik
 ```
 
-#### Scenario #35
+#### Scenario #34
 
 Test niepoprawnej niezapisanej definicji
 
@@ -508,7 +488,7 @@ Then  test zostaje odrzucony z informacją o błędzie adresu
 And   zewnętrzne API nie otrzymuje żadnego zapytania
 ```
 
-#### Scenario #36
+#### Scenario #35
 
 Udany test połączenia
 
@@ -519,7 +499,7 @@ Then  test kończy się sukcesem
 And   wynik zawiera status 200, czas odpowiedzi w milisekundach i pełną treść {"sellers": [{"name": "ACME"}]}
 ```
 
-#### Scenario #37
+#### Scenario #36
 
 Źródło niedostępne
 
@@ -535,7 +515,7 @@ Examples:
   | zewnętrzne API nie odpowiada dłużej niż 10 sekund       |
 ```
 
-#### Scenario #38
+#### Scenario #37
 
 Nieoczekiwany status odpowiedzi
 
@@ -553,7 +533,7 @@ Examples:
   | 503    |
 ```
 
-#### Scenario #39
+#### Scenario #38
 
 Odpowiedź, która nie jest JSON
 
@@ -569,7 +549,7 @@ Examples:
   | 204    | pustą              |
 ```
 
-#### Scenario #40
+#### Scenario #39
 
 Zbyt duża odpowiedź
 
@@ -580,7 +560,7 @@ Then  test kończy się błędem "response_too_large"
 And   odpowiedź nie jest wczytywana w całości
 ```
 
-#### Scenario #41
+#### Scenario #40
 
 Test nie zmienia konfiguracji
 
@@ -592,19 +572,7 @@ And   definicja połączenia "Sprzedawcy kontraktu" pozostaje bez zmian
 And   wynik testu nie jest nigdzie zapisany
 ```
 
-#### Scenario #42
-
-Test połączenia wysyła stałe nagłówki z definicji
-
-```
-Given istnieje połączenie POST z nagłówkami "Accept-Language" o wartości "pl" oraz "Content-Type" o wartości "application/vnd.api+json"
-And   połączenie ma szablon treści {"status": "active"}
-When  użytkownik testuje połączenie
-Then  zewnętrzne API otrzymuje nagłówek "Accept-Language" o wartości "pl"
-And   treść jest oznaczona typem "application/vnd.api+json"
-```
-
-#### Scenario #43
+#### Scenario #41
 
 Opcjonalny parametr adresu używa wartości domyślnej
 
@@ -615,7 +583,7 @@ When  użytkownik testuje połączenie bez wartości parametru "version"
 Then  zewnętrzne API otrzymuje zapytanie na adres "https://api.example.com/v1/sellers"
 ```
 
-#### Scenario #44
+#### Scenario #42
 
 Niepoprawne wartości parametrów zapytania i treści przy teście
 
@@ -636,7 +604,7 @@ Examples:
   | nieznany parametr treści "foo"                | treści "foo"         |
 ```
 
-#### Scenario #45
+#### Scenario #43
 
 Sprzeczna deklaracja parametru adresu lub treści
 
