@@ -91,6 +91,18 @@ public class TileValidationTests : TileApiTests
         Assert.That(errors["fields[0].connectionId"]![0]!.GetValue<string>(), Does.Contain(missingId.ToString()));
     }
 
+    [Test(Description = "scenario_TEMP-015-023 - #12")]
+    public async Task Given_FirstFieldWithReverseTransformation_When_UserSavesTile_Then_SaveIsRejectedWithKeyInError()
+    {
+        var tile = ValidTile();
+        tile["fields"]![0]!["transformations"] = new JsonArray(new JsonObject { ["key"] = "reverse" });
+
+        var response = await Client.PostAsJsonAsync(TilesUrl, tile);
+
+        var errors = await AssertRejected(response, "fields[0].transformations[0].key");
+        Assert.That(errors["fields[0].transformations[0].key"]![0]!.GetValue<string>(), Does.Contain("reverse"));
+    }
+
     private JsonObject ValidTile()
         => new()
         {
