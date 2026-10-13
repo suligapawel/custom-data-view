@@ -69,5 +69,21 @@ public class AddConnectionTests
             Is.True);
     }
 
+    [Test(Description = "scenario_TEMP-007-014 - #3")]
+    public async Task Given_PostConnectionWithoutBodyTemplate_When_UserSavesIt_Then_ConnectionIsSaved()
+    {
+        var response = await client.PostAsJsonAsync(ConnectionsUrl, new
+        {
+            name = "Odświeżenie danych",
+            method = "POST",
+            url = "https://api.example.com/refresh"
+        });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        var created = await response.Content.ReadFromJsonAsync<CreatedConnection>();
+        var details = await client.GetFromJsonAsync<JsonObject>($"{ConnectionsUrl}/{created.Id}");
+        Assert.That(details["body"], Is.Null);
+    }
+
     private sealed record CreatedConnection(Guid Id);
 }
