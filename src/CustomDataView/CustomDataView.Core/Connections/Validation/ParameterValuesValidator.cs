@@ -30,6 +30,14 @@ public static class ParameterValuesValidator
             errors[$"parameters.path.{name}"] = ["Parametr nie został zadeklarowany w połączeniu."];
         }
 
+        foreach (var parameter in definition.QueryParameters)
+        {
+            if (parameter.Required && !values.Query.ContainsKey(parameter.Name))
+            {
+                errors[$"parameters.query.{parameter.Name}"] = ["Wartość wymaganego parametru jest wymagana."];
+            }
+        }
+
         return errors;
     }
 }

@@ -267,4 +267,30 @@ public class TestConnectionTests : ConnectionApiTests
 
         Assert.That(Factory.ExternalApi.Requests.Single().Url, Is.EqualTo("https://api.example.com/v1/sellers"));
     }
+
+    [TestCase("""{"body": {"id": "C-1"}}""", "parameters.query.status")]
+    [Test(Description = "scenario_TEMP-007-014 - #44")]
+    public async Task Given_PostConnectionWithRequiredQueryAndBodyParameters_When_UserTestsItWithInvalidValues_Then_TestIsRejected(
+        string parameters,
+        string errorKey)
+    {
+        var id = await CreateConnection(new
+        {
+            name = "Wyszukiwanie sprzedawców",
+            method = "POST",
+            url = "https://api.example.com/sellers/search",
+            queryParameters = new[] { new { name = "status", required = true } },
+            body = new { contractId = "{id}" },
+            bodyParameters = new[] { new { name = "id", required = true } }
+        });
+
+        var response = await Client.PostAsJsonAsync(
+            $"{ConnectionsUrl}/{id}/test",
+            new JsonObject { ["parameters"] = JsonNode.Parse(parameters) });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        var problem = await response.Content.ReadFromJsonAsync<JsonObject>();
+        Assert.That(problem["errors"]!.AsObject().ContainsKey(errorKey), Is.True);
+        Assert.That(Factory.ExternalApi.Requests, Is.Empty);
+    }
 }
