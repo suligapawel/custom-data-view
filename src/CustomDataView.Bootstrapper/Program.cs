@@ -1,5 +1,6 @@
 using CustomDataView.Api.Endpoints;
 using CustomDataView.Api.Errors;
+using CustomDataView.Bootstrapper.Development;
 using CustomDataView.Core;
 using Scalar.AspNetCore;
 
@@ -19,6 +20,7 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.MapScalarApiReference();
+    app.MapFakeWeatherEndpoints();
 }
 
 app.MapTransformationEndpoints();
