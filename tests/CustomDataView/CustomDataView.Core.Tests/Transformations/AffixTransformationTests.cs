@@ -1,7 +1,6 @@
 using System.Text.Json.Nodes;
 using CustomDataView.Core.Transformations;
-using CustomDataView.Core.Transformations.Prefix;
-using CustomDataView.Core.Transformations.Suffix;
+using CustomDataView.Core.Transformations.Implementations;
 
 namespace CustomDataView.Core.Tests.Transformations;
 

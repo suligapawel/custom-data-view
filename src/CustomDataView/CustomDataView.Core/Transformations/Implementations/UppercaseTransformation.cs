@@ -1,4 +1,4 @@
-namespace CustomDataView.Core.Transformations.Uppercase;
+namespace CustomDataView.Core.Transformations.Implementations;
 
 public sealed class UppercaseTransformation : Transformation
 {

@@ -1,4 +1,4 @@
-namespace CustomDataView.Core.Transformations.Truncate;
+namespace CustomDataView.Core.Transformations.Implementations;
 
 public sealed class TruncateTransformation : Transformation
 {

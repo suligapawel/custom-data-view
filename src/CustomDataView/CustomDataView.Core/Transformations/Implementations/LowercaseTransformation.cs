@@ -1,4 +1,4 @@
-namespace CustomDataView.Core.Transformations.Lowercase;
+namespace CustomDataView.Core.Transformations.Implementations;
 
 public sealed class LowercaseTransformation : Transformation
 {

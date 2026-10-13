@@ -1,4 +1,4 @@
-namespace CustomDataView.Core.Transformations.Suffix;
+namespace CustomDataView.Core.Transformations.Implementations;
 
 public sealed class SuffixTransformation : Transformation
 {

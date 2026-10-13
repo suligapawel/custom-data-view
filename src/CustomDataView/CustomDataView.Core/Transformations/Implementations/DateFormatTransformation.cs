@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace CustomDataView.Core.Transformations.DateFormat;
+namespace CustomDataView.Core.Transformations.Implementations;
 
 public sealed class DateFormatTransformation : Transformation
 {

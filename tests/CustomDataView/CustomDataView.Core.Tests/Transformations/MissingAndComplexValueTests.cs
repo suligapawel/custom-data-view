@@ -1,8 +1,6 @@
 using System.Text.Json.Nodes;
 using CustomDataView.Core.Transformations;
-using CustomDataView.Core.Transformations.Round;
-using CustomDataView.Core.Transformations.Truncate;
-using CustomDataView.Core.Transformations.Uppercase;
+using CustomDataView.Core.Transformations.Implementations;
 
 namespace CustomDataView.Core.Tests.Transformations;
 

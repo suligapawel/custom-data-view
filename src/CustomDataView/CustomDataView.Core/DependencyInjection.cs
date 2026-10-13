@@ -1,12 +1,6 @@
 using CustomDataView.Core.Transformations;
 using CustomDataView.Core.Transformations.Catalog;
-using CustomDataView.Core.Transformations.DateFormat;
-using CustomDataView.Core.Transformations.Lowercase;
-using CustomDataView.Core.Transformations.Prefix;
-using CustomDataView.Core.Transformations.Round;
-using CustomDataView.Core.Transformations.Suffix;
-using CustomDataView.Core.Transformations.Truncate;
-using CustomDataView.Core.Transformations.Uppercase;
+using CustomDataView.Core.Transformations.Implementations;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CustomDataView.Core;

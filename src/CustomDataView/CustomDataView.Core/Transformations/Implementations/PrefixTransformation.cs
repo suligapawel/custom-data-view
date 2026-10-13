@@ -1,4 +1,4 @@
-namespace CustomDataView.Core.Transformations.Prefix;
+namespace CustomDataView.Core.Transformations.Implementations;
 
 public sealed class PrefixTransformation : Transformation
 {
