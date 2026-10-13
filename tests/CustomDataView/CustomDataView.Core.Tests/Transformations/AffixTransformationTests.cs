@@ -49,6 +49,18 @@ public class AffixTransformationTests
         Assert.That(exception.Parameter, Is.EqualTo("text"));
     }
 
+    [Test(Description = "scenario_TEMP-001-006 - #10")]
+    public void Given_SuffixWithoutText_When_ValueIsAbc_Then_FailsWithInvalidTextParameter()
+    {
+        var transformation = new SuffixTransformation(new IdentityTransformation(), new TransformationParameters(null));
+
+        var exception = Assert.Throws<TransformationFailedException>(() => transformation.Apply("abc"));
+
+        Assert.That(exception.Key, Is.EqualTo("suffix"));
+        Assert.That(exception.Reason, Is.EqualTo(TransformationFailureReasons.InvalidParameter));
+        Assert.That(exception.Parameter, Is.EqualTo("text"));
+    }
+
     private static TransformationParameters CreateText(JsonNode text)
     {
         return new TransformationParameters(new Dictionary<string, JsonNode> { ["text"] = text });
