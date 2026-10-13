@@ -6,65 +6,73 @@ namespace CustomDataView.Core.Connections.Validation;
 
 public static class ConnectionDefinitionValidator
 {
+    private const int MaxNameLength = 100;
     private const string RepeatedNameMessage = "Nazwa parametru powtarza się.";
     private const string SnakeCaseMessage = "Nazwa parametru musi być w formacie snake_case i mieć najwyżej 50 znaków.";
 
     public static IDictionary<string, string[]> Validate(ConnectionInput input)
     {
         var errors = new Dictionary<string, string[]>();
-        if (string.IsNullOrWhiteSpace(input.Name) || input.Name.Length > 100)
-        {
-            errors["name"] = ["Nazwa połączenia jest wymagana."];
-        }
+        ValidateName(input, errors);
+        ValidateMethod(input, errors);
+        ValidateUrl(input, errors);
+        ValidateHeaders(input, errors);
+        ValidateQueryParameters(input, errors);
+        ValidateBody(input, errors);
+        return errors;
+    }
 
+    private static void ValidateName(ConnectionInput input, Dictionary<string, string[]> errors)
+    {
+        if (string.IsNullOrWhiteSpace(input.Name) || input.Name.Length > MaxNameLength)
+        {
+            errors["name"] = [$"Nazwa połączenia jest wymagana i może mieć najwyżej {MaxNameLength} znaków."];
+        }
+    }
+
+    private static void ValidateMethod(ConnectionInput input, Dictionary<string, string[]> errors)
+    {
+        if (!IsGet(input.Method) && !IsPost(input.Method))
+        {
+            errors["method"] = ["Rodzaj połączenia musi być GET albo POST."];
+        }
+    }
+
+    private static void ValidateUrl(ConnectionInput input, Dictionary<string, string[]> errors)
+    {
         if (!Uri.TryCreate(input.Url, UriKind.Absolute, out var url)
             || (url.Scheme != Uri.UriSchemeHttp && url.Scheme != Uri.UriSchemeHttps)
             || UrlTemplate.HasPlaceholdersOutsidePath(input.Url)
             || UrlTemplate.HasUnclosedBraces(input.Url))
         {
-            errors["url"] = ["Adres połączenia musi być bezwzględnym adresem http lub https."];
+            errors["url"] = ["Adres połączenia musi być bezwzględnym adresem http lub https z parametrami tylko w ścieżce."];
+            return;
         }
-        else
+
+        var placeholders = UrlTemplate.PlaceholderNames(input.Url);
+        var undeclared = Undeclared(placeholders, input.PathParameters);
+        if (undeclared.Count > 0)
         {
-            var placeholders = UrlTemplate.PlaceholderNames(input.Url);
-            var declared = input.PathParameters.Select(parameter => parameter.Name).ToHashSet();
-            var undeclared = placeholders.Where(name => !declared.Contains(name)).ToList();
-            if (undeclared.Count > 0)
-            {
-                errors["url"] = undeclared.Select(name => $"Parametr adresu \"{name}\" nie został zadeklarowany.").ToArray();
-            }
+            errors["url"] = undeclared.Select(name => $"Parametr adresu \"{name}\" nie został zadeklarowany.").ToArray();
+        }
 
-            for (var index = 0; index < input.PathParameters.Count; index++)
-            {
-                if (!ParameterNames.IsSnakeCase(input.PathParameters[index].Name))
-                {
-                    errors[$"pathParameters[{index}].name"] = [SnakeCaseMessage];
-                }
-                else if (IsRepeated(input.PathParameters, index))
-                {
-                    errors[$"pathParameters[{index}].name"] = [RepeatedNameMessage];
-                }
-                else if (!placeholders.Contains(input.PathParameters[index].Name))
-                {
-                    errors[$"pathParameters[{index}].name"] = ["Parametr adresu nie występuje w adresie."];
-                }
+        for (var index = 0; index < input.PathParameters.Count; index++)
+        {
+            var key = $"pathParameters[{index}]";
+            ValidateTemplateParameterName(input.PathParameters, index, placeholders, key, errors, "Parametr adresu nie występuje w adresie.");
 
-                var parameter = input.PathParameters[index];
-                if (!parameter.Required
-                    && (parameter.DefaultValue is not { ValueKind: JsonValueKind.String } defaultValue
-                        || defaultValue.GetString() == string.Empty))
-                {
-                    errors[$"pathParameters[{index}].defaultValue"] =
-                        ["Parametr adresu musi być wymagany albo mieć niepustą wartość domyślną."];
-                }
+            var parameter = input.PathParameters[index];
+            if (!parameter.Required
+                && (parameter.DefaultValue is not { ValueKind: JsonValueKind.String } defaultValue
+                    || defaultValue.GetString() == string.Empty))
+            {
+                errors[$"{key}.defaultValue"] = ["Parametr adresu musi być wymagany albo mieć niepustą wartość domyślną."];
             }
         }
+    }
 
-        if (!IsSupportedMethod(input.Method))
-        {
-            errors["method"] = ["Rodzaj połączenia musi być GET albo POST."];
-        }
-
+    private static void ValidateHeaders(ConnectionInput input, Dictionary<string, string[]> errors)
+    {
         for (var index = 0; index < input.Headers.Count; index++)
         {
             if (!ParameterNames.IsHeaderToken(input.Headers[index].Name))
@@ -77,90 +85,45 @@ public static class ConnectionDefinitionValidator
                 errors[$"headers[{index}].value"] = ["Wartość nagłówka jest wymagana (może być pusta)."];
             }
         }
+    }
 
+    private static void ValidateQueryParameters(ConnectionInput input, Dictionary<string, string[]> errors)
+    {
         for (var index = 0; index < input.QueryParameters.Count; index++)
         {
-            if (string.IsNullOrEmpty(input.QueryParameters[index].Name))
+            var parameter = input.QueryParameters[index];
+            if (string.IsNullOrEmpty(parameter.Name))
             {
                 errors[$"queryParameters[{index}].name"] = ["Nazwa parametru zapytania jest wymagana."];
             }
 
-            ValidateDefaultValue(input.QueryParameters[index], $"queryParameters[{index}]", errors);
-        }
-
-        if (IsGet(input.Method) && input.Body is { ValueKind: not JsonValueKind.Null })
-        {
-            errors["body"] = ["Treść jest dozwolona tylko dla połączenia POST."];
-        }
-
-        for (var index = 0; index < input.Headers.Count; index++)
-        {
-            if (!ParameterNames.IsHeaderToken(input.Headers[index].Name))
+            if (parameter.Required && parameter.DefaultValue is not null)
             {
-                errors[$"headers[{index}].name"] = ["Nazwa nagłówka jest wymagana i nie może zawierać spacji ani dwukropka."];
-            }
-
-            if (input.Headers[index].Value is null)
-            {
-                errors[$"headers[{index}].value"] = ["Wartość nagłówka jest wymagana (może być pusta)."];
+                errors[$"queryParameters[{index}].defaultValue"] = ["Parametr wymagany nie może mieć wartości domyślnej."];
             }
         }
+    }
 
-        for (var index = 0; index < input.QueryParameters.Count; index++)
+    private static void ValidateBody(ConnectionInput input, Dictionary<string, string[]> errors)
+    {
+        var hasBody = input.Body is { ValueKind: not JsonValueKind.Null };
+        if (IsGet(input.Method))
         {
-            if (string.IsNullOrEmpty(input.QueryParameters[index].Name))
+            if (hasBody)
             {
-                errors[$"queryParameters[{index}].name"] = ["Nazwa parametru zapytania jest wymagana."];
+                errors["body"] = ["Treść jest dozwolona tylko dla połączenia POST."];
             }
 
-            ValidateDefaultValue(input.QueryParameters[index], $"queryParameters[{index}]", errors);
+            if (input.BodyParameters.Count > 0)
+            {
+                errors["bodyParameters"] = ["Parametry treści są dozwolone tylko dla połączenia POST."];
+            }
+
+            return;
         }
 
-        if (IsGet(input.Method) && input.BodyParameters.Count > 0)
-        {
-            errors["bodyParameters"] = ["Parametry treści są dozwolone tylko dla połączenia POST."];
-        }
-        else if (!errors.ContainsKey("body"))
-        {
-            ValidateBodyParameters(input, errors);
-        }
-
-        return errors;
-    }
-
-    private static void ValidateDefaultValue(
-        ParameterDeclarationInput parameter,
-        string key,
-        Dictionary<string, string[]> errors)
-    {
-        if (parameter.Required && parameter.DefaultValue is not null)
-        {
-            errors[$"{key}.defaultValue"] = ["Parametr wymagany nie może mieć wartości domyślnej."];
-        }
-    }
-
-    private static bool IsRepeated(IReadOnlyList<ParameterDeclarationInput> parameters, int index)
-    {
-        return parameters.Take(index).Any(parameter => parameter.Name == parameters[index].Name);
-    }
-
-    private static bool IsSupportedMethod(string method)
-    {
-        return IsGet(method) || string.Equals(method, "POST", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool IsGet(string method)
-    {
-        return string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static void ValidateBodyParameters(ConnectionInput input, Dictionary<string, string[]> errors)
-    {
-        var placeholders = input.Body is { ValueKind: not JsonValueKind.Null } body
-            ? BodyTemplate.PlaceholderNames(body)
-            : [];
-        var declared = input.BodyParameters.Select(parameter => parameter.Name).ToHashSet();
-        var undeclared = placeholders.Where(name => !declared.Contains(name)).ToList();
+        var placeholders = hasBody ? BodyTemplate.PlaceholderNames(input.Body!.Value) : [];
+        var undeclared = Undeclared(placeholders, input.BodyParameters);
         if (undeclared.Count > 0)
         {
             errors["body"] = undeclared.Select(name => $"Parametr treści \"{name}\" nie został zadeklarowany.").ToArray();
@@ -168,18 +131,52 @@ public static class ConnectionDefinitionValidator
 
         for (var index = 0; index < input.BodyParameters.Count; index++)
         {
-            if (!ParameterNames.IsSnakeCase(input.BodyParameters[index].Name))
-            {
-                errors[$"bodyParameters[{index}].name"] = [SnakeCaseMessage];
-            }
-            else if (IsRepeated(input.BodyParameters, index))
-            {
-                errors[$"bodyParameters[{index}].name"] = [RepeatedNameMessage];
-            }
-            else if (!placeholders.Contains(input.BodyParameters[index].Name))
-            {
-                errors[$"bodyParameters[{index}].name"] = ["Parametr treści nie występuje w treści."];
-            }
+            ValidateTemplateParameterName(
+                input.BodyParameters,
+                index,
+                placeholders,
+                $"bodyParameters[{index}]",
+                errors,
+                "Parametr treści nie występuje w treści.");
         }
+    }
+
+    private static void ValidateTemplateParameterName(
+        IReadOnlyList<ParameterDeclarationInput> parameters,
+        int index,
+        IReadOnlyList<string> placeholders,
+        string key,
+        Dictionary<string, string[]> errors,
+        string unusedMessage)
+    {
+        var name = parameters[index].Name;
+        if (!ParameterNames.IsSnakeCase(name))
+        {
+            errors[$"{key}.name"] = [SnakeCaseMessage];
+        }
+        else if (parameters.Take(index).Any(parameter => parameter.Name == name))
+        {
+            errors[$"{key}.name"] = [RepeatedNameMessage];
+        }
+        else if (!placeholders.Contains(name))
+        {
+            errors[$"{key}.name"] = [unusedMessage];
+        }
+    }
+
+    private static List<string> Undeclared(IReadOnlyList<string> placeholders, IReadOnlyList<ParameterDeclarationInput> parameters)
+    {
+        var declared = parameters.Select(parameter => parameter.Name).ToHashSet();
+        return placeholders.Where(name => !declared.Contains(name)).ToList();
+    }
+
+    private static bool IsGet(string method)
+    {
+        return string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsPost(string method)
+    {
+        return string.Equals(method, "POST", StringComparison.OrdinalIgnoreCase);
     }
 }
