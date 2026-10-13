@@ -11,7 +11,7 @@ public sealed class RoundTransformation : DecoratorTransformation
     {
     }
 
-    public override string Key => "round";
+    public override string Key => RoundTransformationDefinition.TransformationKey;
 
     protected override object Transform(object value)
     {

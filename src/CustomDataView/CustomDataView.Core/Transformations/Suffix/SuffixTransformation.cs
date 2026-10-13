@@ -9,7 +9,7 @@ public sealed class SuffixTransformation : DecoratorTransformation
     {
     }
 
-    public override string Key => "suffix";
+    public override string Key => SuffixTransformationDefinition.TransformationKey;
 
     protected override object Transform(object value)
     {
