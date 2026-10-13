@@ -1,6 +1,5 @@
 using System.Text.Json.Nodes;
 using CustomDataView.Core.Transformations;
-using CustomDataView.Core.Transformations.Catalog;
 using CustomDataView.Core.Transformations.Chain;
 using CustomDataView.Core.Transformations.Implementations;
 
@@ -89,7 +88,7 @@ public class TransformationChainTests
             new SuffixTransformation(),
             new UppercaseTransformation()
         ];
-        return new TransformationChainExecutor(new TransformationCatalog(transformations));
+        return new TransformationChainExecutor(new TransformationService(transformations));
     }
 
     private static TransformationStep Step(string key, params (string Name, JsonNode Value)[] parameters)

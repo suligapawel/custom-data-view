@@ -1,5 +1,4 @@
 using CustomDataView.Core.Transformations;
-using CustomDataView.Core.Transformations.Catalog;
 using CustomDataView.Core.Transformations.Implementations;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -16,8 +15,7 @@ public static class DependencyInjection
         services.AddSingleton<ITransformation, SuffixTransformation>();
         services.AddSingleton<ITransformation, TruncateTransformation>();
         services.AddSingleton<ITransformation, UppercaseTransformation>();
-        services.AddSingleton<ITransformationCatalog, TransformationCatalog>();
-        services.AddSingleton<ITransformationCatalogService, TransformationCatalogService>();
+        services.AddSingleton<ITransformationService, TransformationService>();
         return services;
     }
 }

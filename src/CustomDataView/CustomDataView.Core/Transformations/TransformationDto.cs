@@ -1,4 +1,4 @@
-namespace CustomDataView.Core.Transformations.Catalog;
+namespace CustomDataView.Core.Transformations;
 
 public sealed record TransformationDto(
     string Key,

@@ -1,16 +1,14 @@
-using CustomDataView.Core.Transformations.Catalog;
-
 namespace CustomDataView.Core.Transformations.Chain;
 
 public sealed class TransformationChainExecutor
 {
     public const string TransformationFailedCode = "transformation_failed";
 
-    private readonly ITransformationCatalog _catalog;
+    private readonly ITransformationService _service;
 
-    public TransformationChainExecutor(ITransformationCatalog catalog)
+    public TransformationChainExecutor(ITransformationService service)
     {
-        _catalog = catalog;
+        _service = service;
     }
 
     public TransformationChainResult Execute(object value, IReadOnlyList<TransformationStep> steps)
@@ -19,7 +17,7 @@ public sealed class TransformationChainExecutor
         {
             foreach (var step in steps)
             {
-                var transformation = _catalog.Find(step.Key)
+                var transformation = _service.Find(step.Key)
                     ?? throw new TransformationFailedException(step.Key, TransformationFailureReasons.UnknownTransformation);
                 value = transformation.Apply(value, new TransformationParameters(step.Parameters));
             }
