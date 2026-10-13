@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>CustomDataView.Bootstrapper</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CustomDataView\CustomDataView.Api\CustomDataView.Api.csproj" />
+    <ProjectReference Include="..\CustomDataView\CustomDataView.Core\CustomDataView.Core.csproj" />
+  </ItemGroup>
+
+</Project>
