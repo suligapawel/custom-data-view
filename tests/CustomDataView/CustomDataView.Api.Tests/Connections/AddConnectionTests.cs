@@ -84,12 +84,16 @@ public class AddConnectionTests : ConnectionApiTests
             Is.EqualTo(new[] { first, second }));
     }
 
+    [TestCase("get", "GET")]
+    [TestCase("Post", "POST")]
     [Test(Description = "scenario_TEMP-007-014 - #6")]
-    public async Task Given_MethodWrittenInLowercase_When_UserSavesConnection_Then_ItIsSavedAsGetConnection()
+    public async Task Given_MethodInAnyLetterCase_When_UserSavesConnection_Then_ItIsSavedWithThatMethod(string method, string savedMethod)
     {
-        var id = await CreateConnection(new { name = "Pogoda", method = "get", url = "https://api.example.com/weather" });
+        var id = await CreateConnection(new { name = "Pogoda", method, url = "https://api.example.com/weather" });
 
         var connections = await Client.GetFromJsonAsync<JsonArray>(ConnectionsUrl);
-        Assert.That(connections.Single(connection => connection["id"]!.GetValue<Guid>() == id)["method"]!.GetValue<string>(), Is.EqualTo("GET"));
+        Assert.That(
+            connections.Single(connection => connection["id"]!.GetValue<Guid>() == id)["method"]!.GetValue<string>(),
+            Is.EqualTo(savedMethod));
     }
 }

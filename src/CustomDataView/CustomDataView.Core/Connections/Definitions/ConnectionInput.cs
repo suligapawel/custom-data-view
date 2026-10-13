@@ -6,7 +6,7 @@ public sealed record ConnectionInput(string Name, string Method, string Url, Jso
 {
     public ConnectionDefinition ToDefinition()
     {
-        if (Method == "POST")
+        if (string.Equals(Method, "POST", StringComparison.OrdinalIgnoreCase))
         {
             var body = Body is { ValueKind: not JsonValueKind.Null } element ? element.GetRawText() : null;
             return new PostConnectionDefinition(Name, Url, body);
