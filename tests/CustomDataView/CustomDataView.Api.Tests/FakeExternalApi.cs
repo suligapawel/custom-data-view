@@ -18,11 +18,15 @@ public sealed class FakeExternalApi : HttpMessageHandler
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var body = request.Content is null ? null : await request.Content.ReadAsStringAsync(cancellationToken);
-        requests.Add(new ReceivedRequest(
-            request.Method.Method,
-            request.RequestUri!.AbsoluteUri,
-            request.Content?.Headers.ContentType?.MediaType,
-            body));
+        lock (requests)
+        {
+            requests.Add(new ReceivedRequest(
+                request.Method.Method,
+                request.RequestUri!.AbsoluteUri,
+                request.Content?.Headers.ContentType?.MediaType,
+                body));
+        }
+
         return await Respond(request, cancellationToken);
     }
 
