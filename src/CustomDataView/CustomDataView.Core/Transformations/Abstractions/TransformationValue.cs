@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.Json.Nodes;
 
-namespace CustomDataView.Core.Transformations;
+namespace CustomDataView.Core.Transformations.Abstractions;
 
 public static class TransformationValue
 {

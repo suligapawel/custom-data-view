@@ -1,4 +1,4 @@
-namespace CustomDataView.Core.Transformations;
+namespace CustomDataView.Core.Transformations.Execution;
 
 public interface ITransformationService
 {

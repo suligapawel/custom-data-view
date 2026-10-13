@@ -1,3 +1,5 @@
+using CustomDataView.Core.Transformations.Abstractions;
+
 namespace CustomDataView.Core.Transformations.Catalog;
 
 public sealed class TransformationCatalogService : ITransformationCatalogService

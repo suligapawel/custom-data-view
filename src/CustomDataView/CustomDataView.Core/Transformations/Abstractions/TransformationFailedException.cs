@@ -1,4 +1,4 @@
-namespace CustomDataView.Core.Transformations;
+namespace CustomDataView.Core.Transformations.Abstractions;
 
 public sealed class TransformationFailedException : Exception
 {

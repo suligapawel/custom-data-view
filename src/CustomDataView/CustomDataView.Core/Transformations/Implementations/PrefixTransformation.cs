@@ -1,3 +1,5 @@
+using CustomDataView.Core.Transformations.Abstractions;
+
 namespace CustomDataView.Core.Transformations.Implementations;
 
 public sealed class PrefixTransformation : Transformation

@@ -1,4 +1,4 @@
-namespace CustomDataView.Core.Transformations;
+namespace CustomDataView.Core.Transformations.Abstractions;
 
 public abstract class Transformation : ITransformation
 {
