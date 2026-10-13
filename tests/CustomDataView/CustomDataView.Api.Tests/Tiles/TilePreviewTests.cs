@@ -37,6 +37,39 @@ public class TilePreviewTests : TileApiTests
         AssertValues(preview, """["21.5 °C", "ACME", 4.32]""");
     }
 
+    [TestCase(false)]
+    [TestCase(true)]
+    [Test(Description = "scenario_TEMP-015-023 - #14")]
+    public async Task Given_SavedTileWithInvalidRoundParameter_When_UserPreviewsIt_Then_FieldHasInvalidParameterError(bool outOfRange)
+    {
+        var round = outOfRange ? Transformation("round", new { decimals = 20 }) : Transformation("round");
+        var response = await Client.PostAsJsonAsync(TilesUrl, new
+        {
+            name = "Klient",
+            fields = new[] { Field(CustomerConnectionId, "$.balance", "Saldo", round) }
+        });
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        var id = (await response.Content.ReadFromJsonAsync<CreatedTile>()).Id;
+
+        var preview = await Preview(id, CustomerValues());
+
+        AssertError(preview, 0, """{"code": "transformation_failed", "transformation": "round", "reason": "invalid_parameter"}""");
+    }
+
+    private async Task<JsonObject> Preview(Guid id, object values)
+    {
+        var response = await Client.PostAsJsonAsync($"{TilesUrl}/{id}/preview", values);
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        return await response.Content.ReadFromJsonAsync<JsonObject>();
+    }
+
+    private static void AssertError(JsonObject preview, int index, string expected)
+    {
+        var field = preview["fields"]![index]!.AsObject();
+        Assert.That(JsonNode.DeepEquals(field["error"], JsonNode.Parse(expected)), Is.True, field.ToJsonString());
+        Assert.That(field.ContainsKey("value"), Is.False, field.ToJsonString());
+    }
+
     private static void AssertValues(JsonObject preview, string expected)
     {
         var values = new JsonArray(preview["fields"]!.AsArray().Select(field => field["value"]?.DeepClone()).ToArray());

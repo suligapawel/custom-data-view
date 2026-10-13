@@ -70,6 +70,9 @@ public abstract class TileApiTests : ConnectionApiTests
             }
         };
 
+    protected object CustomerValues()
+        => new { connections = new[] { new { connectionId = CustomerConnectionId, path = new { customer_id = "42" } } } };
+
     protected static HttpResponseMessage Json(string body)
         => new(HttpStatusCode.OK) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
 

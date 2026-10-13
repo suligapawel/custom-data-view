@@ -60,6 +60,11 @@ public sealed class TilePreviewService(
         JsonPathParser.TryParse(field.Path, out var path);
         var value = path.Evaluate(response.Body).Single();
         var result = transformations.Apply(TransformationValue.FromJson(value), field.Transformations);
+        if (result.Error is { } error)
+        {
+            return new TileFieldPreview(field.Label, null, new TileFieldError(error.Code, error.Key, error.Reason));
+        }
+
         return new TileFieldPreview(field.Label, TransformationValue.ToJson(result.Value));
     }
 }
