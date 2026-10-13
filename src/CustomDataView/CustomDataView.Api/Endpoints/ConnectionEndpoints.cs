@@ -1,5 +1,6 @@
 using CustomDataView.Api.Requests;
 using CustomDataView.Core.Connections.Management;
+using CustomDataView.Core.Connections.Testing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -40,6 +41,11 @@ public static class ConnectionEndpoints
         {
             service.Delete(id);
             return Results.NoContent();
+        });
+        endpoints.MapPost($"{ConnectionsUrl}/{{id:guid}}/test", (Guid id, IConnectionTestService service) =>
+        {
+            service.Test(id);
+            return Results.Ok();
         });
         return endpoints;
     }

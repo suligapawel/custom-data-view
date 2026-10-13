@@ -1,5 +1,6 @@
 using CustomDataView.Core.Connections.Management;
 using CustomDataView.Core.Connections.Persistence;
+using CustomDataView.Core.Connections.Testing;
 using CustomDataView.Core.Transformations.Abstractions;
 using CustomDataView.Core.Transformations.Catalog;
 using CustomDataView.Core.Transformations.Execution;
@@ -28,6 +29,7 @@ public static class DependencyInjection
     {
         services.AddSingleton<IConnectionRepository, InMemoryConnectionRepository>();
         services.AddSingleton<IConnectionService, ConnectionService>();
+        services.AddSingleton<IConnectionTestService, ConnectionTestService>();
         return services;
     }
 }

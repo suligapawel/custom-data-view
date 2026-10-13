@@ -8,6 +8,7 @@ public class MissingConnectionTests : ConnectionApiTests
     [TestCase("GET", "")]
     [TestCase("PUT", "")]
     [TestCase("DELETE", "")]
+    [TestCase("POST", "/test")]
     [Test(Description = "scenario_TEMP-007-014 - #23")]
     public async Task Given_UnknownConnectionId_When_UserActsOnConnection_Then_ConnectionIsNotFound(string method, string suffix)
     {
