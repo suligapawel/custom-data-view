@@ -79,7 +79,7 @@ public class TransformationChainTests
         Assert.That(result.Value, Is.EqualTo("bax"));
     }
 
-    private static TransformationService CreateService()
+    private static ITransformationService CreateService()
     {
         ITransformation[] transformations =
         [
