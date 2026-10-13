@@ -12,8 +12,16 @@ public static partial class BodyTemplate
         IReadOnlyList<ParameterDeclaration> bodyParameters,
         IReadOnlyDictionary<string, JsonNode> bodyValues)
     {
+        var values = bodyParameters
+            .Where(parameter => !bodyValues.ContainsKey(parameter.Name) && parameter.DefaultValue is not null)
+            .ToDictionary(parameter => parameter.Name, parameter => JsonNode.Parse(parameter.DefaultValue));
+        foreach (var (name, value) in bodyValues)
+        {
+            values[name] = value;
+        }
+
         var body = JsonNode.Parse(bodyTemplate);
-        return Resolve(body, bodyValues)?.ToJsonString() ?? "null";
+        return Resolve(body, values)?.ToJsonString() ?? "null";
     }
 
     public static IReadOnlyList<string> PlaceholderNames(JsonElement body)

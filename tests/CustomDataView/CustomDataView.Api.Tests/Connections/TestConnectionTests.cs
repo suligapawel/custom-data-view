@@ -114,4 +114,29 @@ public class TestConnectionTests : ConnectionApiTests
         Assert.That(request.ContentType, Is.EqualTo("application/json"));
         Assert.That(JsonNode.DeepEquals(JsonNode.Parse(request.Body), JsonNode.Parse("""{"contractId": "C-42", "limit": 5}""")), Is.True);
     }
+
+    [TestCase("10", """{"contractId": "C-42", "limit": 10}""")]
+    [TestCase(null, """{"contractId": "C-42", "limit": null}""")]
+    [Test(Description = "scenario_TEMP-007-014 - #32")]
+    public async Task Given_OptionalBodyParameter_When_UserTestsItWithoutValue_Then_DefaultOrNullIsSent(string defaultValue, string body)
+    {
+        var limit = new JsonObject { ["name"] = "limit", ["required"] = false };
+        if (defaultValue is not null)
+        {
+            limit["defaultValue"] = JsonNode.Parse(defaultValue);
+        }
+
+        var id = await CreateConnection(new JsonObject
+        {
+            ["name"] = "Wyszukiwanie sprzedawców",
+            ["method"] = "POST",
+            ["url"] = "https://api.example.com/sellers/search",
+            ["body"] = new JsonObject { ["contractId"] = "{id}", ["limit"] = "{limit}" },
+            ["bodyParameters"] = new JsonArray(new JsonObject { ["name"] = "id", ["required"] = true }, limit)
+        });
+
+        await Client.PostAsJsonAsync($"{ConnectionsUrl}/{id}/test", new { parameters = new { body = new { id = "C-42" } } });
+
+        Assert.That(JsonNode.DeepEquals(JsonNode.Parse(Factory.ExternalApi.Requests.Single().Body), JsonNode.Parse(body)), Is.True);
+    }
 }
