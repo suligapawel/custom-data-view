@@ -13,16 +13,21 @@ public sealed class TransformationParameters
 
     public int GetInteger(string key, string name)
     {
+        return GetRequired(key, name).GetValue<int>();
+    }
+
+    public string GetText(string key, string name)
+    {
+        return GetRequired(key, name).GetValue<string>();
+    }
+
+    private JsonNode GetRequired(string key, string name)
+    {
         if (!_values.TryGetValue(name, out var value))
         {
             throw new TransformationFailedException(key, TransformationFailureReasons.InvalidParameter, name);
         }
 
-        return value.GetValue<int>();
-    }
-
-    public string GetText(string key, string name)
-    {
-        return _values[name].GetValue<string>();
+        return value;
     }
 }

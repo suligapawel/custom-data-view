@@ -68,6 +68,17 @@ public class DateFormatTransformationTests
         Assert.That(exception.Parameter, Is.EqualTo("pattern"));
     }
 
+    [Test(Description = "scenario_TEMP-001-006 - #8")]
+    public void Given_DateFormatWithoutPattern_When_ValueIsDate_Then_FailsWithInvalidPatternParameter()
+    {
+        var transformation = new DateFormatTransformation(new IdentityTransformation(), new TransformationParameters(null));
+
+        var exception = Assert.Throws<TransformationFailedException>(() => transformation.Apply("2026-10-13"));
+
+        Assert.That(exception.Reason, Is.EqualTo(TransformationFailureReasons.InvalidParameter));
+        Assert.That(exception.Parameter, Is.EqualTo("pattern"));
+    }
+
     private static DateFormatTransformation CreateDateFormat(JsonNode pattern)
     {
         var parameters = new TransformationParameters(new Dictionary<string, JsonNode> { ["pattern"] = pattern });
