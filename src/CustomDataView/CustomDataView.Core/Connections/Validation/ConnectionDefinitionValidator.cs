@@ -6,6 +6,7 @@ namespace CustomDataView.Core.Connections.Validation;
 
 public static class ConnectionDefinitionValidator
 {
+    private const string RepeatedNameMessage = "Nazwa parametru powtarza się.";
     private const string SnakeCaseMessage = "Nazwa parametru musi być w formacie snake_case i mieć najwyżej 50 znaków.";
 
     public static IDictionary<string, string[]> Validate(ConnectionInput input)
@@ -38,6 +39,10 @@ public static class ConnectionDefinitionValidator
                 if (!ParameterNames.IsSnakeCase(input.PathParameters[index].Name))
                 {
                     errors[$"pathParameters[{index}].name"] = [SnakeCaseMessage];
+                }
+                else if (IsRepeated(input.PathParameters, index))
+                {
+                    errors[$"pathParameters[{index}].name"] = [RepeatedNameMessage];
                 }
                 else if (!placeholders.Contains(input.PathParameters[index].Name))
                 {
@@ -98,6 +103,11 @@ public static class ConnectionDefinitionValidator
         }
 
         return errors;
+    }
+
+    private static bool IsRepeated(IReadOnlyList<ParameterDeclarationInput> parameters, int index)
+    {
+        return parameters.Take(index).Any(parameter => parameter.Name == parameters[index].Name);
     }
 
     private static bool IsSupportedMethod(string method)
