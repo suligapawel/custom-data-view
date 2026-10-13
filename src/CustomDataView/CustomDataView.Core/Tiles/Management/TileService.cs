@@ -16,4 +16,13 @@ public sealed class TileService(ITileRepository repository) : ITileService
         => repository.GetAll()
             .Select(tile => new TileSummaryDto(tile.Id, tile.Definition.Name))
             .ToList();
+
+    public TileDto Get(Guid id)
+    {
+        var tile = repository.Get(id);
+        return new TileDto(
+            tile.Id,
+            tile.Definition.Name,
+            tile.Definition.Fields.Select(field => new TileFieldDto(field.ConnectionId, field.Path, field.Label)).ToList());
+    }
 }

@@ -26,4 +26,33 @@ public class AddTileTests : TileApiTests
         Assert.That(tiles.Select(tile => tile["id"]?.GetValue<Guid>()), Is.EqualTo(new Guid?[] { id }));
         Assert.That(tiles.Single()["name"]?.GetValue<string>(), Is.EqualTo("Klient i kurs"));
     }
+
+    [Test(Description = "scenario_TEMP-015-023 - #2")]
+    public async Task Given_ThreeFieldsFromCustomerConnection_When_UserSavesTile_Then_TileHasThreeFieldsUsingThatConnection()
+    {
+        var id = await CreateTile(new
+        {
+            name = "Klient",
+            fields = new[]
+            {
+                Field(CustomerConnectionId, "$.name", "Nazwa"),
+                Field(CustomerConnectionId, "$.balance", "Saldo"),
+                Field(CustomerConnectionId, "$.address.city", "Miasto")
+            }
+        });
+
+        var tile = await GetTile(id);
+
+        Assert.That(
+            tile["fields"]!.AsArray().Select(field => (
+                field["connectionId"]?.GetValue<Guid>(),
+                field["path"]?.GetValue<string>(),
+                field["label"]?.GetValue<string>())),
+            Is.EqualTo(new (Guid?, string, string)[]
+            {
+                (CustomerConnectionId, "$.name", "Nazwa"),
+                (CustomerConnectionId, "$.balance", "Saldo"),
+                (CustomerConnectionId, "$.address.city", "Miasto")
+            }));
+    }
 }

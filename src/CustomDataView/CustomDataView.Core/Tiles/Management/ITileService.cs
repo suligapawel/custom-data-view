@@ -6,4 +6,5 @@ public interface ITileService
 {
     Guid Add(TileDefinition definition);
     IReadOnlyList<TileSummaryDto> GetAll();
+    TileDto Get(Guid id);
 }

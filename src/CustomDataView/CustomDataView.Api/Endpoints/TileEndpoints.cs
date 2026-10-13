@@ -10,6 +10,7 @@ namespace CustomDataView.Api.Endpoints;
 public static class TileEndpoints
 {
     private const string TilesUrl = "/api/custom-data-view/tiles";
+    private const string TileUrl = $"{TilesUrl}/{{id:guid}}";
 
     extension(IEndpointRouteBuilder endpoints)
     {
@@ -17,7 +18,8 @@ public static class TileEndpoints
         {
             return endpoints
                 .AddTile()
-                .GetTiles();
+                .GetTiles()
+                .GetTile();
         }
 
         private IEndpointRouteBuilder AddTile()
@@ -33,6 +35,12 @@ public static class TileEndpoints
         private IEndpointRouteBuilder GetTiles()
         {
             endpoints.MapGet(TilesUrl, (ITileService service) => Results.Ok(service.GetAll()));
+            return endpoints;
+        }
+
+        private IEndpointRouteBuilder GetTile()
+        {
+            endpoints.MapGet(TileUrl, (Guid id, ITileService service) => Results.Ok(service.Get(id)));
             return endpoints;
         }
     }

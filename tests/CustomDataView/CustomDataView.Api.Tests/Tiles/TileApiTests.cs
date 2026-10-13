@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json.Nodes;
 using CustomDataView.Api.Tests.Connections;
 
 namespace CustomDataView.Api.Tests.Tiles;
@@ -29,8 +30,20 @@ public abstract class TileApiTests : ConnectionApiTests
         });
     }
 
+    protected async Task<Guid> CreateTile(object tile)
+    {
+        var response = await Client.PostAsJsonAsync(TilesUrl, tile);
+        response.EnsureSuccessStatusCode();
+        var created = await response.Content.ReadFromJsonAsync<CreatedTile>();
+        return created.Id;
+    }
+
+    protected Task<JsonObject> GetTile(Guid id) => Client.GetFromJsonAsync<JsonObject>($"{TilesUrl}/{id}");
+
     protected static object Field(Guid connectionId, string path, string label, params object[] transformations)
         => new { connectionId, path, label, transformations };
 
     protected static object Transformation(string key, object parameters = null) => new { key, parameters };
+
+    protected sealed record CreatedTile(Guid Id);
 }
