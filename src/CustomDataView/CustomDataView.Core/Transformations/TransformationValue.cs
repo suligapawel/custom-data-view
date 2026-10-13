@@ -4,6 +4,8 @@ namespace CustomDataView.Core.Transformations;
 
 public static class TransformationValue
 {
+    private const string NumberTextFormat = "0.############################";
+
     public static decimal ToNumber(string key, object value)
     {
         if (value is string text)
@@ -26,6 +28,11 @@ public static class TransformationValue
 
     public static string ToText(string key, object value)
     {
+        if (value is decimal number)
+        {
+            return number.ToString(NumberTextFormat, CultureInfo.InvariantCulture);
+        }
+
         return Convert.ToString(value, CultureInfo.InvariantCulture);
     }
 }
