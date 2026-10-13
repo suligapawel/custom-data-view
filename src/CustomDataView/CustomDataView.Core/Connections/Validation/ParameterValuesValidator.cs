@@ -24,11 +24,7 @@ public static class ParameterValuesValidator
             }
         }
 
-        var declared = definition.PathParameters.Select(parameter => parameter.Name).ToHashSet();
-        foreach (var name in values.Path.Keys.Where(name => !declared.Contains(name)))
-        {
-            errors[$"parameters.path.{name}"] = ["Parametr nie został zadeklarowany w połączeniu."];
-        }
+        AddUndeclared("path", definition.PathParameters, values.Path, errors);
 
         foreach (var parameter in definition.QueryParameters)
         {
@@ -45,7 +41,21 @@ public static class ParameterValuesValidator
             }
         }
 
+        AddUndeclared("query", definition.QueryParameters, values.Query, errors);
         return errors;
+    }
+
+    private static void AddUndeclared(
+        string section,
+        IReadOnlyList<ParameterDeclaration> parameters,
+        IReadOnlyDictionary<string, JsonElement> values,
+        Dictionary<string, string[]> errors)
+    {
+        var declared = parameters.Select(parameter => parameter.Name).ToHashSet();
+        foreach (var name in values.Keys.Where(name => !declared.Contains(name)))
+        {
+            errors[$"parameters.{section}.{name}"] = ["Parametr nie został zadeklarowany w połączeniu."];
+        }
     }
 
     private static bool IsQueryValue(JsonElement value)
