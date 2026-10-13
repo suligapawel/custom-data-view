@@ -144,6 +144,29 @@ public class TilePreviewTests : TileApiTests
         Assert.That(JsonNode.DeepEquals(field, JsonNode.Parse("""{"label": "Notatka", "value": null}""")), Is.True, field.ToJsonString());
     }
 
+    [Test(Description = "scenario_TEMP-015-023 - #35")]
+    public async Task Given_ThreeCustomerFieldsAndOneRateField_When_UserPreviewsTile_Then_EachSourceIsCalledOnce()
+    {
+        var id = await CreateTile(new
+        {
+            name = "Klient i kurs",
+            fields = new[]
+            {
+                Field(CustomerConnectionId, "$.name", "Nazwa"),
+                Field(RateConnectionId, "$.rate", "Kurs EUR"),
+                Field(CustomerConnectionId, "$.balance", "Saldo"),
+                Field(CustomerConnectionId, "$.address.city", "Miasto")
+            }
+        });
+
+        var preview = await Preview(id, CustomerAndRateValues());
+
+        Assert.That(
+            Factory.ExternalApi.Requests.Select(request => request.Url).Order(),
+            Is.EqualTo(new[] { CustomerUrl, RateUrl }.Order()));
+        AssertValues(preview, """["acme", 4.31789, 1234.567, "Kraków"]""");
+    }
+
     private async Task<JsonObject> Preview(Guid id, object values)
     {
         var response = await Client.PostAsJsonAsync($"{TilesUrl}/{id}/preview", values);
