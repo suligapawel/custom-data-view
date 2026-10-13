@@ -51,6 +51,7 @@ public sealed class ConnectionService(IConnectionRepository repository) : IConne
     public void Delete(Guid id)
     {
         _ = repository.Get(id) ?? throw new NotFoundException(id);
+        repository.Delete(id);
     }
 
     private static List<ParameterDeclarationDto> ToDtos(IReadOnlyList<ParameterDeclaration> parameters)

@@ -33,6 +33,15 @@ public sealed class InMemoryConnectionRepository : IConnectionRepository
         }
     }
 
+    public void Delete(Guid id)
+    {
+        lock (Sync)
+        {
+            Connections.Remove(id);
+            AddingOrder.Remove(id);
+        }
+    }
+
     public IReadOnlyList<Connection> GetAll()
     {
         lock (Sync)

@@ -8,4 +8,5 @@ public interface IConnectionRepository
     Connection Get(Guid id);
     IReadOnlyList<Connection> GetAll();
     void Update(Connection connection);
+    void Delete(Guid id);
 }

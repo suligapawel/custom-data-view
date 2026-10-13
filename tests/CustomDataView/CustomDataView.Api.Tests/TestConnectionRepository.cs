@@ -23,6 +23,11 @@ public sealed class TestConnectionRepository : IConnectionRepository
         connections[index] = connection;
     }
 
+    public void Delete(Guid id)
+    {
+        connections.RemoveAll(connection => connection.Id == id);
+    }
+
     public IReadOnlyList<Connection> GetAll()
     {
         return connections.ToList();
