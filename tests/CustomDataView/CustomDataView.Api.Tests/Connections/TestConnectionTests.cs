@@ -251,4 +251,20 @@ public class TestConnectionTests : ConnectionApiTests
         Assert.That(request.Headers, Does.Contain("Accept-Language: pl"));
         Assert.That(request.ContentType, Is.EqualTo("application/vnd.api+json"));
     }
+
+    [Test(Description = "scenario_TEMP-007-014 - #43")]
+    public async Task Given_OptionalPathParameterWithDefault_When_UserTestsWithoutValue_Then_DefaultIsUsedInAddress()
+    {
+        var id = await CreateConnection(new
+        {
+            name = "Sprzedawcy",
+            method = "GET",
+            url = "https://api.example.com/{version}/sellers",
+            pathParameters = new[] { new { name = "version", required = false, defaultValue = "v1" } }
+        });
+
+        await Client.PostAsJsonAsync($"{ConnectionsUrl}/{id}/test", new { });
+
+        Assert.That(Factory.ExternalApi.Requests.Single().Url, Is.EqualTo("https://api.example.com/v1/sellers"));
+    }
 }

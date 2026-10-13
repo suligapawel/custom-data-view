@@ -11,7 +11,12 @@ public static class ConnectionRequestBuilder
         ConnectionParameterValues parameters,
         HttpContent content)
     {
-        var url = UrlTemplate.Resolve(definition.Url, parameters.Path, definition.QueryParameters, parameters.Query);
+        var url = UrlTemplate.Resolve(
+            definition.Url,
+            definition.PathParameters,
+            parameters.Path,
+            definition.QueryParameters,
+            parameters.Query);
         var request = new HttpRequestMessage(method, url) { Content = content };
         foreach (var header in definition.Headers)
         {

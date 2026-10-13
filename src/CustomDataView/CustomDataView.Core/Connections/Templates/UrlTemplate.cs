@@ -19,11 +19,14 @@ public static partial class UrlTemplate
 
     public static Uri Resolve(
         string url,
+        IReadOnlyList<ParameterDeclaration> pathParameters,
         IReadOnlyDictionary<string, string> pathValues,
         IReadOnlyList<ParameterDeclaration> queryParameters,
         IReadOnlyDictionary<string, IReadOnlyList<string>> queryValues)
     {
-        var resolved = PlaceholderPattern().Replace(url, match => Uri.EscapeDataString(pathValues[match.Value[1..^1]]));
+        var resolved = PlaceholderPattern().Replace(
+            url,
+            match => Uri.EscapeDataString(PathValue(match.Value[1..^1], pathParameters, pathValues)));
         var query = queryParameters
             .SelectMany((parameter, index) => QueryValues(queryParameters, index, queryValues)
                 .Select(value => $"{Uri.EscapeDataString(parameter.Name)}={Uri.EscapeDataString(value)}"))
@@ -34,6 +37,21 @@ public static partial class UrlTemplate
         }
 
         return new Uri(resolved);
+    }
+
+    private static string PathValue(
+        string name,
+        IReadOnlyList<ParameterDeclaration> pathParameters,
+        IReadOnlyDictionary<string, string> pathValues)
+    {
+        if (pathValues.TryGetValue(name, out var value))
+        {
+            return value;
+        }
+
+        var defaultValue = pathParameters.Single(parameter => parameter.Name == name).DefaultValue
+            ?? throw new InvalidOperationException($"Path parameter {name} has no value.");
+        return JsonSerializer.Deserialize<string>(defaultValue);
     }
 
     private static IReadOnlyList<string> QueryValues(
