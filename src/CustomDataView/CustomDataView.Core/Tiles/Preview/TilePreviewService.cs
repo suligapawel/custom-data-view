@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using CustomDataView.Core.Connections.Calls;
+using CustomDataView.Core.Connections.Definitions;
 using CustomDataView.Core.Connections.Http;
 using CustomDataView.Core.Connections.Persistence;
 using CustomDataView.Core.Connections.Validation;
@@ -64,23 +65,30 @@ public sealed class TilePreviewService(
                 Connection: connections.Get(connectionId),
                 Parameters: values.FirstOrDefault(value => value.ConnectionId == connectionId)?.Parameters ?? NoValues))
             .ToList();
+        ValidateValues(used, values);
+        var results = await Task.WhenAll(used.Select(async call => (
+            connectionId: call.Connection.Id,
+            result: await factory.Create(call.Connection.Definition).Get(call.Parameters.ToValues(), cancellationToken))));
+        return results.ToDictionary(call => call.connectionId, call => call.result);
+    }
+
+    private static void ValidateValues(
+        IReadOnlyList<(Connection Connection, ParameterValuesInput Parameters)> used,
+        IReadOnlyList<ConnectionValuesInput> values)
+    {
         var errors = RepeatedConnections(values);
-        foreach (var error in used
-            .SelectMany(call => ParameterValuesValidator.Validate(call.Connection.Definition, call.Parameters)
-                .Select(error => (Key: $"connections[{call.Connection.Id}].{error.Key}", error.Value))))
+        foreach (var (connection, parameters) in used)
         {
-            errors[error.Key] = error.Value;
+            foreach (var error in ParameterValuesValidator.Validate(connection.Definition, parameters))
+            {
+                errors[$"connections[{connection.Id}].{error.Key}"] = error.Value;
+            }
         }
 
         if (errors.Count > 0)
         {
             throw new ValidationException(errors);
         }
-
-        var results = await Task.WhenAll(used.Select(async call => (
-            connectionId: call.Connection.Id,
-            result: await factory.Create(call.Connection.Definition).Get(call.Parameters.ToValues(), cancellationToken))));
-        return results.ToDictionary(call => call.connectionId, call => call.result);
     }
 
     private static Dictionary<string, string[]> RepeatedConnections(IReadOnlyList<ConnectionValuesInput> values)
