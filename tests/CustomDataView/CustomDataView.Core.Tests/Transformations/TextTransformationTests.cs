@@ -14,4 +14,15 @@ public class TextTransformationTests
 
         Assert.That(result, Is.EqualTo("ABC"));
     }
+
+    [Test(Description = "scenario_TEMP-001-006 - #11")]
+    [SetCulture("tr-TR")]
+    public void Given_UppercaseOnTurkishServerCulture_When_ValueIsIstanbul_Then_ResultUsesInvariantCulture()
+    {
+        var transformation = new UppercaseTransformation(new IdentityTransformation(), new TransformationParameters(null));
+
+        var result = transformation.Apply("istanbul");
+
+        Assert.That(result, Is.EqualTo("ISTANBUL"));
+    }
 }
