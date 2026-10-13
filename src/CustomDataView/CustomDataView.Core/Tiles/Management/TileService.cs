@@ -23,6 +23,12 @@ public sealed class TileService(ITileRepository repository) : ITileService
         return new TileDto(
             tile.Id,
             tile.Definition.Name,
-            tile.Definition.Fields.Select(field => new TileFieldDto(field.ConnectionId, field.Path, field.Label)).ToList());
+            tile.Definition.Fields
+                .Select(field => new TileFieldDto(
+                    field.ConnectionId,
+                    field.Path,
+                    field.Label,
+                    field.Transformations.Select(step => new TransformationStepDto(step.Key, step.Parameters)).ToList()))
+                .ToList());
     }
 }
