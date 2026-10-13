@@ -88,4 +88,29 @@ public class TestConnectionTests : ConnectionApiTests
 
         Assert.That(Factory.ExternalApi.Requests.Single().Url, Is.EqualTo(address));
     }
+
+    [Test(Description = "scenario_TEMP-007-014 - #31")]
+    public async Task Given_PostConnectionWithBodyTemplate_When_UserTestsItWithValues_Then_ExternalApiReceivesResolvedBody()
+    {
+        var id = await CreateConnection(new
+        {
+            name = "Wyszukiwanie sprzedawców",
+            method = "POST",
+            url = "https://api.example.com/sellers/search",
+            body = new { contractId = "{id}", limit = "{limit}" },
+            bodyParameters = new object[]
+            {
+                new { name = "id", required = true },
+                new { name = "limit", required = false, defaultValue = 10 }
+            }
+        });
+
+        await Client.PostAsJsonAsync(
+            $"{ConnectionsUrl}/{id}/test",
+            new { parameters = new { body = new { id = "C-42", limit = 5 } } });
+
+        var request = Factory.ExternalApi.Requests.Single();
+        Assert.That(request.Method, Is.EqualTo("POST"));
+        Assert.That(JsonNode.DeepEquals(JsonNode.Parse(request.Body), JsonNode.Parse("""{"contractId": "C-42", "limit": 5}""")), Is.True);
+    }
 }

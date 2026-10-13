@@ -10,6 +10,7 @@ public sealed class ConnectionFactory(IExternalApiClient client) : IConnectionFa
         return definition switch
         {
             GetConnectionDefinition get => new GetConnection(get, client),
+            PostConnectionDefinition post => new PostConnection(post, client),
             _ => throw new NotSupportedException($"Connection definition {definition.GetType().Name} is not supported.")
         };
     }
