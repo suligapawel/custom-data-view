@@ -1,5 +1,5 @@
 using System.Text.Json.Nodes;
 
-namespace CustomDataView.Core.Transformations.Catalog;
+namespace CustomDataView.Core.Transformations;
 
 public sealed record TransformationStep(string Key, IReadOnlyDictionary<string, JsonNode> Parameters);

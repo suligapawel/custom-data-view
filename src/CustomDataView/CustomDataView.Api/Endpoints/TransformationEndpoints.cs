@@ -8,7 +8,7 @@ public static class TransformationEndpoints
 {
     public static IEndpointRouteBuilder MapTransformationEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapGet("/api/custom-data-view/transformations", (ITransformationService service) => service.GetAll());
+        endpoints.MapGet("/api/custom-data-view/transformations", (ITransformationCatalogService service) => service.GetAll());
         return endpoints;
     }
 }

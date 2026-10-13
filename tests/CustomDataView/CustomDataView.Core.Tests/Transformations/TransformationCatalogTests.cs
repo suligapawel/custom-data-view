@@ -1,16 +1,15 @@
 using System.Collections;
-using CustomDataView.Core.Transformations;
 using CustomDataView.Core.Transformations.Catalog;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CustomDataView.Core.Tests.Transformations;
 
-public class TransformationServiceTests
+public class TransformationCatalogTests
 {
     [Test(Description = "scenario_TEMP-001-006 - #1")]
     public void Given_ConfiguredModule_When_UserBrowsesCatalog_Then_SevenTransformationsAreSortedByKey()
     {
-        var service = CreateService();
+        var service = CreateCatalogService();
 
         var transformations = service.GetAll();
 
@@ -32,7 +31,7 @@ public class TransformationServiceTests
     [Test(Description = "scenario_TEMP-001-006 - #2")]
     public void Given_UserBrowsesCatalog_When_ChecksParameters_Then_EachTransformationDescribesItsParameters()
     {
-        var service = CreateService();
+        var service = CreateCatalogService();
 
         var parameters = service.GetAll().ToDictionary(transformation => transformation.Key, transformation => transformation.Parameters);
 
@@ -48,19 +47,19 @@ public class TransformationServiceTests
     [Test(Description = "scenario_TEMP-001-006 - #3")]
     public void Given_UserBrowsesCatalog_When_UserTriesToChangeTransformations_Then_CatalogIsReadOnly()
     {
-        var service = CreateService();
+        var service = CreateCatalogService();
         var transformations = (IList)service.GetAll();
 
         Assert.That(
-            typeof(ITransformationService).GetMethods().Select(method => method.Name),
-            Is.EquivalentTo(new[] { nameof(ITransformationService.GetAll), nameof(ITransformationService.Apply) }));
+            typeof(ITransformationCatalogService).GetMethods().Select(method => method.Name),
+            Is.EquivalentTo(new[] { nameof(ITransformationCatalogService.GetAll) }));
         Assert.Throws<NotSupportedException>(() => transformations.Clear());
         Assert.That(service.GetAll(), Has.Count.EqualTo(7));
     }
 
-    private static ITransformationService CreateService()
+    private static ITransformationCatalogService CreateCatalogService()
     {
         var provider = new ServiceCollection().AddCustomDataViewTransformations().BuildServiceProvider();
-        return provider.GetRequiredService<ITransformationService>();
+        return provider.GetRequiredService<ITransformationCatalogService>();
     }
 }

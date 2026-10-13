@@ -16,6 +16,7 @@ public static class DependencyInjection
         services.AddSingleton<ITransformation, SuffixTransformation>();
         services.AddSingleton<ITransformation, TruncateTransformation>();
         services.AddSingleton<ITransformation, UppercaseTransformation>();
+        services.AddSingleton<ITransformationCatalogService, TransformationCatalogService>();
         services.AddSingleton<ITransformationService, TransformationService>();
         return services;
     }

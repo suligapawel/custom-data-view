@@ -1,8 +1,6 @@
-namespace CustomDataView.Core.Transformations.Catalog;
+namespace CustomDataView.Core.Transformations;
 
 public interface ITransformationService
 {
-    IReadOnlyList<TransformationDto> GetAll();
-
     TransformationResult Apply(object value, IReadOnlyList<TransformationStep> steps);
 }
