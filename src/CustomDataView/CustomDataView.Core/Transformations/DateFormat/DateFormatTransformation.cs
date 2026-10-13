@@ -4,7 +4,7 @@ namespace CustomDataView.Core.Transformations.DateFormat;
 
 public sealed class DateFormatTransformation : DecoratorTransformation
 {
-    private const string PatternParameter = "pattern";
+    private static readonly TransformationParameterDescriptor PatternParameter = DateFormatTransformationDefinition.PatternParameter;
 
     private static readonly string[] IsoFormats = ["yyyy-MM-ddTHH:mm:sszzz", "yyyy-MM-dd"];
 
@@ -17,10 +17,10 @@ public sealed class DateFormatTransformation : DecoratorTransformation
 
     protected override object Transform(object value)
     {
-        var pattern = Parameters.GetText(Key, PatternParameter);
+        var pattern = Parameters.GetText(Key, PatternParameter.Name);
         if (pattern.Length == 0)
         {
-            throw new TransformationFailedException(Key, TransformationFailureReasons.InvalidParameter, PatternParameter);
+            throw new TransformationFailedException(Key, TransformationFailureReasons.InvalidParameter, PatternParameter.Name);
         }
 
         if (value is not string text || !DateTimeOffset.TryParseExact(
