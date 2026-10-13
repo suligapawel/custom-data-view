@@ -33,6 +33,7 @@ public class ConnectionValidationTests : ConnectionApiTests
 
     [TestCase("https://{host}/contracts")]
     [TestCase("https://api.example.com/contracts?q={q}")]
+    [TestCase("https://api.example.com/contracts/{id")]
     [Test(Description = "scenario_TEMP-007-014 - #9")]
     public async Task Given_PlaceholderOutsidePath_When_UserSavesConnection_Then_SavingIsRejectedWithUrlError(string url)
     {
