@@ -1,4 +1,5 @@
 using CustomDataView.Core.Transformations;
+using CustomDataView.Core.Transformations.Lowercase;
 using CustomDataView.Core.Transformations.Uppercase;
 
 namespace CustomDataView.Core.Tests.Transformations;
@@ -24,5 +25,15 @@ public class TextTransformationTests
         var result = transformation.Apply("istanbul");
 
         Assert.That(result, Is.EqualTo("ISTANBUL"));
+    }
+
+    [Test(Description = "scenario_TEMP-001-006 - #11")]
+    public void Given_Lowercase_When_ValueIsAbc_Then_ResultIsLowercaseText()
+    {
+        var transformation = new LowercaseTransformation(new IdentityTransformation(), new TransformationParameters(null));
+
+        var result = transformation.Apply("ABC");
+
+        Assert.That(result, Is.EqualTo("abc"));
     }
 }
