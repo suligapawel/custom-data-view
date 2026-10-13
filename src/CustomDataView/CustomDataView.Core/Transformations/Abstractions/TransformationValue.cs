@@ -9,10 +9,11 @@ public static class TransformationValue
     private const string NumberTextFormat = "0.############################";
 
     public static object FromJson(JsonNode node)
-        => node.GetValueKind() switch
+        => node?.GetValueKind() switch
         {
             JsonValueKind.Number => (object)node.GetValue<decimal>(),
             JsonValueKind.String => node.GetValue<string>(),
+            null => null,
             _ => node
         };
 
@@ -21,6 +22,7 @@ public static class TransformationValue
         {
             decimal number => JsonValue.Create(number),
             JsonNode node => node.DeepClone(),
+            null => null,
             _ => JsonValue.Create((string)value)
         };
 

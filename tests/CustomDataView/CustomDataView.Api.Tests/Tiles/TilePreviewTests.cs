@@ -129,6 +129,21 @@ public class TilePreviewTests : TileApiTests
         AssertValues(preview, $"[{value}]");
     }
 
+    [Test(Description = "scenario_TEMP-015-023 - #34")]
+    public async Task Given_FieldPointingNullNoteWithUppercase_When_UserPreviewsTile_Then_FieldHasNullValueWithoutError()
+    {
+        var id = await CreateTile(new
+        {
+            name = "Klient",
+            fields = new[] { Field(CustomerConnectionId, "$.note", "Notatka", Transformation("uppercase")) }
+        });
+
+        var preview = await Preview(id, CustomerValues());
+
+        var field = preview["fields"]![0]!.AsObject();
+        Assert.That(JsonNode.DeepEquals(field, JsonNode.Parse("""{"label": "Notatka", "value": null}""")), Is.True, field.ToJsonString());
+    }
+
     private async Task<JsonObject> Preview(Guid id, object values)
     {
         var response = await Client.PostAsJsonAsync($"{TilesUrl}/{id}/preview", values);

@@ -3,7 +3,5 @@ using System.Text.Json.Serialization;
 
 namespace CustomDataView.Core.Tiles.Preview;
 
-public sealed record TileFieldPreview(
-    string Label,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] JsonNode Value,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TileFieldError Error = null);
+[JsonConverter(typeof(TileFieldPreviewJsonConverter))]
+public sealed record TileFieldPreview(string Label, JsonNode Value, TileFieldError Error = null);
