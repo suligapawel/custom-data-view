@@ -36,6 +36,16 @@ public class RoundTransformationTests
         Assert.That(result, Is.EqualTo(3m));
     }
 
+    [Test(Description = "scenario_TEMP-001-006 - #4")]
+    public void Given_RoundWithZeroDecimals_When_ValueIsMinus2_5_Then_ResultIsMinus3()
+    {
+        var transformation = CreateRound(0);
+
+        var result = transformation.Apply(-2.5m);
+
+        Assert.That(result, Is.EqualTo(-3m));
+    }
+
     private static RoundTransformation CreateRound(JsonNode decimals)
     {
         var parameters = new TransformationParameters(new Dictionary<string, JsonNode> { ["decimals"] = decimals });
