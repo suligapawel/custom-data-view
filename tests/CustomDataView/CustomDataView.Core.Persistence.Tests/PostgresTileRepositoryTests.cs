@@ -145,6 +145,37 @@ public class PostgresTileRepositoryTests
         Assert.That(new PostgresConnectionRepository(dataSource).Get(customerConnectionId), Is.Not.Null);
     }
 
+    [Test]
+    public void Given_TilesUsingConnections_When_TilesUsingConnectionAreLoaded_Then_DistinctTilesAreReturnedInAddingOrder()
+    {
+        var customer = new Tile(Guid.NewGuid(), new TileDefinition("Klient",
+        [
+            new TileField(customerConnectionId, "$.name", "Nazwa", []),
+            new TileField(customerConnectionId, "$.balance", "Saldo", [])
+        ]));
+        var rate = new Tile(Guid.NewGuid(), new TileDefinition("Kurs", [new TileField(rateConnectionId, "$.rate", "Kurs EUR", [])]));
+        var both = new Tile(Guid.NewGuid(), new TileDefinition("Klient i kurs",
+        [
+            new TileField(rateConnectionId, "$.rate", "Kurs EUR", []),
+            new TileField(customerConnectionId, "$.name", "Nazwa", [])
+        ]));
+        repository.Add(customer);
+        repository.Add(rate);
+        repository.Add(both);
+
+        Assert.That(
+            repository.GetUsingConnection(customerConnectionId),
+            Is.EqualTo(new[] { new TileReference(customer.Id, "Klient"), new TileReference(both.Id, "Klient i kurs") }));
+    }
+
+    [Test]
+    public void Given_TileUsingConnection_When_ConnectionIsDeletedDirectly_Then_DatabaseRejectsIt()
+    {
+        repository.Add(new Tile(Guid.NewGuid(), new TileDefinition("Klient", [new TileField(customerConnectionId, "$.name", "Nazwa", [])])));
+
+        Assert.Throws<PostgresException>(() => new PostgresConnectionRepository(dataSource).Delete(customerConnectionId));
+    }
+
     private static string Json(Tile tile) => JsonSerializer.Serialize(tile);
 
     private Guid AddConnection(string name)

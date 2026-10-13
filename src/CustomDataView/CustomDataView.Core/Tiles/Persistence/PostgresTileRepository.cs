@@ -79,6 +79,22 @@ public sealed class PostgresTileRepository(NpgsqlDataSource dataSource, IEnumera
         db.Execute("DELETE FROM custom_data_view.tiles WHERE id = @Id", new { Id = id });
     }
 
+    public IReadOnlyList<TileReference> GetUsingConnection(Guid connectionId)
+    {
+        using var db = dataSource.OpenConnection();
+        return db.Query<TileRow>(
+                $"""
+                 {SelectTiles} tile
+                 WHERE EXISTS (
+                     SELECT 1 FROM custom_data_view.tile_fields field
+                     WHERE field.tile_id = tile.id AND field.connection_id = @ConnectionId)
+                 ORDER BY created_at, id
+                 """,
+                new { ConnectionId = connectionId })
+            .Select(tile => new TileReference(tile.Id, tile.Name))
+            .ToList();
+    }
+
     private static void InsertFields(IDbConnection db, IDbTransaction transaction, Tile tile)
     {
         var fields = tile.Definition.Fields;

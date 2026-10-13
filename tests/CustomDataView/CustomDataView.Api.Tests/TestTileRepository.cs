@@ -26,4 +26,10 @@ public sealed class TestTileRepository : ITileRepository
     {
         tiles.RemoveAll(tile => tile.Id == id);
     }
+
+    public IReadOnlyList<TileReference> GetUsingConnection(Guid connectionId)
+        => tiles
+            .Where(tile => tile.Definition.Fields.Any(field => field.ConnectionId == connectionId))
+            .Select(tile => new TileReference(tile.Id, tile.Definition.Name))
+            .ToList();
 }
