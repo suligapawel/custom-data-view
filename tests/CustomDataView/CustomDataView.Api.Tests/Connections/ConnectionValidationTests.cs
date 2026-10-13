@@ -255,6 +255,26 @@ public class ConnectionValidationTests : ConnectionApiTests
         Assert.That(connections, Has.Count.EqualTo(2));
     }
 
+    [TestCase("pathParameters", "id", true, "\"42\"")]
+    [Test(Description = "scenario_TEMP-007-014 - #45")]
+    public async Task Given_ContradictoryParameterDeclaration_When_UserSavesConnection_Then_SavingIsRejected(
+        string section,
+        string name,
+        bool required,
+        string defaultValue)
+    {
+        var definition = section == "bodyParameters" ? ValidPostDefinition() : ValidGetDefinition();
+        if (section == "bodyParameters")
+        {
+            definition["body"] = new JsonObject { [name] = $"{{{name}}}" };
+        }
+
+        definition[section] = new JsonArray(
+            new JsonObject { ["name"] = name, ["required"] = required, ["defaultValue"] = JsonNode.Parse(defaultValue) });
+
+        await AssertRejected(definition, $"{section}[0].defaultValue");
+    }
+
     private static JsonObject ValidPostDefinition()
     {
         return new JsonObject

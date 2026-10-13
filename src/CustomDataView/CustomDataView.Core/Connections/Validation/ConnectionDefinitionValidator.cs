@@ -7,6 +7,7 @@ namespace CustomDataView.Core.Connections.Validation;
 public static class ConnectionDefinitionValidator
 {
     private const int MaxNameLength = 100;
+    private const string RequiredWithDefaultMessage = "Parametr wymagany nie może mieć wartości domyślnej.";
     private const string RepeatedNameMessage = "Nazwa parametru powtarza się.";
     private const string SnakeCaseMessage = "Nazwa parametru musi być w formacie snake_case i mieć najwyżej 50 znaków.";
 
@@ -62,7 +63,11 @@ public static class ConnectionDefinitionValidator
             ValidateTemplateParameterName(input.PathParameters, index, placeholders, key, errors, "Parametr adresu nie występuje w adresie.");
 
             var parameter = input.PathParameters[index];
-            if (!parameter.Required
+            if (parameter.Required && parameter.DefaultValue is not null)
+            {
+                errors[$"{key}.defaultValue"] = [RequiredWithDefaultMessage];
+            }
+            else if (!parameter.Required
                 && (parameter.DefaultValue is not { ValueKind: JsonValueKind.String } defaultValue
                     || defaultValue.GetString() == string.Empty))
             {
@@ -99,7 +104,7 @@ public static class ConnectionDefinitionValidator
 
             if (parameter.Required && parameter.DefaultValue is not null)
             {
-                errors[$"queryParameters[{index}].defaultValue"] = ["Parametr wymagany nie może mieć wartości domyślnej."];
+                errors[$"queryParameters[{index}].defaultValue"] = [RequiredWithDefaultMessage];
             }
         }
     }
