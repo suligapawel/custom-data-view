@@ -143,6 +143,12 @@ public static class ConnectionDefinitionValidator
                 $"bodyParameters[{index}]",
                 errors,
                 "Parametr treści nie występuje w treści.");
+
+            var parameter = input.BodyParameters[index];
+            if (parameter.Required && parameter.DefaultValue is not null)
+            {
+                errors[$"bodyParameters[{index}].defaultValue"] = [RequiredWithDefaultMessage];
+            }
         }
     }
 
