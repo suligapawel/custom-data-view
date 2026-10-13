@@ -78,6 +78,19 @@ public class TileValidationTests : TileApiTests
         await AssertRejected(response, "fields[0].connectionId");
     }
 
+    [Test(Description = "scenario_TEMP-015-023 - #11")]
+    public async Task Given_FirstFieldWithMissingConnection_When_UserSavesTile_Then_SaveIsRejectedWithConnectionIdInError()
+    {
+        var missingId = Guid.NewGuid();
+        var tile = ValidTile();
+        tile["fields"]![0]!["connectionId"] = missingId;
+
+        var response = await Client.PostAsJsonAsync(TilesUrl, tile);
+
+        var errors = await AssertRejected(response, "fields[0].connectionId");
+        Assert.That(errors["fields[0].connectionId"]![0]!.GetValue<string>(), Does.Contain(missingId.ToString()));
+    }
+
     private JsonObject ValidTile()
         => new()
         {
@@ -87,10 +100,12 @@ public class TileValidationTests : TileApiTests
                 new JsonObject { ["connectionId"] = CustomerConnectionId, ["path"] = "$.balance", ["label"] = "Saldo" })
         };
 
-    private static async Task AssertRejected(HttpResponseMessage response, string errorKey)
+    private static async Task<JsonObject> AssertRejected(HttpResponseMessage response, string errorKey)
     {
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
         var problem = await response.Content.ReadFromJsonAsync<JsonObject>();
-        Assert.That(problem["errors"]!.AsObject().Select(error => error.Key), Does.Contain(errorKey));
+        var errors = problem["errors"]!.AsObject();
+        Assert.That(errors.Select(error => error.Key), Does.Contain(errorKey));
+        return errors;
     }
 }

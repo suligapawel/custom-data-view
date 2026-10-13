@@ -5,6 +5,7 @@ using CustomDataView.Core.Connections.Persistence;
 using CustomDataView.Core.Connections.Testing;
 using CustomDataView.Core.Tiles.Management;
 using CustomDataView.Core.Tiles.Persistence;
+using CustomDataView.Core.Tiles.Validation;
 using CustomDataView.Core.Transformations.Abstractions;
 using CustomDataView.Core.Transformations.Catalog;
 using CustomDataView.Core.Transformations.Execution;
@@ -52,6 +53,7 @@ public static class DependencyInjection
     public static IServiceCollection AddCustomDataViewTiles(this IServiceCollection services)
     {
         services.AddSingleton<ITileRepository, PostgresTileRepository>();
+        services.AddSingleton<TileReferencesValidator>();
         services.AddSingleton<ITileService, TileService>();
         return services;
     }

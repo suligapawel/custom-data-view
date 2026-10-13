@@ -1,12 +1,20 @@
+using CustomDataView.Core.Exceptions;
 using CustomDataView.Core.Tiles.Definitions;
 using CustomDataView.Core.Tiles.Persistence;
+using CustomDataView.Core.Tiles.Validation;
 
 namespace CustomDataView.Core.Tiles.Management;
 
-public sealed class TileService(ITileRepository repository) : ITileService
+public sealed class TileService(ITileRepository repository, TileReferencesValidator referencesValidator) : ITileService
 {
     public Guid Add(TileDefinition definition)
     {
+        var errors = referencesValidator.Validate(definition);
+        if (errors.Count > 0)
+        {
+            throw new ValidationException(errors);
+        }
+
         var tile = new Tile(Guid.NewGuid(), definition);
         repository.Add(tile);
         return tile.Id;
