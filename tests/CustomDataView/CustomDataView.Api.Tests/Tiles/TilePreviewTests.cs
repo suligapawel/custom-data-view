@@ -84,6 +84,37 @@ public class TilePreviewTests : TileApiTests
         AssertValues(preview, """[["ACME", "GLOBEX"]]""");
     }
 
+    [Test(Description = "scenario_TEMP-015-023 - #31")]
+    public async Task Given_FieldWithWildcardWithoutMatches_When_UserPreviewsTile_Then_FieldHasEmptyList()
+    {
+        var id = await CreateTile(new
+        {
+            name = "Klient",
+            fields = new[] { Field(CustomerConnectionId, "$.invoices[*].number", "Faktury") }
+        });
+
+        var preview = await Preview(id, CustomerValues());
+
+        AssertValues(preview, "[[]]");
+    }
+
+    [Test(Description = "scenario_TEMP-015-023 - #32")]
+    public async Task Given_FieldWithNestedWildcardsAndSuffix_When_UserPreviewsTile_Then_FieldHasOneFlatList()
+    {
+        var id = await CreateTile(new
+        {
+            name = "Klient",
+            fields = new[]
+            {
+                Field(CustomerConnectionId, "$.orders[*].items[*].price", "Ceny", Transformation("suffix", new { text = " zł" }))
+            }
+        });
+
+        var preview = await Preview(id, CustomerValues());
+
+        AssertValues(preview, """[["10 zł", "20 zł", "30 zł"]]""");
+    }
+
     private async Task<JsonObject> Preview(Guid id, object values)
     {
         var response = await Client.PostAsJsonAsync($"{TilesUrl}/{id}/preview", values);
