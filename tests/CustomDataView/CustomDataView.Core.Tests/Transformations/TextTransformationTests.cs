@@ -60,6 +60,16 @@ public class TextTransformationTests
         Assert.That(result, Is.EqualTo("abc"));
     }
 
+    [Test(Description = "scenario_TEMP-001-006 - #11")]
+    public void Given_TruncateToThree_When_ValueIsShorter_Then_ResultIsUnchanged()
+    {
+        var transformation = CreateTruncate(3);
+
+        var result = transformation.Apply("ab");
+
+        Assert.That(result, Is.EqualTo("ab"));
+    }
+
     private static TruncateTransformation CreateTruncate(JsonNode maxLength)
     {
         var parameters = new TransformationParameters(new Dictionary<string, JsonNode> { ["max_length"] = maxLength });

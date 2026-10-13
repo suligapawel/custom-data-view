@@ -14,6 +14,7 @@ public sealed class TruncateTransformation : DecoratorTransformation
     protected override object Transform(object value)
     {
         var maxLength = Parameters.GetInteger(Key, MaxLengthParameter);
-        return TransformationValue.ToText(Key, value).Substring(0, maxLength);
+        var text = TransformationValue.ToText(Key, value);
+        return text.Length > maxLength ? text.Substring(0, maxLength) : text;
     }
 }
