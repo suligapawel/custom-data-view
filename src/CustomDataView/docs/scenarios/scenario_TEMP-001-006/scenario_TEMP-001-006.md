@@ -14,8 +14,9 @@ użytkownik wybiera je z katalogu i podaje wartości parametrów w polu kafelka.
 
 ## Domena
 
-Folder `CustomDataView.Core/Transformations/`. Każda transformacja to jedna klasa w swoim folderze (np.
-`Transformations/Round/RoundTransformation.cs`), która jest jednocześnie wpisem katalogu i kodem wykonywalnym.
+Folder `CustomDataView.Core/Transformations/`. Wszystkie transformacje leżą w jednym folderze
+`Transformations/Implementations/` (np. `RoundTransformation.cs`); każda klasa jest jednocześnie wpisem katalogu i
+kodem wykonywalnym.
 
 ### Zadanie 1 — Wspólne elementy (TEMP-002 … TEMP-006)
 
