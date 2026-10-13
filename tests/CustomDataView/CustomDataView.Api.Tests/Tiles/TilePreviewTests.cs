@@ -34,5 +34,12 @@ public class TilePreviewTests : TileApiTests
         Assert.That(
             preview["fields"]!.AsArray().Select(field => field["label"]?.GetValue<string>()),
             Is.EqualTo(new[] { "Temperatura", "Nazwa", "Kurs EUR" }));
+        AssertValues(preview, """["21.5 °C", "ACME", 4.32]""");
+    }
+
+    private static void AssertValues(JsonObject preview, string expected)
+    {
+        var values = new JsonArray(preview["fields"]!.AsArray().Select(field => field["value"]?.DeepClone()).ToArray());
+        Assert.That(JsonNode.DeepEquals(values, JsonNode.Parse(expected)), Is.True, values.ToJsonString());
     }
 }

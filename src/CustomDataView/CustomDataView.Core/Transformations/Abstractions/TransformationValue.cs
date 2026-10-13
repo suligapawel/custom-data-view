@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace CustomDataView.Core.Transformations.Abstractions;
@@ -6,6 +7,12 @@ namespace CustomDataView.Core.Transformations.Abstractions;
 public static class TransformationValue
 {
     private const string NumberTextFormat = "0.############################";
+
+    public static object FromJson(JsonNode node)
+        => node.GetValueKind() == JsonValueKind.Number ? node.GetValue<decimal>() : node.GetValue<string>();
+
+    public static JsonNode ToJson(object value)
+        => value is decimal number ? JsonValue.Create(number) : JsonValue.Create((string)value);
 
     public static decimal ToNumber(string key, object value)
     {

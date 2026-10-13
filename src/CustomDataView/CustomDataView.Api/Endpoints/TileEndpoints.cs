@@ -84,8 +84,9 @@ public static class TileEndpoints
         {
             endpoints.MapPost(
                 $"{TileUrl}/preview",
-                async (Guid id, ITilePreviewService service, CancellationToken cancellationToken)
-                    => Results.Ok(await service.Preview(id, cancellationToken)));
+                async (Guid id, TilePreviewRequest request, ITilePreviewService service,
+                        CancellationToken cancellationToken)
+                    => Results.Ok(await service.Preview(id, request.ToInput(), cancellationToken)));
             return endpoints;
         }
     }
