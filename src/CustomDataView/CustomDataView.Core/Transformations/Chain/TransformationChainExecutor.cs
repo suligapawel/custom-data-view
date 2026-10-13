@@ -1,3 +1,5 @@
+using CustomDataView.Core.Transformations.Catalog;
+
 namespace CustomDataView.Core.Transformations.Chain;
 
 public sealed class TransformationChainExecutor

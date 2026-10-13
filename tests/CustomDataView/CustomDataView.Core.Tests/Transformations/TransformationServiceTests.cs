@@ -1,5 +1,6 @@
 using System.Collections;
 using CustomDataView.Core.Transformations;
+using CustomDataView.Core.Transformations.Catalog;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CustomDataView.Core.Tests.Transformations;
