@@ -18,6 +18,17 @@ public class ConnectionValidationTests : ConnectionApiTests
         await AssertRejected(definition, "name");
     }
 
+    [TestCase(null)]
+    [Test(Description = "scenario_TEMP-007-014 - #8")]
+    public async Task Given_InvalidUrl_When_UserSavesConnection_Then_SavingIsRejectedWithUrlError(string url)
+    {
+        var definition = ValidGetDefinition();
+        definition["url"] = url;
+        definition.Remove("pathParameters");
+
+        await AssertRejected(definition, "url");
+    }
+
     private static JsonObject ValidGetDefinition()
     {
         return new JsonObject

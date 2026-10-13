@@ -12,6 +12,11 @@ public static class ConnectionDefinitionValidator
             errors["name"] = ["Nazwa połączenia jest wymagana."];
         }
 
+        if (input.Url is null)
+        {
+            errors["url"] = ["Adres połączenia musi być bezwzględnym adresem http lub https."];
+        }
+
         return errors;
     }
 }
