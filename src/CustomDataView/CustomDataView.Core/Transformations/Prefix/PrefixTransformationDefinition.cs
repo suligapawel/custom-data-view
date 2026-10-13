@@ -8,6 +8,8 @@ public sealed class PrefixTransformationDefinition : ITransformationDefinition
 
     public string Name => "Prefiks";
 
+    public string Description => "Dokleja tekst przed wartością.";
+
     public ITransformation Create(ITransformation inner, TransformationParameters parameters)
     {
         return new PrefixTransformation(inner, parameters);

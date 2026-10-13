@@ -6,5 +6,7 @@ public interface ITransformationDefinition
 
     string Name { get; }
 
+    string Description { get; }
+
     ITransformation Create(ITransformation inner, TransformationParameters parameters);
 }

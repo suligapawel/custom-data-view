@@ -21,6 +21,7 @@ public class TransformationCatalogTests
             {
                 "Formatowanie daty", "Małe litery", "Prefiks", "Zaokrąglenie", "Sufiks", "Przycięcie tekstu", "Wielkie litery"
             }));
+        Assert.That(transformations.Select(transformation => transformation.Description), Has.All.Not.Empty);
     }
 
     private static ITransformationCatalog CreateCatalog()

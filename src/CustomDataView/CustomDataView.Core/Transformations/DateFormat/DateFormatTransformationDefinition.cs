@@ -8,6 +8,8 @@ public sealed class DateFormatTransformationDefinition : ITransformationDefiniti
 
     public string Name => "Formatowanie daty";
 
+    public string Description => "Formatuje datę ISO 8601 według wzorca w kulturze niezmiennej.";
+
     public ITransformation Create(ITransformation inner, TransformationParameters parameters)
     {
         return new DateFormatTransformation(inner, parameters);

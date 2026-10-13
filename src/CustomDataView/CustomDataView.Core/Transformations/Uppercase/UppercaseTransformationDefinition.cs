@@ -8,6 +8,8 @@ public sealed class UppercaseTransformationDefinition : ITransformationDefinitio
 
     public string Name => "Wielkie litery";
 
+    public string Description => "Zamienia tekst na wielkie litery w kulturze niezmiennej.";
+
     public ITransformation Create(ITransformation inner, TransformationParameters parameters)
     {
         return new UppercaseTransformation(inner, parameters);
