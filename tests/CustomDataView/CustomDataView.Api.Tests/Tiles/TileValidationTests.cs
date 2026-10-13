@@ -118,6 +118,22 @@ public class TileValidationTests : TileApiTests
         await AssertRejected(response, "fields[0].transformations[0].parameters.text");
     }
 
+    [Test(Description = "scenario_TEMP-015-023 - #15")]
+    public async Task Given_CustomerTile_When_UserSavesTileWithEmptyName_Then_SaveIsRejectedAndListIsUnchanged()
+    {
+        var id = await CreateTile(ValidTile());
+        var tile = ValidTile();
+        tile["name"] = string.Empty;
+
+        var response = await Client.PostAsJsonAsync(TilesUrl, tile);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        var tiles = await Client.GetFromJsonAsync<JsonArray>(TilesUrl);
+        Assert.That(
+            tiles.Select(saved => (saved["id"]?.GetValue<Guid>(), saved["name"]?.GetValue<string>())),
+            Is.EqualTo(new (Guid?, string)[] { (id, "Klient") }));
+    }
+
     private JsonObject ValidTile()
         => new()
         {
