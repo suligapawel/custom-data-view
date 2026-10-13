@@ -34,6 +34,7 @@ public static class DependencyInjection
         services.AddSingleton<IConnectionTestService, ConnectionTestService>();
         services.AddSingleton<IConnectionFactory, ConnectionFactory>();
         services.AddSingleton<IExternalApiClient, ExternalApiClient>();
+        services.AddOptions<ExternalApiOptions>().BindConfiguration(ExternalApiOptions.SectionName);
         services.AddHttpClient(ExternalApiClient.HttpClientName);
         return services;
     }
