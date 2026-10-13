@@ -22,7 +22,7 @@ public sealed class TileService(ITileRepository repository, TileReferencesValida
 
     public IReadOnlyList<TileSummaryDto> GetAll()
         => repository.GetAll()
-            .Select(tile => new TileSummaryDto(tile.Id, tile.Definition.Name))
+            .Select(tile => new TileSummaryDto(tile.Id, tile.Definition.Name, tile.Definition.Fields.Count))
             .ToList();
 
     public TileDto Get(Guid id)
