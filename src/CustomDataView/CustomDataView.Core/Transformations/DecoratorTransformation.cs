@@ -16,7 +16,8 @@ public abstract class DecoratorTransformation : ITransformation
 
     public object Apply(object value)
     {
-        return Transform(_inner.Apply(value));
+        var innerValue = _inner.Apply(value);
+        return innerValue is null ? null : Transform(innerValue);
     }
 
     protected abstract object Transform(object value);
