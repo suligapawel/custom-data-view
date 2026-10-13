@@ -23,11 +23,16 @@ public sealed class DateFormatTransformation : ITransformation
     {
         var innerValue = _inner.Apply(value);
         var pattern = _parameters.GetText(Key, PatternParameter);
-        var date = DateTimeOffset.ParseExact(
-            (string)innerValue,
-            IsoFormats,
-            CultureInfo.InvariantCulture,
-            DateTimeStyles.AssumeUniversal);
+        if (!DateTimeOffset.TryParseExact(
+                (string)innerValue,
+                IsoFormats,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal,
+                out var date))
+        {
+            throw new TransformationFailedException(Key, TransformationFailureReasons.InvalidValue);
+        }
+
         return date.ToString(pattern, CultureInfo.InvariantCulture);
     }
 }

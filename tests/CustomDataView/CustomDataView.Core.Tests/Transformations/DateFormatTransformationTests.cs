@@ -36,6 +36,17 @@ public class DateFormatTransformationTests
         Assert.That(result, Is.EqualTo("13 October 2026"));
     }
 
+    [Test(Description = "scenario_TEMP-001-006 - #8")]
+    public void Given_DateFormat_When_ValueIsNotDate_Then_FailsWithInvalidValue()
+    {
+        var transformation = CreateDateFormat("yyyy-MM-dd");
+
+        var exception = Assert.Throws<TransformationFailedException>(() => transformation.Apply("jutro"));
+
+        Assert.That(exception.Key, Is.EqualTo("date_format"));
+        Assert.That(exception.Reason, Is.EqualTo(TransformationFailureReasons.InvalidValue));
+    }
+
     private static DateFormatTransformation CreateDateFormat(JsonNode pattern)
     {
         var parameters = new TransformationParameters(new Dictionary<string, JsonNode> { ["pattern"] = pattern });
