@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using CustomDataView.Core.Connections.Definitions;
 using CustomDataView.Core.Connections.Persistence;
+using CustomDataView.Core.Exceptions;
 
 namespace CustomDataView.Core.Connections.Management;
 
@@ -26,7 +27,7 @@ public sealed class ConnectionService(IConnectionRepository repository) : IConne
 
     public ConnectionDto Get(Guid id)
     {
-        var connection = repository.Get(id);
+        var connection = repository.Get(id) ?? throw new NotFoundException(id);
         var definition = connection.Definition;
         var post = definition as PostConnectionDefinition;
         return new ConnectionDto(
