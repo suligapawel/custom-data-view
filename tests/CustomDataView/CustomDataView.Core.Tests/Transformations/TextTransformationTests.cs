@@ -1,5 +1,7 @@
+using System.Text.Json.Nodes;
 using CustomDataView.Core.Transformations;
 using CustomDataView.Core.Transformations.Lowercase;
+using CustomDataView.Core.Transformations.Truncate;
 using CustomDataView.Core.Transformations.Uppercase;
 
 namespace CustomDataView.Core.Tests.Transformations;
@@ -46,5 +48,21 @@ public class TextTransformationTests
         var result = transformation.Apply("TITLE");
 
         Assert.That(result, Is.EqualTo("title"));
+    }
+
+    [Test(Description = "scenario_TEMP-001-006 - #11")]
+    public void Given_TruncateToThree_When_ValueIsLonger_Then_ResultIsCutToThreeCharacters()
+    {
+        var transformation = CreateTruncate(3);
+
+        var result = transformation.Apply("abcdef");
+
+        Assert.That(result, Is.EqualTo("abc"));
+    }
+
+    private static TruncateTransformation CreateTruncate(JsonNode maxLength)
+    {
+        var parameters = new TransformationParameters(new Dictionary<string, JsonNode> { ["max_length"] = maxLength });
+        return new TruncateTransformation(new IdentityTransformation(), parameters);
     }
 }
