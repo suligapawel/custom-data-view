@@ -83,6 +83,8 @@ Każde z zadań 2-5 dodaje klasę `XxxTransformation` i rejestruje ją w DI jako
 
 ### Zadanie 6 — Katalog (TEMP-001)
 
+- Folder `Transformations/Catalog/`: `ITransformationService`, `TransformationService`, `TransformationDto`,
+  `TransformationParameterDto`.
 - `ITransformationService` / `TransformationService` (singleton) przyjmuje `IEnumerable<ITransformation>` z DI; nie ma
   osobnych klas katalogu.
 - `GetAll()` zwraca katalog jako `TransformationDto` posortowane po kluczu (ordinalnie), tylko do odczytu;
