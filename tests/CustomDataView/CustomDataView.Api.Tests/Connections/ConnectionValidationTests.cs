@@ -211,6 +211,15 @@ public class ConnectionValidationTests : ConnectionApiTests
         await AssertRejected(definition, "queryParameters[0].defaultValue");
     }
 
+    [Test(Description = "scenario_TEMP-007-014 - #18")]
+    public async Task Given_OptionalPathParameterWithoutDefaultValue_When_UserSavesConnection_Then_SavingIsRejected()
+    {
+        var definition = ValidGetDefinition();
+        definition["pathParameters"] = new JsonArray(new JsonObject { ["name"] = "id", ["required"] = false });
+
+        await AssertRejected(definition, "pathParameters[0].defaultValue");
+    }
+
     private static JsonObject ValidPostDefinition()
     {
         return new JsonObject

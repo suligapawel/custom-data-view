@@ -48,6 +48,15 @@ public static class ConnectionDefinitionValidator
                 {
                     errors[$"pathParameters[{index}].name"] = ["Parametr adresu nie występuje w adresie."];
                 }
+
+                var parameter = input.PathParameters[index];
+                if (!parameter.Required
+                    && (parameter.DefaultValue is not { ValueKind: JsonValueKind.String } defaultValue
+                        || defaultValue.GetString() == string.Empty))
+                {
+                    errors[$"pathParameters[{index}].defaultValue"] =
+                        ["Parametr adresu musi być wymagany albo mieć niepustą wartość domyślną."];
+                }
             }
         }
 
