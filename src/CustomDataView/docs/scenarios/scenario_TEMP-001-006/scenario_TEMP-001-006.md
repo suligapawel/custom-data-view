@@ -14,9 +14,15 @@ użytkownik wybiera je z katalogu i podaje wartości parametrów w polu kafelka.
 
 ## Domena
 
-Folder `CustomDataView.Core/Transformations/`. Wszystkie transformacje leżą w jednym folderze
-`Transformations/Implementations/` (np. `RoundTransformation.cs`); każda klasa jest jednocześnie wpisem katalogu i
-kodem wykonywalnym.
+Folder `CustomDataView.Core/Transformations/`:
+
+- `Abstractions/` — wspólne typy: `ITransformation`, `Transformation`, `TransformationParameters`,
+  `TransformationParameterDescriptor`, `TransformationParameterTypes`, `TransformationValue`,
+  `TransformationFailedException`, `TransformationFailureReasons`.
+- `Implementations/` — 7 transformacji (np. `RoundTransformation.cs`); każda klasa jest jednocześnie wpisem katalogu
+  i kodem wykonywalnym.
+- `Catalog/` — katalog transformacji dla endpointu.
+- `Execution/` — stosowanie listy transformacji do wartości.
 
 ### Zadanie 1 — Wspólne elementy (TEMP-002 … TEMP-006)
 
@@ -92,7 +98,8 @@ Każde z zadań 2-5 dodaje klasę `XxxTransformation` i rejestruje ją w DI jako
 ### Zadanie 7 — Łańcuch transformacji (TEMP-006)
 
 - Stosowanie transformacji nie jest częścią katalogu: `ITransformationService` / `TransformationService` (singleton)
-  w `Transformations/` przyjmuje `IEnumerable<ITransformation>` z DI.
+  w `Transformations/Execution/` przyjmuje `IEnumerable<ITransformation>` z DI; tam też leżą `TransformationStep`,
+  `TransformationResult` i `TransformationError`.
 - `TransformationStep(Key, Parameters)` to jeden element listy z pola kafelka.
 - `Apply(value, steps)` przechodzi po krokach w kolejności listy: wyszukuje transformację po kluczu i wywołuje
   `transformation.Apply(value, parameters)`. Nieznany klucz kończy się `unknown_transformation`. Powtórzenia są
