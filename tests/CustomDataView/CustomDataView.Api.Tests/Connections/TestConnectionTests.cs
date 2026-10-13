@@ -205,4 +205,27 @@ public class TestConnectionTests : ConnectionApiTests
         Assert.That(problem["errors"]!.AsObject().ContainsKey("connection.url"), Is.True);
         Assert.That(Factory.ExternalApi.Requests, Is.Empty);
     }
+
+    [Test(Description = "scenario_TEMP-007-014 - #41")]
+    public async Task Given_OneSavedConnection_When_UserTestsSavedAndUnsavedConnections_Then_ConfigurationIsUnchanged()
+    {
+        var id = await CreateConnection(new
+        {
+            name = "Sprzedawcy kontraktu",
+            method = "GET",
+            url = "https://api.example.com/contracts/{id}/sellers",
+            pathParameters = new[] { new { name = "id", required = true } }
+        });
+        var before = await Client.GetStringAsync($"{ConnectionsUrl}/{id}");
+
+        await Client.PostAsJsonAsync($"{ConnectionsUrl}/{id}/test", new { parameters = new { path = new { id = "42" } } });
+        await Client.PostAsJsonAsync($"{ConnectionsUrl}/test", new
+        {
+            connection = new { name = "Pogoda", method = "GET", url = "https://api.example.com/weather" }
+        });
+
+        var connections = await Client.GetFromJsonAsync<JsonArray>(ConnectionsUrl);
+        Assert.That(connections, Has.Count.EqualTo(1));
+        Assert.That(await Client.GetStringAsync($"{ConnectionsUrl}/{id}"), Is.EqualTo(before));
+    }
 }
