@@ -4,5 +4,5 @@ public interface ITransformationService
 {
     IReadOnlyList<TransformationDto> GetAll();
 
-    ITransformation Find(string key);
+    TransformationResult Apply(object value, IReadOnlyList<TransformationStep> steps);
 }

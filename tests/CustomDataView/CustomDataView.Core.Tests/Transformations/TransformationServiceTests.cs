@@ -53,7 +53,7 @@ public class TransformationServiceTests
 
         Assert.That(
             typeof(ITransformationService).GetMethods().Select(method => method.Name),
-            Is.EquivalentTo(new[] { nameof(ITransformationService.GetAll), nameof(ITransformationService.Find) }));
+            Is.EquivalentTo(new[] { nameof(ITransformationService.GetAll), nameof(ITransformationService.Apply) }));
         Assert.Throws<NotSupportedException>(() => transformations.Clear());
         Assert.That(service.GetAll(), Has.Count.EqualTo(7));
     }
