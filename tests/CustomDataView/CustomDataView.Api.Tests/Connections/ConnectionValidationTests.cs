@@ -81,6 +81,15 @@ public class ConnectionValidationTests : ConnectionApiTests
         Assert.That(connections, Is.Empty);
     }
 
+    [Test(Description = "scenario_TEMP-007-014 - #13")]
+    public async Task Given_UndeclaredPathPlaceholder_When_UserSavesConnection_Then_SavingIsRejectedWithUrlError()
+    {
+        var definition = ValidGetDefinition();
+        definition.Remove("pathParameters");
+
+        await AssertRejected(definition, "url");
+    }
+
     private static JsonObject ValidGetDefinition()
     {
         return new JsonObject

@@ -15,6 +15,11 @@ public static partial class UrlTemplate
         return PlaceholderPattern().Replace(url, string.Empty).IndexOfAny(['{', '}']) >= 0;
     }
 
+    public static IReadOnlyList<string> PlaceholderNames(string url)
+    {
+        return PlaceholderPattern().Matches(url).Select(match => match.Value[1..^1]).Distinct().ToList();
+    }
+
     [GeneratedRegex(@"\{[^{}]*\}")]
     private static partial Regex PlaceholderPattern();
 }

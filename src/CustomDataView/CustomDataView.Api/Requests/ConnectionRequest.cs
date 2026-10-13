@@ -8,6 +8,7 @@ public sealed record ConnectionRequest(
     string Name,
     string Method,
     string Url,
+    IReadOnlyList<ParameterDeclarationInput> PathParameters,
     JsonElement? Body,
     IReadOnlyList<ParameterDeclarationInput> BodyParameters)
 {
@@ -18,6 +19,6 @@ public sealed record ConnectionRequest(
 
     public ConnectionInput ToInput()
     {
-        return new ConnectionInput(Name, Method, Url, Body, BodyParameters ?? []);
+        return new ConnectionInput(Name, Method, Url, PathParameters ?? [], Body, BodyParameters ?? []);
     }
 }

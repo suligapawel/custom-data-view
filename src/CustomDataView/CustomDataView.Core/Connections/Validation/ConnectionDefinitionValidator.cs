@@ -21,6 +21,15 @@ public static class ConnectionDefinitionValidator
         {
             errors["url"] = ["Adres połączenia musi być bezwzględnym adresem http lub https."];
         }
+        else
+        {
+            var declared = input.PathParameters.Select(parameter => parameter.Name).ToHashSet();
+            var undeclared = UrlTemplate.PlaceholderNames(input.Url).Where(name => !declared.Contains(name)).ToList();
+            if (undeclared.Count > 0)
+            {
+                errors["url"] = undeclared.Select(name => $"Parametr adresu \"{name}\" nie został zadeklarowany.").ToArray();
+            }
+        }
 
         if (!IsSupportedMethod(input.Method))
         {

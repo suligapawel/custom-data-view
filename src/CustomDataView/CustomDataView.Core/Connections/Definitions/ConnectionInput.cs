@@ -6,6 +6,7 @@ public sealed record ConnectionInput(
     string Name,
     string Method,
     string Url,
+    IReadOnlyList<ParameterDeclarationInput> PathParameters,
     JsonElement? Body,
     IReadOnlyList<ParameterDeclarationInput> BodyParameters)
 {
