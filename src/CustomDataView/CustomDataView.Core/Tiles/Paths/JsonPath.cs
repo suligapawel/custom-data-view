@@ -4,6 +4,8 @@ namespace CustomDataView.Core.Tiles.Paths;
 
 public sealed record JsonPath(IReadOnlyList<JsonPathSegment> Segments)
 {
+    public bool HasWildcard => Segments.Any(segment => segment is JsonPathSegment.Wildcard);
+
     public IReadOnlyList<JsonNode> Evaluate(JsonNode root)
     {
         IEnumerable<JsonNode> matches = [root];
@@ -19,7 +21,8 @@ public sealed record JsonPath(IReadOnlyList<JsonPathSegment> Segments)
         => segment switch
         {
             JsonPathSegment.Property property when node is JsonObject json && json.TryGetPropertyValue(property.Name, out var value)
-                => [value],
+                => new List<JsonNode> { value },
+            JsonPathSegment.Wildcard when node is JsonArray array => array.ToList(),
             _ => []
         };
 }

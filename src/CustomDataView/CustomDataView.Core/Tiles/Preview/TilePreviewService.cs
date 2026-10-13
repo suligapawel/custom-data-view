@@ -58,8 +58,18 @@ public sealed class TilePreviewService(
     private TileFieldPreview PreviewField(TileField field, ExternalApiResult response)
     {
         JsonPathParser.TryParse(field.Path, out var path);
-        var value = path.Evaluate(response.Body).Single();
-        var result = transformations.Apply(TransformationValue.FromJson(value), field.Transformations);
+        var matches = path.Evaluate(response.Body);
+        if (path.HasWildcard)
+        {
+            return new TileFieldPreview(
+                field.Label,
+                new JsonArray(matches
+                    .Select(match => TransformationValue.ToJson(
+                        transformations.Apply(TransformationValue.FromJson(match), field.Transformations).Value))
+                    .ToArray()));
+        }
+
+        var result = transformations.Apply(TransformationValue.FromJson(matches.Single()), field.Transformations);
         if (result.Error is { } error)
         {
             return new TileFieldPreview(field.Label, null, new TileFieldError(error.Code, error.Key, error.Reason));

@@ -70,6 +70,20 @@ public class TilePreviewTests : TileApiTests
         AssertValues(preview, """[1234.567, {"city": "Kraków"}]""");
     }
 
+    [Test(Description = "scenario_TEMP-015-023 - #30")]
+    public async Task Given_FieldWithSellersWildcardAndUppercase_When_UserPreviewsTile_Then_FieldHasTransformedList()
+    {
+        var id = await CreateTile(new
+        {
+            name = "Klient",
+            fields = new[] { Field(CustomerConnectionId, "$.sellers[*].name", "Sprzedawcy", Transformation("uppercase")) }
+        });
+
+        var preview = await Preview(id, CustomerValues());
+
+        AssertValues(preview, """[["ACME", "GLOBEX"]]""");
+    }
+
     private async Task<JsonObject> Preview(Guid id, object values)
     {
         var response = await Client.PostAsJsonAsync($"{TilesUrl}/{id}/preview", values);
