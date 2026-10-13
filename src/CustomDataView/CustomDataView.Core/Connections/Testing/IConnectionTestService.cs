@@ -1,6 +1,9 @@
+using CustomDataView.Core.Connections.Calls;
+using CustomDataView.Core.Connections.Http;
+
 namespace CustomDataView.Core.Connections.Testing;
 
 public interface IConnectionTestService
 {
-    void Test(Guid id);
+    Task<ExternalApiResult> Test(Guid id, ConnectionParameterValues parameters, CancellationToken cancellationToken);
 }

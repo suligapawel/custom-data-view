@@ -1,3 +1,4 @@
+using CustomDataView.Core.Connections.Http;
 using CustomDataView.Core.Connections.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -8,11 +9,14 @@ namespace CustomDataView.Api.Tests;
 
 public class CustomDataViewApplicationFactory : WebApplicationFactory<Program>
 {
+    public FakeExternalApi ExternalApi { get; } = new();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureTestServices(services =>
         {
             services.AddSingleton<IConnectionRepository, TestConnectionRepository>();
+            services.AddHttpClient(ExternalApiClient.HttpClientName).ConfigurePrimaryHttpMessageHandler(() => ExternalApi);
         });
     }
 }

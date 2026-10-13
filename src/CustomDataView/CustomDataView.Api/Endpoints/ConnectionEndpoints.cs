@@ -42,11 +42,10 @@ public static class ConnectionEndpoints
             service.Delete(id);
             return Results.NoContent();
         });
-        endpoints.MapPost($"{ConnectionsUrl}/{{id:guid}}/test", (Guid id, IConnectionTestService service) =>
-        {
-            service.Test(id);
-            return Results.Ok();
-        });
+        endpoints.MapPost(
+            $"{ConnectionsUrl}/{{id:guid}}/test",
+            async (Guid id, ConnectionTestRequest request, IConnectionTestService service, CancellationToken cancellationToken) =>
+                Results.Ok(await service.Test(id, ConnectionTestRequest.ValuesOf(request), cancellationToken)));
         return endpoints;
     }
 }

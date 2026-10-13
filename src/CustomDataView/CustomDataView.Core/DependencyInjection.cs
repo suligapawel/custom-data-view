@@ -1,3 +1,5 @@
+using CustomDataView.Core.Connections.Calls;
+using CustomDataView.Core.Connections.Http;
 using CustomDataView.Core.Connections.Management;
 using CustomDataView.Core.Connections.Persistence;
 using CustomDataView.Core.Connections.Testing;
@@ -30,6 +32,9 @@ public static class DependencyInjection
         services.AddSingleton<IConnectionRepository, InMemoryConnectionRepository>();
         services.AddSingleton<IConnectionService, ConnectionService>();
         services.AddSingleton<IConnectionTestService, ConnectionTestService>();
+        services.AddSingleton<IConnectionFactory, ConnectionFactory>();
+        services.AddSingleton<IExternalApiClient, ExternalApiClient>();
+        services.AddHttpClient(ExternalApiClient.HttpClientName);
         return services;
     }
 }

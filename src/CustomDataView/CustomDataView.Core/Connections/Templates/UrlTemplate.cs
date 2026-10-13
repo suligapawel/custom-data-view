@@ -15,6 +15,12 @@ public static partial class UrlTemplate
         return PlaceholderPattern().Replace(url, string.Empty).IndexOfAny(['{', '}']) >= 0;
     }
 
+    public static Uri Resolve(string url, IReadOnlyDictionary<string, string> pathValues)
+    {
+        var resolved = PlaceholderPattern().Replace(url, match => Uri.EscapeDataString(pathValues[match.Value[1..^1]]));
+        return new Uri(resolved);
+    }
+
     public static IReadOnlyList<string> PlaceholderNames(string url)
     {
         return PlaceholderPattern().Matches(url).Select(match => match.Value[1..^1]).Distinct().ToList();

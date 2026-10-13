@@ -1,12 +1,15 @@
+using CustomDataView.Core.Connections.Calls;
+using CustomDataView.Core.Connections.Http;
 using CustomDataView.Core.Connections.Persistence;
 using CustomDataView.Core.Exceptions;
 
 namespace CustomDataView.Core.Connections.Testing;
 
-public sealed class ConnectionTestService(IConnectionRepository repository) : IConnectionTestService
+public sealed class ConnectionTestService(IConnectionRepository repository, IConnectionFactory factory) : IConnectionTestService
 {
-    public void Test(Guid id)
+    public Task<ExternalApiResult> Test(Guid id, ConnectionParameterValues parameters, CancellationToken cancellationToken)
     {
-        _ = repository.Get(id) ?? throw new NotFoundException(id);
+        var connection = repository.Get(id) ?? throw new NotFoundException(id);
+        return factory.Create(connection.Definition).Get(parameters, cancellationToken);
     }
 }
