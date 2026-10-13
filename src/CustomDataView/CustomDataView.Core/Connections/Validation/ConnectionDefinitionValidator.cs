@@ -50,19 +50,13 @@ public static class ConnectionDefinitionValidator
             errors["body"] = ["Treść jest dozwolona tylko dla połączenia POST."];
         }
 
-        if (input.Body is { ValueKind: not JsonValueKind.Null } body)
-        {
-            var declared = input.BodyParameters.Select(parameter => parameter.Name).ToHashSet();
-            var undeclared = BodyTemplate.PlaceholderNames(body).Where(name => !declared.Contains(name)).ToList();
-            if (undeclared.Count > 0 && !errors.ContainsKey("body"))
-            {
-                errors["body"] = undeclared.Select(name => $"Parametr treści \"{name}\" nie został zadeklarowany.").ToArray();
-            }
-        }
-
         if (IsGet(input.Method) && input.BodyParameters.Count > 0)
         {
             errors["bodyParameters"] = ["Parametry treści są dozwolone tylko dla połączenia POST."];
+        }
+        else if (!errors.ContainsKey("body"))
+        {
+            ValidateBodyParameters(input, errors);
         }
 
         return errors;
@@ -76,5 +70,26 @@ public static class ConnectionDefinitionValidator
     private static bool IsGet(string method)
     {
         return string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void ValidateBodyParameters(ConnectionInput input, Dictionary<string, string[]> errors)
+    {
+        var placeholders = input.Body is { ValueKind: not JsonValueKind.Null } body
+            ? BodyTemplate.PlaceholderNames(body)
+            : [];
+        var declared = input.BodyParameters.Select(parameter => parameter.Name).ToHashSet();
+        var undeclared = placeholders.Where(name => !declared.Contains(name)).ToList();
+        if (undeclared.Count > 0)
+        {
+            errors["body"] = undeclared.Select(name => $"Parametr treści \"{name}\" nie został zadeklarowany.").ToArray();
+        }
+
+        for (var index = 0; index < input.BodyParameters.Count; index++)
+        {
+            if (!placeholders.Contains(input.BodyParameters[index].Name))
+            {
+                errors[$"bodyParameters[{index}].name"] = ["Parametr treści nie występuje w treści."];
+            }
+        }
     }
 }

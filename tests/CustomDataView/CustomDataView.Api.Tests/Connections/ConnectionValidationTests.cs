@@ -100,6 +100,7 @@ public class ConnectionValidationTests : ConnectionApiTests
     }
 
     [TestCase("""{"contractId": "{id}"}""", false, "body")]
+    [TestCase("""{"contractId": 42}""", true, "bodyParameters[0].name")]
     [Test(Description = "scenario_TEMP-007-014 - #14")]
     public async Task Given_BodyParametersNotMatchingBody_When_UserSavesConnection_Then_SavingIsRejected(
         string body,
