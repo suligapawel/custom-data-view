@@ -26,6 +26,12 @@ public static class TileEndpoints
         {
             endpoints.MapPost(TilesUrl, (TileRequest request, ITileService service) =>
             {
+                var errors = request.Validate();
+                if (errors.Count > 0)
+                {
+                    return Results.ValidationProblem(errors);
+                }
+
                 var id = service.Add(request.ToDefinition());
                 return Results.Created($"{TilesUrl}/{id}", new TileCreatedResponse(id));
             });

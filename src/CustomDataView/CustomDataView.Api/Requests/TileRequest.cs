@@ -1,25 +1,29 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using CustomDataView.Core.Tiles.Definitions;
-using CustomDataView.Core.Transformations.Execution;
+using CustomDataView.Core.Tiles.Validation;
 
 namespace CustomDataView.Api.Requests;
 
 public sealed record TileRequest(string Name, IReadOnlyList<TileFieldRequest> Fields)
 {
-    public TileDefinition ToDefinition()
-        => new TileDefinition(
+    public IDictionary<string, string[]> Validate() => TileDefinitionValidator.Validate(ToInput());
+
+    public TileDefinition ToDefinition() => ToInput().ToDefinition();
+
+    private TileInput ToInput()
+        => new TileInput(
             Name,
             Fields
-                .Select(field => new TileField(
+                .Select(field => new TileFieldInput(
                     field.ConnectionId,
                     field.Path,
                     field.Label,
-                    (field.Transformations ?? []).Select(ToStep).ToList()))
+                    (field.Transformations ?? []).Select(ToInput).ToList()))
                 .ToList());
 
-    private static TransformationStep ToStep(TransformationStepRequest step)
-        => new TransformationStep(
+    private static TransformationStepInput ToInput(TransformationStepRequest step)
+        => new TransformationStepInput(
             step.Key,
             (step.Parameters ?? new Dictionary<string, JsonElement>())
                 .ToDictionary(parameter => parameter.Key, parameter => JsonNode.Parse(parameter.Value.GetRawText())));
