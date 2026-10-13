@@ -40,6 +40,16 @@ public class NumberAsTextTests
         Assert.That(result, Is.EqualTo("21.5"));
     }
 
+    [Test(Description = "scenario_TEMP-001-006 - #13")]
+    public void Given_Lowercase_When_NumberIsFraction_Then_ResultIsNumberText()
+    {
+        var transformation = new LowercaseTransformation(new IdentityTransformation(), new TransformationParameters(null));
+
+        var result = transformation.Apply(0.1m);
+
+        Assert.That(result, Is.EqualTo("0.1"));
+    }
+
     private static TransformationParameters CreateParameter(string name, JsonNode value)
     {
         return new TransformationParameters(new Dictionary<string, JsonNode> { [name] = value });
