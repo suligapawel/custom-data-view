@@ -1,3 +1,4 @@
+using System.Collections;
 using CustomDataView.Core.Transformations;
 using CustomDataView.Core.Transformations.Catalog;
 using Microsoft.Extensions.DependencyInjection;
@@ -42,6 +43,19 @@ public class TransformationCatalogTests
         Assert.That(parameters["truncate"], Is.EqualTo(new[] { new TransformationParameterDescriptor("max_length", "integer") }));
         Assert.That(parameters["uppercase"], Is.Empty);
         Assert.That(parameters["lowercase"], Is.Empty);
+    }
+
+    [Test(Description = "scenario_TEMP-001-006 - #3")]
+    public void Given_UserBrowsesCatalog_When_UserTriesToChangeTransformations_Then_CatalogIsReadOnly()
+    {
+        var catalog = CreateCatalog();
+        var transformations = (IList)catalog.GetAll();
+
+        Assert.That(
+            typeof(ITransformationCatalog).GetMethods().Select(method => method.Name),
+            Is.EquivalentTo(new[] { nameof(ITransformationCatalog.GetAll), nameof(ITransformationCatalog.Find) }));
+        Assert.Throws<NotSupportedException>(() => transformations.Clear());
+        Assert.That(catalog.GetAll(), Has.Count.EqualTo(7));
     }
 
     private static ITransformationCatalog CreateCatalog()
