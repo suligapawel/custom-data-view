@@ -23,6 +23,9 @@ public class TransformationCatalogTests
                 "Formatowanie daty", "Małe litery", "Prefiks", "Zaokrąglenie", "Sufiks", "Przycięcie tekstu", "Wielkie litery"
             }));
         Assert.That(transformations.Select(transformation => transformation.Description), Has.All.Not.Empty);
+        Assert.That(
+            typeof(TransformationParameterDescriptor).GetProperties().Select(property => property.Name),
+            Is.EquivalentTo(new[] { "Name", "Type" }));
     }
 
     [Test(Description = "scenario_TEMP-001-006 - #2")]
