@@ -9,7 +9,7 @@ public sealed record TileInput(string Name, IReadOnlyList<TileFieldInput> Fields
             Name,
             Fields
                 .Select(field => new TileField(
-                    field.ConnectionId,
+                    field.ConnectionId!.Value,
                     field.Path,
                     field.Label,
                     field.Transformations

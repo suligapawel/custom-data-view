@@ -30,7 +30,7 @@ public sealed record TileRequest(string Name, IReadOnlyList<TileFieldRequest> Fi
 }
 
 public sealed record TileFieldRequest(
-    Guid ConnectionId,
+    Guid? ConnectionId,
     string Path,
     string Label,
     IReadOnlyList<TransformationStepRequest> Transformations);

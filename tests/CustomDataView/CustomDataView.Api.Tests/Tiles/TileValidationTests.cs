@@ -67,6 +67,17 @@ public class TileValidationTests : TileApiTests
         await AssertRejected(response, "fields[0].path");
     }
 
+    [Test(Description = "scenario_TEMP-015-023 - #11")]
+    public async Task Given_FirstFieldWithoutConnection_When_UserSavesTile_Then_SaveIsRejectedWithFirstConnectionError()
+    {
+        var tile = ValidTile();
+        tile["fields"]![0]!.AsObject().Remove("connectionId");
+
+        var response = await Client.PostAsJsonAsync(TilesUrl, tile);
+
+        await AssertRejected(response, "fields[0].connectionId");
+    }
+
     private JsonObject ValidTile()
         => new()
         {

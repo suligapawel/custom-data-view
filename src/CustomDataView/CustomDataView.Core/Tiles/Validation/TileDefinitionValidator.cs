@@ -35,6 +35,11 @@ public static class TileDefinitionValidator
             errors[$"{key}.label"] = [$"Etykieta pola jest wymagana i może mieć najwyżej {MaxTextLength} znaków."];
         }
 
+        if (field.ConnectionId is null)
+        {
+            errors[$"{key}.connectionId"] = ["Połączenie pola jest wymagane."];
+        }
+
         if (!JsonPathParser.TryParse(field.Path, out _))
         {
             errors[$"{key}.path"] = [$"Ścieżka pola {key} jest wymagana i musi być poprawną ścieżką JSONPath."];
