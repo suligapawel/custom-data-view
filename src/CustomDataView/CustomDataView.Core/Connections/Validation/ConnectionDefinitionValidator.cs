@@ -51,6 +51,14 @@ public static class ConnectionDefinitionValidator
             errors["method"] = ["Rodzaj połączenia musi być GET albo POST."];
         }
 
+        for (var index = 0; index < input.Headers.Count; index++)
+        {
+            if (string.IsNullOrEmpty(input.Headers[index].Name))
+            {
+                errors[$"headers[{index}].name"] = ["Nazwa nagłówka jest wymagana."];
+            }
+        }
+
         for (var index = 0; index < input.QueryParameters.Count; index++)
         {
             if (string.IsNullOrEmpty(input.QueryParameters[index].Name))
@@ -62,6 +70,14 @@ public static class ConnectionDefinitionValidator
         if (IsGet(input.Method) && input.Body is { ValueKind: not JsonValueKind.Null })
         {
             errors["body"] = ["Treść jest dozwolona tylko dla połączenia POST."];
+        }
+
+        for (var index = 0; index < input.Headers.Count; index++)
+        {
+            if (string.IsNullOrEmpty(input.Headers[index].Name))
+            {
+                errors[$"headers[{index}].name"] = ["Nazwa nagłówka jest wymagana."];
+            }
         }
 
         for (var index = 0; index < input.QueryParameters.Count; index++)

@@ -138,6 +138,7 @@ public class ConnectionValidationTests : ConnectionApiTests
     }
 
     [TestCase("queryParameters")]
+    [TestCase("headers")]
     [Test(Description = "scenario_TEMP-007-014 - #16")]
     public async Task Given_EmptyQueryParameterOrHeaderName_When_UserSavesConnection_Then_SavingIsRejected(string element)
     {
