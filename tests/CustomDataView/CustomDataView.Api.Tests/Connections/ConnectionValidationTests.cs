@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json.Nodes;
 
 namespace CustomDataView.Api.Tests.Connections;
@@ -66,6 +67,18 @@ public class ConnectionValidationTests : ConnectionApiTests
             : new JsonArray(new JsonObject { ["name"] = "limit" });
 
         await AssertRejected(definition, element);
+    }
+
+    [Test(Description = "scenario_TEMP-007-014 - #12")]
+    public async Task Given_DefinitionThatIsNotJson_When_UserSavesConnection_Then_SavingIsRejected()
+    {
+        var content = new StringContent("""{ "name": "Pogoda", """, Encoding.UTF8, "application/json");
+
+        var response = await Client.PostAsync(ConnectionsUrl, content);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        var connections = await Client.GetFromJsonAsync<JsonArray>(ConnectionsUrl);
+        Assert.That(connections, Is.Empty);
     }
 
     private static JsonObject ValidGetDefinition()
