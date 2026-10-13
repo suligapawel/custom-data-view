@@ -20,8 +20,20 @@ public class ConnectionValidationTests : ConnectionApiTests
 
     [TestCase(null)]
     [TestCase("/contracts/42")]
+    [TestCase("ftp://api.example.com/contracts")]
     [Test(Description = "scenario_TEMP-007-014 - #8")]
     public async Task Given_InvalidUrl_When_UserSavesConnection_Then_SavingIsRejectedWithUrlError(string url)
+    {
+        var definition = ValidGetDefinition();
+        definition["url"] = url;
+        definition.Remove("pathParameters");
+
+        await AssertRejected(definition, "url");
+    }
+
+    [TestCase("https://{host}/contracts")]
+    [Test(Description = "scenario_TEMP-007-014 - #9")]
+    public async Task Given_PlaceholderOutsidePath_When_UserSavesConnection_Then_SavingIsRejectedWithUrlError(string url)
     {
         var definition = ValidGetDefinition();
         definition["url"] = url;
