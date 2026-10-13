@@ -180,6 +180,27 @@ public class ConnectionValidationTests : ConnectionApiTests
         await AssertRejected(definition, "bodyParameters[1].name");
     }
 
+    [Test(Description = "scenario_TEMP-007-014 - #17")]
+    public async Task Given_TwoQueryParametersNamedTag_When_UserSavesConnection_Then_ConnectionIsSaved()
+    {
+        var definition = ValidGetDefinition();
+        definition["queryParameters"] = new JsonArray(
+            new JsonObject { ["name"] = "tag", ["defaultValue"] = "a" },
+            new JsonObject { ["name"] = "tag", ["defaultValue"] = "b" });
+
+        await AssertAccepted(definition);
+    }
+
+    [Test(Description = "scenario_TEMP-007-014 - #17")]
+    public async Task Given_PathAndBodyParametersNamedId_When_UserSavesConnection_Then_ConnectionIsSaved()
+    {
+        var definition = ValidPostDefinition();
+        definition["url"] = "https://api.example.com/contracts/{id}/sellers/search";
+        definition["pathParameters"] = new JsonArray(new JsonObject { ["name"] = "id", ["required"] = true });
+
+        await AssertAccepted(definition);
+    }
+
     private static JsonObject ValidPostDefinition()
     {
         return new JsonObject
