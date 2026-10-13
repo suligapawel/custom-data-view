@@ -8,6 +8,7 @@ builder.Services.AddCustomDataViewTransformations();
 var app = builder.Build();
 
 app.MapTransformationEndpoints();
+app.MapConnectionEndpoints();
 
 app.Run();
 
