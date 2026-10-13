@@ -24,6 +24,16 @@ public class TransformationChainTests
         Assert.That(result.Value, Is.EqualTo("21.5 °C"));
     }
 
+    [Test(Description = "scenario_TEMP-001-006 - #16")]
+    public void Given_NoTransformations_When_ValueIsTransformed_Then_ValueIsUnchanged()
+    {
+        var executor = CreateExecutor();
+
+        var result = executor.Execute(21.4567m, []);
+
+        Assert.That(result.Value, Is.EqualTo(21.4567m));
+    }
+
     private static TransformationChainExecutor CreateExecutor()
     {
         ITransformationDefinition[] definitions =
