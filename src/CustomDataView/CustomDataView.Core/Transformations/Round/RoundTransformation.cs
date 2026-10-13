@@ -19,12 +19,13 @@ public sealed class RoundTransformation : ITransformation
 
     public object Apply(object value)
     {
+        var innerValue = _inner.Apply(value);
         var decimals = _parameters.GetInteger(Key, DecimalsParameter);
         if (decimals < MinDecimals || decimals > MaxDecimals)
         {
             throw new TransformationFailedException(Key, TransformationFailureReasons.InvalidParameter, DecimalsParameter);
         }
 
-        return Math.Round(TransformationValue.ToNumber(Key, _inner.Apply(value)), decimals, MidpointRounding.AwayFromZero);
+        return Math.Round(TransformationValue.ToNumber(Key, innerValue), decimals, MidpointRounding.AwayFromZero);
     }
 }
