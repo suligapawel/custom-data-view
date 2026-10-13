@@ -2,9 +2,9 @@ namespace CustomDataView.Core.Transformations.Truncate;
 
 public sealed class TruncateTransformation : DecoratorTransformation
 {
-    private static readonly TransformationParameterDescriptor MaxLengthParameter = TruncateTransformationDefinition.MaxLengthParameter;
-
     private const int MinMaxLength = 1;
+
+    private static readonly TransformationParameterDescriptor MaxLengthParameter = TruncateTransformationDefinition.MaxLengthParameter;
 
     public TruncateTransformation(ITransformation inner, TransformationParameters parameters)
         : base(inner, parameters)

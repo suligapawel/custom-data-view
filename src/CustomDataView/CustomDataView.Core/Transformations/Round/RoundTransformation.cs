@@ -2,10 +2,10 @@ namespace CustomDataView.Core.Transformations.Round;
 
 public sealed class RoundTransformation : DecoratorTransformation
 {
-    private static readonly TransformationParameterDescriptor DecimalsParameter = RoundTransformationDefinition.DecimalsParameter;
-
     private const int MinDecimals = 0;
     private const int MaxDecimals = 10;
+
+    private static readonly TransformationParameterDescriptor DecimalsParameter = RoundTransformationDefinition.DecimalsParameter;
 
     public RoundTransformation(ITransformation inner, TransformationParameters parameters)
         : base(inner, parameters)
