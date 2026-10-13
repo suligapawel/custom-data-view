@@ -49,4 +49,18 @@ public class TileDraftPreviewTests : TileApiTests
             unsaved?.ToJsonString());
         Assert.That(await Client.GetStringAsync(TilesUrl), Is.EqualTo(list));
     }
+
+    [Test(Description = "scenario_TEMP-015-023 - #43")]
+    public async Task Given_UnsavedTileWithoutNameAndWithMissingConnection_When_UserPreviewsIt_Then_PreviewIsRejectedWithoutCalls()
+    {
+        var response = await Client.PostAsJsonAsync($"{TilesUrl}/preview", new
+        {
+            tile = new { fields = new[] { Field(Guid.NewGuid(), "$.name", "Nazwa") } }
+        });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        var problem = await response.Content.ReadFromJsonAsync<JsonObject>();
+        Assert.That(problem["errors"]!.AsObject().Select(error => error.Key), Does.Contain("tile.name"));
+        Assert.That(Factory.ExternalApi.Requests, Is.Empty);
+    }
 }

@@ -85,11 +85,19 @@ public static class TileEndpoints
         {
             endpoints.MapPost(
                 $"{TilesUrl}/preview",
-                async (TileDraftPreviewRequest request, ITilePreviewService service, CancellationToken cancellationToken)
-                    => Results.Ok(await service.Preview(
+                async (TileDraftPreviewRequest request, ITilePreviewService service, CancellationToken cancellationToken) =>
+                {
+                    var errors = request.Validate();
+                    if (errors.Count > 0)
+                    {
+                        return Results.ValidationProblem(errors);
+                    }
+
+                    return Results.Ok(await service.Preview(
                         request.Tile.ToDefinition(),
                         TilePreviewRequest.ValuesOf(request.Connections),
-                        cancellationToken)));
+                        cancellationToken));
+                });
             return endpoints;
         }
 
