@@ -48,6 +48,8 @@ public static class ParameterValuesValidator
             errors[$"parameters.body.{parameter.Name}"] = ["Wartość wymaganego parametru jest wymagana."];
         }
 
+        AddUndeclared("body", bodyParameters, values.Body, errors);
+
         return errors;
     }
 

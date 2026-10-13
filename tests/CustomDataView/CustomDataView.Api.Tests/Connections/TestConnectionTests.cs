@@ -273,6 +273,7 @@ public class TestConnectionTests : ConnectionApiTests
     [TestCase("""{"query": {"status": []}, "body": {"id": "C-1"}}""", "parameters.query.status")]
     [TestCase("""{"query": {"status": "active", "foo": "x"}, "body": {"id": "C-1"}}""", "parameters.query.foo")]
     [TestCase("""{"query": {"status": "active"}}""", "parameters.body.id")]
+    [TestCase("""{"query": {"status": "active"}, "body": {"id": "C-1", "foo": 1}}""", "parameters.body.foo")]
     [Test(Description = "scenario_TEMP-007-014 - #44")]
     public async Task Given_PostConnectionWithRequiredQueryAndBodyParameters_When_UserTestsItWithInvalidValues_Then_TestIsRejected(
         string parameters,
