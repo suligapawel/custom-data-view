@@ -30,5 +30,11 @@ public class EditConnectionTests : ConnectionApiTests
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
         var details = await Client.GetFromJsonAsync<JsonObject>($"{ConnectionsUrl}/{id}");
         Assert.That(details["name"]?.GetValue<string>(), Is.EqualTo("Wyszukiwanie sprzedawców"));
+        Assert.That(details["method"]?.GetValue<string>(), Is.EqualTo("POST"));
+        Assert.That(details["pathParameters"]!.AsArray(), Is.Empty);
+        Assert.That(JsonNode.DeepEquals(details["body"], JsonNode.Parse("""{"contractId": "{id}"}""")), Is.True);
+        Assert.That(details["id"]?.GetValue<Guid>(), Is.EqualTo(id));
+        var connections = await Client.GetFromJsonAsync<JsonArray>(ConnectionsUrl);
+        Assert.That(connections[1]!["id"]!.GetValue<Guid>(), Is.EqualTo(id));
     }
 }
