@@ -50,10 +50,14 @@ public sealed class TilePreviewService(
                 Connection: connections.Get(connectionId),
                 Parameters: values.FirstOrDefault(value => value.ConnectionId == connectionId)?.Parameters ?? NoValues))
             .ToList();
-        var errors = used
+        var errors = RepeatedConnections(values);
+        foreach (var error in used
             .SelectMany(call => ParameterValuesValidator.Validate(call.Connection.Definition, call.Parameters)
-                .Select(error => (Key: $"connections[{call.Connection.Id}].{error.Key}", error.Value)))
-            .ToDictionary(error => error.Key, error => error.Value);
+                .Select(error => (Key: $"connections[{call.Connection.Id}].{error.Key}", error.Value))))
+        {
+            errors[error.Key] = error.Value;
+        }
+
         if (errors.Count > 0)
         {
             throw new ValidationException(errors);
@@ -63,6 +67,21 @@ public sealed class TilePreviewService(
             connectionId: call.Connection.Id,
             result: await factory.Create(call.Connection.Definition).Get(call.Parameters.ToValues(), cancellationToken))));
         return results.ToDictionary(call => call.connectionId, call => call.result);
+    }
+
+    private static Dictionary<string, string[]> RepeatedConnections(IReadOnlyList<ConnectionValuesInput> values)
+    {
+        var errors = new Dictionary<string, string[]>();
+        for (var index = 0; index < values.Count; index++)
+        {
+            var connectionId = values[index].ConnectionId;
+            if (values.Take(index).Any(previous => previous.ConnectionId == connectionId))
+            {
+                errors[$"connections[{index}].connectionId"] = ["Wartości tego połączenia zostały podane więcej niż raz."];
+            }
+        }
+
+        return errors;
     }
 
     private TileFieldPreview PreviewField(TileField field, ExternalApiResult response)
