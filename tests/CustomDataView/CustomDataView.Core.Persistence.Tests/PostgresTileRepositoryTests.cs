@@ -1,7 +1,11 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using CustomDataView.Core.Connections.Definitions;
 using CustomDataView.Core.Connections.Persistence;
 using CustomDataView.Core.Tiles.Definitions;
 using CustomDataView.Core.Tiles.Persistence;
+using CustomDataView.Core.Transformations.Execution;
+using CustomDataView.Core.Transformations.Implementations;
 using Npgsql;
 
 namespace CustomDataView.Core.Persistence.Tests;
@@ -17,7 +21,7 @@ public class PostgresTileRepositoryTests
     public void CreateDatabase()
     {
         dataSource = TestDatabase.Create();
-        repository = new PostgresTileRepository(dataSource);
+        repository = new PostgresTileRepository(dataSource, [new RoundTransformation(), new SuffixTransformation()]);
     }
 
     [OneTimeTearDown]
@@ -55,17 +59,50 @@ public class PostgresTileRepositoryTests
     {
         var tile = new Tile(Guid.NewGuid(), new TileDefinition("Klient i kurs",
         [
-            new TileField(rateConnectionId, "$.rate", "Kurs EUR"),
-            new TileField(customerConnectionId, "$.name", "Nazwa"),
-            new TileField(customerConnectionId, "$['unit-name']", "Nazwa")
+            new TileField(rateConnectionId, "$.rate", "Kurs EUR", []),
+            new TileField(customerConnectionId, "$.name", "Nazwa", []),
+            new TileField(customerConnectionId, "$['unit-name']", "Nazwa", [])
         ]));
 
         repository.Add(tile);
 
         var loaded = repository.Get(tile.Id);
-        Assert.That(loaded.Definition.Name, Is.EqualTo("Klient i kurs"));
-        Assert.That(loaded.Definition.Fields, Is.EqualTo(tile.Definition.Fields));
+        Assert.That(Json(loaded), Is.EqualTo(Json(tile)));
     }
+
+    [Test]
+    public void Given_FieldWithTransformationChain_When_TileIsLoaded_Then_KeysOrderAndTypedParametersAreUnchanged()
+    {
+        var tile = new Tile(Guid.NewGuid(), new TileDefinition("Klient",
+        [
+            new TileField(customerConnectionId, "$.balance", "Saldo",
+            [
+                new TransformationStep("round", new Dictionary<string, JsonNode> { ["decimals"] = 2 }),
+                new TransformationStep("suffix", new Dictionary<string, JsonNode> { ["text"] = " zł" }),
+                new TransformationStep("suffix", new Dictionary<string, JsonNode> { ["text"] = "2" }),
+                new TransformationStep("round", new Dictionary<string, JsonNode> { ["decimals"] = "dwa", ["extra"] = 1.5m })
+            ])
+        ]));
+
+        repository.Add(tile);
+
+        Assert.That(Json(repository.Get(tile.Id)), Is.EqualTo(Json(tile with { Definition = tile.Definition with
+        {
+            Fields =
+            [
+                tile.Definition.Fields[0] with
+                {
+                    Transformations =
+                    [
+                        .. tile.Definition.Fields[0].Transformations.Take(3),
+                        new TransformationStep("round", new Dictionary<string, JsonNode> { ["decimals"] = "dwa", ["extra"] = "1.5" })
+                    ]
+                }
+            ]
+        } })));
+    }
+
+    private static string Json(Tile tile) => JsonSerializer.Serialize(tile);
 
     private Guid AddConnection(string name)
     {

@@ -25,3 +25,29 @@ CREATE TABLE custom_data_view.tile_fields
 );
 
 CREATE INDEX ix_tile_fields_connection_id ON custom_data_view.tile_fields (connection_id);
+
+CREATE TABLE custom_data_view.tile_field_transformations
+(
+    tile_id        uuid        NOT NULL,
+    field_position integer     NOT NULL,
+    position       integer     NOT NULL,
+    key            varchar(50) NOT NULL,
+    CONSTRAINT pk_tile_field_transformations PRIMARY KEY (tile_id, field_position, position),
+    CONSTRAINT ck_tile_field_transformations_position CHECK (position >= 0),
+    CONSTRAINT fk_tile_field_transformations_field FOREIGN KEY (tile_id, field_position)
+        REFERENCES custom_data_view.tile_fields (tile_id, position) ON DELETE CASCADE
+);
+
+CREATE TABLE custom_data_view.tile_field_transformation_parameters
+(
+    tile_id                 uuid        NOT NULL,
+    field_position          integer     NOT NULL,
+    transformation_position integer     NOT NULL,
+    name                    varchar(50) NOT NULL,
+    value                   text        NOT NULL,
+    CONSTRAINT pk_tile_field_transformation_parameters
+        PRIMARY KEY (tile_id, field_position, transformation_position, name),
+    CONSTRAINT fk_tile_field_transformation_parameters_transformation
+        FOREIGN KEY (tile_id, field_position, transformation_position)
+        REFERENCES custom_data_view.tile_field_transformations (tile_id, field_position, position) ON DELETE CASCADE
+);
