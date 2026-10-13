@@ -52,11 +52,32 @@ public class ConnectionTestResultTests : ConnectionApiTests
         await AssertFailure(response, "source_unavailable");
     }
 
-    private static async Task AssertFailure(HttpResponseMessage response, string code)
+    [TestCase(302)]
+    [TestCase(404)]
+    [TestCase(503)]
+    [Test(Description = "scenario_TEMP-007-014 - #38")]
+    public async Task Given_ExternalApiRespondingWithNonSuccessStatus_When_UserTestsConnection_Then_TestFailsWithUnexpectedStatus(int status)
+    {
+        Factory.ExternalApi.Respond = (_, _) =>
+        {
+            var response = new HttpResponseMessage((HttpStatusCode)status) { Content = new StringContent("{}") };
+            response.Headers.Location = new Uri("https://api.example.com/elsewhere");
+            return Task.FromResult(response);
+        };
+
+        var response = await TestConnection();
+
+        var result = await AssertFailure(response, "unexpected_status");
+        Assert.That(result["status"]?.GetValue<int>(), Is.EqualTo(status));
+        Assert.That(Factory.ExternalApi.Requests, Has.Count.EqualTo(1));
+    }
+
+    private static async Task<JsonObject> AssertFailure(HttpResponseMessage response, string code)
     {
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadGateway));
         var result = await response.Content.ReadFromJsonAsync<JsonObject>();
         Assert.That(result["code"]?.GetValue<string>(), Is.EqualTo(code));
+        return result;
     }
 
     private Task<HttpResponseMessage> TestConnection()

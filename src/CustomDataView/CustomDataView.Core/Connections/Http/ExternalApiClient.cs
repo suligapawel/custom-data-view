@@ -18,7 +18,12 @@ public sealed class ExternalApiClient(IHttpClientFactory httpClientFactory, IOpt
         var stopwatch = Stopwatch.StartNew();
         try
         {
-            using var response = await client.SendAsync(request, timeout.Token);
+            using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
+            if (!response.IsSuccessStatusCode)
+            {
+                return ExternalApiResult.Failure(ExternalApiErrorCodes.UnexpectedStatus, (int)response.StatusCode);
+            }
+
             var content = await response.Content.ReadAsStringAsync(timeout.Token);
             stopwatch.Stop();
             return ExternalApiResult.Success((int)response.StatusCode, stopwatch.ElapsedMilliseconds, JsonNode.Parse(content));

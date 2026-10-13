@@ -35,7 +35,8 @@ public static class DependencyInjection
         services.AddSingleton<IConnectionFactory, ConnectionFactory>();
         services.AddSingleton<IExternalApiClient, ExternalApiClient>();
         services.AddOptions<ExternalApiOptions>().BindConfiguration(ExternalApiOptions.SectionName);
-        services.AddHttpClient(ExternalApiClient.HttpClientName);
+        services.AddHttpClient(ExternalApiClient.HttpClientName)
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false });
         return services;
     }
 }
