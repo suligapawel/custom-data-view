@@ -7,7 +7,9 @@ using CustomDataView.Core.Transformations.Abstractions;
 using CustomDataView.Core.Transformations.Catalog;
 using CustomDataView.Core.Transformations.Execution;
 using CustomDataView.Core.Transformations.Implementations;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 
 namespace CustomDataView.Core;
 
@@ -27,9 +29,14 @@ public static class DependencyInjection
         return services;
     }
 
+    public const string ConnectionStringName = "CustomDataView";
+
     public static IServiceCollection AddCustomDataViewConnections(this IServiceCollection services)
     {
-        services.AddSingleton<IConnectionRepository, InMemoryConnectionRepository>();
+        services.AddSingleton(provider => NpgsqlDataSource.Create(
+            provider.GetRequiredService<IConfiguration>().GetConnectionString(ConnectionStringName)
+            ?? throw new InvalidOperationException($"Connection string \"{ConnectionStringName}\" is not configured.")));
+        services.AddSingleton<IConnectionRepository, PostgresConnectionRepository>();
         services.AddSingleton<IConnectionService, ConnectionService>();
         services.AddSingleton<IConnectionTestService, ConnectionTestService>();
         services.AddSingleton<IConnectionFactory, ConnectionFactory>();

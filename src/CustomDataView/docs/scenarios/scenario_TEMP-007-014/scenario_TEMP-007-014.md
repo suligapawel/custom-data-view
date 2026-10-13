@@ -27,7 +27,7 @@ Folder `CustomDataView.Core/Connections/`:
   `ConnectionRequestBuilder`, `ParameterValuesInput` (surowe wartości JSON z żądania), `ConnectionParameterValues`.
 - `Http/` — `IExternalApiClient`, `ExternalApiClient`, `ExternalApiOptions`, `ExternalApiResult`,
   `ExternalApiErrorCodes`.
-- `Persistence/` — `IConnectionRepository`, `InMemoryConnectionRepository`.
+- `Persistence/` — `IConnectionRepository`, `PostgresConnectionRepository`.
 - `Management/` — `IConnectionService`, `ConnectionService`, `ConnectionSummaryDto`, `ConnectionDto`.
 - `Testing/` — `IConnectionTestService`, `ConnectionTestService`.
 
@@ -173,10 +173,9 @@ nadpisywane sekcją konfiguracji `CustomDataView:ExternalApi`.
 - Anulowanie żądania przez klienta naszego API (token wywołującego) nie jest zamieniane na kod błędu.
 - Klient niczego nie loguje; nigdzie nie trafiają nagłówki, body żądań ani treść odpowiedzi.
 
-### Zadanie 6 — Repozytorium w pamięci (TEMP-007, TEMP-010 … TEMP-012)
+### Zadanie 6 — Repozytorium PostgreSQL (TEMP-007, TEMP-010 … TEMP-012)
 
-Moduł nie ma `db-plan.md`, więc zgodnie z `AGENTS.md` połączenia są przechowywane w statycznym `Dictionary` w pamięci,
-bez wymyślania schematu. PostgreSQL dojdzie po przygotowaniu `db-plan.md`.
+Połączenia są przechowywane w PostgreSQL według `docs/foundation/db-plan.md`, przez Dapper (bez Entity Framework).
 
 ```csharp
 public interface IConnectionRepository
@@ -185,13 +184,18 @@ public interface IConnectionRepository
     Connection Get(Guid id);
     IReadOnlyList<Connection> GetAll();
     void Update(Connection connection);
-    bool Delete(Guid id);
+    void Delete(Guid id);
 }
 ```
 
-- `InMemoryConnectionRepository` (singleton): statyczny `Dictionary<Guid, Connection>` oraz statyczna lista
-  identyfikatorów w kolejności dodania; dostęp chroniony jednym `lock`.
-- `Get` zwraca `null` dla nieistniejącego id. `GetAll` zwraca połączenia w kolejności dodania; edycja zachowuje pozycję.
+- `PostgresConnectionRepository` (singleton) korzysta z `NpgsqlDataSource` utworzonego z connection stringa
+  `ConnectionStrings:CustomDataView`; brak konfiguracji → `InvalidOperationException` przy pierwszym użyciu.
+- `Add` i `Update` zapisują połączenie i parametry w jednej transakcji; `Update` zastępuje wszystkie wiersze
+  parametrów i ustawia `updated_at`. `Delete` usuwa połączenie, parametry znikają kaskadowo.
+- Wartości domyślne ścieżki i query są przechowywane jako `text` (repozytorium zamienia je z/na tekst JSON), treści —
+  jako `json`. Szablon treści w `json` zachowuje dokładny tekst.
+- `Get` zwraca `null` dla nieistniejącego id. `GetAll` zwraca połączenia po `created_at, id` (kolejność dodania;
+  edycja zachowuje pozycję). Parametry są zwracane posortowane po nazwie.
 
 ### Zadanie 7 — Zarządzanie połączeniami (TEMP-007 … TEMP-012)
 
@@ -391,13 +395,15 @@ opcji i nazwanego `HttpClient`) oraz `MapConnectionEndpoints()`.
 
 ## Baza danych
 
-Brak zmian — moduł nie ma `db-plan.md`; połączenia są w statycznym `Dictionary` w pamięci (Zadanie 6). Konfiguracja nie
-przetrwa restartu do czasu wdrożenia PostgreSQL według przyszłego `db-plan.md`.
+Schemat według `docs/foundation/db-plan.md`. Migracja
+`CustomDataView.Core/Persistence/Migrations/20261013120000_create_connections.sql` tworzy schemat `custom_data_view`
+i tabele połączeń; aplikacja jej nie wykonuje — uruchamia się ją ręcznie.
 
 ## Repozytoria
 
 - `IConnectionRepository` (Zadanie 6): `Add`, `Get`, `GetAll`, `Update`, `Delete`.
-- `InMemoryConnectionRepository` — statyczny `Dictionary<Guid, Connection>` + kolejność dodania, chroniony `lock`.
+- `PostgresConnectionRepository` — Dapper + Npgsql (Zadanie 6). Testy w `CustomDataView.Core.Persistence.Tests`
+  na bazie wskazanej zmienną `CUSTOM_DATA_VIEW_TEST_DATABASE` (nazwa bazy musi kończyć się na `_test`).
 
 ## Frontend
 
