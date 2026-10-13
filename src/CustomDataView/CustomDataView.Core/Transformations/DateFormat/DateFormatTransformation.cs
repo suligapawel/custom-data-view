@@ -2,33 +2,28 @@ using System.Globalization;
 
 namespace CustomDataView.Core.Transformations.DateFormat;
 
-public sealed class DateFormatTransformation : ITransformation
+public sealed class DateFormatTransformation : DecoratorTransformation
 {
     private const string PatternParameter = "pattern";
 
     private static readonly string[] IsoFormats = ["yyyy-MM-ddTHH:mm:sszzz", "yyyy-MM-dd"];
 
-    private readonly ITransformation _inner;
-    private readonly TransformationParameters _parameters;
-
     public DateFormatTransformation(ITransformation inner, TransformationParameters parameters)
+        : base(inner, parameters)
     {
-        _inner = inner;
-        _parameters = parameters;
     }
 
-    public string Key => "date_format";
+    public override string Key => "date_format";
 
-    public object Apply(object value)
+    protected override object Transform(object value)
     {
-        var innerValue = _inner.Apply(value);
-        var pattern = _parameters.GetText(Key, PatternParameter);
+        var pattern = Parameters.GetText(Key, PatternParameter);
         if (pattern.Length == 0)
         {
             throw new TransformationFailedException(Key, TransformationFailureReasons.InvalidParameter, PatternParameter);
         }
 
-        if (innerValue is not string text || !DateTimeOffset.TryParseExact(
+        if (value is not string text || !DateTimeOffset.TryParseExact(
                 text,
                 IsoFormats,
                 CultureInfo.InvariantCulture,
