@@ -137,6 +137,16 @@ public class ConnectionValidationTests : ConnectionApiTests
         Assert.That(errors[$"{section}Parameters[0].name"]![0]!.GetValue<string>(), Does.Contain("snake_case"));
     }
 
+    [TestCase("queryParameters")]
+    [Test(Description = "scenario_TEMP-007-014 - #16")]
+    public async Task Given_EmptyQueryParameterOrHeaderName_When_UserSavesConnection_Then_SavingIsRejected(string element)
+    {
+        var definition = ValidGetDefinition();
+        definition[element] = new JsonArray(new JsonObject { ["name"] = "", ["value"] = "pl" });
+
+        await AssertRejected(definition, $"{element}[0].name");
+    }
+
     private static JsonObject ValidPostDefinition()
     {
         return new JsonObject

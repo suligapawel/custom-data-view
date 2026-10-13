@@ -51,9 +51,25 @@ public static class ConnectionDefinitionValidator
             errors["method"] = ["Rodzaj połączenia musi być GET albo POST."];
         }
 
+        for (var index = 0; index < input.QueryParameters.Count; index++)
+        {
+            if (string.IsNullOrEmpty(input.QueryParameters[index].Name))
+            {
+                errors[$"queryParameters[{index}].name"] = ["Nazwa parametru zapytania jest wymagana."];
+            }
+        }
+
         if (IsGet(input.Method) && input.Body is { ValueKind: not JsonValueKind.Null })
         {
             errors["body"] = ["Treść jest dozwolona tylko dla połączenia POST."];
+        }
+
+        for (var index = 0; index < input.QueryParameters.Count; index++)
+        {
+            if (string.IsNullOrEmpty(input.QueryParameters[index].Name))
+            {
+                errors[$"queryParameters[{index}].name"] = ["Nazwa parametru zapytania jest wymagana."];
+            }
         }
 
         if (IsGet(input.Method) && input.BodyParameters.Count > 0)
