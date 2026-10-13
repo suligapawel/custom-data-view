@@ -23,6 +23,11 @@ public sealed class DateFormatTransformation : ITransformation
     {
         var innerValue = _inner.Apply(value);
         var pattern = _parameters.GetText(Key, PatternParameter);
+        if (pattern.Length == 0)
+        {
+            throw new TransformationFailedException(Key, TransformationFailureReasons.InvalidParameter, PatternParameter);
+        }
+
         if (innerValue is not string text || !DateTimeOffset.TryParseExact(
                 text,
                 IsoFormats,
