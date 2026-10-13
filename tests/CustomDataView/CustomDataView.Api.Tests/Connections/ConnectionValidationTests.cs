@@ -7,6 +7,7 @@ namespace CustomDataView.Api.Tests.Connections;
 public class ConnectionValidationTests : ConnectionApiTests
 {
     [TestCase(null)]
+    [TestCase("   ")]
     [Test(Description = "scenario_TEMP-007-014 - #7")]
     public async Task Given_InvalidName_When_UserSavesConnection_Then_SavingIsRejectedWithNameError(string name)
     {

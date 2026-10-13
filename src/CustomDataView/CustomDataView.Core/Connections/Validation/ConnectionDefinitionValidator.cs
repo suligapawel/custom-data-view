@@ -7,7 +7,7 @@ public static class ConnectionDefinitionValidator
     public static IDictionary<string, string[]> Validate(ConnectionInput input)
     {
         var errors = new Dictionary<string, string[]>();
-        if (input.Name is null)
+        if (string.IsNullOrWhiteSpace(input.Name))
         {
             errors["name"] = ["Nazwa połączenia jest wymagana."];
         }
