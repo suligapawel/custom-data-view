@@ -37,4 +37,30 @@ public class EditConnectionTests : ConnectionApiTests
         var connections = await Client.GetFromJsonAsync<JsonArray>(ConnectionsUrl);
         Assert.That(connections[1]!["id"]!.GetValue<Guid>(), Is.EqualTo(id));
     }
+
+    [Test(Description = "scenario_TEMP-007-014 - #25")]
+    public async Task Given_PostConnectionWithBody_When_UserChangesItToGetKeepingBody_Then_ChangeIsRejected()
+    {
+        var id = await CreateConnection(new
+        {
+            name = "Wyszukiwanie sprzedawców",
+            method = "POST",
+            url = "https://api.example.com/sellers/search",
+            body = new { status = "active" }
+        });
+
+        var response = await Client.PutAsJsonAsync($"{ConnectionsUrl}/{id}", new
+        {
+            name = "Wyszukiwanie sprzedawców",
+            method = "GET",
+            url = "https://api.example.com/sellers/search",
+            body = new { status = "active" }
+        });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        var problem = await response.Content.ReadFromJsonAsync<JsonObject>();
+        Assert.That(problem["errors"]!.AsObject().ContainsKey("body"), Is.True);
+        var details = await Client.GetFromJsonAsync<JsonObject>($"{ConnectionsUrl}/{id}");
+        Assert.That(details["method"]?.GetValue<string>(), Is.EqualTo("POST"));
+    }
 }
