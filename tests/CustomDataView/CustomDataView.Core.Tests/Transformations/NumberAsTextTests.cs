@@ -50,6 +50,16 @@ public class NumberAsTextTests
         Assert.That(result, Is.EqualTo("0.1"));
     }
 
+    [Test(Description = "scenario_TEMP-001-006 - #13")]
+    public void Given_TruncateToThree_When_NumberHasTrailingZero_Then_ResultIsCutNumberText()
+    {
+        var transformation = new TruncateTransformation(new IdentityTransformation(), CreateParameter("max_length", 3));
+
+        var result = transformation.Apply(21.50m);
+
+        Assert.That(result, Is.EqualTo("21."));
+    }
+
     private static TransformationParameters CreateParameter(string name, JsonNode value)
     {
         return new TransformationParameters(new Dictionary<string, JsonNode> { [name] = value });
