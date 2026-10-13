@@ -6,8 +6,10 @@ namespace CustomDataView.Api.Requests;
 
 public sealed record TilePreviewRequest(IReadOnlyList<ConnectionValuesRequest> Connections)
 {
-    public IReadOnlyList<ConnectionValuesInput> ToInput()
-        => (Connections ?? [])
+    public IReadOnlyList<ConnectionValuesInput> ToInput() => ValuesOf(Connections);
+
+    public static IReadOnlyList<ConnectionValuesInput> ValuesOf(IReadOnlyList<ConnectionValuesRequest> connections)
+        => (connections ?? [])
             .Select(connection => new ConnectionValuesInput(
                 connection.ConnectionId,
                 new ParameterValuesInput(

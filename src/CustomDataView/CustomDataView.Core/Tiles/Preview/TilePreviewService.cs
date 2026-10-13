@@ -30,10 +30,24 @@ public sealed class TilePreviewService(
         CancellationToken cancellationToken)
     {
         var tile = tiles.Get(id) ?? throw new NotFoundException(id);
-        var definition = tile.Definition;
+        return await Preview(tile.Id, tile.Definition, values, cancellationToken);
+    }
+
+    public Task<TilePreview> Preview(
+        TileDefinition definition,
+        IReadOnlyList<ConnectionValuesInput> values,
+        CancellationToken cancellationToken)
+        => Preview(null, definition, values, cancellationToken);
+
+    private async Task<TilePreview> Preview(
+        Guid? id,
+        TileDefinition definition,
+        IReadOnlyList<ConnectionValuesInput> values,
+        CancellationToken cancellationToken)
+    {
         var responses = await Call(definition, values, cancellationToken);
         return new TilePreview(
-            tile.Id,
+            id,
             definition.Name,
             definition.Fields.Select(field => PreviewField(field, responses[field.ConnectionId])).ToList());
     }

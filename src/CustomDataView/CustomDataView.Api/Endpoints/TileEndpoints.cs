@@ -23,6 +23,7 @@ public static class TileEndpoints
                 .GetTile()
                 .UpdateTile()
                 .DeleteTile()
+                .PreviewUnsavedTile()
                 .PreviewSavedTile();
         }
 
@@ -77,6 +78,18 @@ public static class TileEndpoints
                 service.Delete(id);
                 return Results.NoContent();
             });
+            return endpoints;
+        }
+
+        private IEndpointRouteBuilder PreviewUnsavedTile()
+        {
+            endpoints.MapPost(
+                $"{TilesUrl}/preview",
+                async (TileDraftPreviewRequest request, ITilePreviewService service, CancellationToken cancellationToken)
+                    => Results.Ok(await service.Preview(
+                        request.Tile.ToDefinition(),
+                        TilePreviewRequest.ValuesOf(request.Connections),
+                        cancellationToken)));
             return endpoints;
         }
 
