@@ -232,6 +232,29 @@ public class ConnectionValidationTests : ConnectionApiTests
         await AssertRejected(definition, errorKey);
     }
 
+    [Test(Description = "scenario_TEMP-007-014 - #19")]
+    public async Task Given_HeaderWithEmptyValue_When_UserSavesConnection_Then_ConnectionIsSaved()
+    {
+        var definition = ValidGetDefinition();
+        definition["headers"] = new JsonArray(new JsonObject { ["name"] = "X-Trace", ["value"] = "" });
+
+        await AssertAccepted(definition);
+    }
+
+    [Test(Description = "scenario_TEMP-007-014 - #20")]
+    public async Task Given_TwoSavedConnections_When_UserSavesInvalidDefinition_Then_ListStillHasTwoConnections()
+    {
+        await AssertAccepted(ValidGetDefinition());
+        await AssertAccepted(ValidPostDefinition());
+        var definition = ValidGetDefinition();
+        definition["name"] = null;
+
+        await AssertRejected(definition, "name");
+
+        var connections = await Client.GetFromJsonAsync<JsonArray>(ConnectionsUrl);
+        Assert.That(connections, Has.Count.EqualTo(2));
+    }
+
     private static JsonObject ValidPostDefinition()
     {
         return new JsonObject
