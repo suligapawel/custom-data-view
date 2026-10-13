@@ -7,6 +7,9 @@ public sealed class TilePreviewService(ITileRepository tiles) : ITilePreviewServ
     public Task<TilePreview> Preview(Guid id, CancellationToken cancellationToken)
     {
         var tile = tiles.Get(id);
-        return Task.FromResult(new TilePreview(tile.Id, tile.Definition.Name));
+        return Task.FromResult(new TilePreview(
+            tile.Id,
+            tile.Definition.Name,
+            tile.Definition.Fields.Select(field => new TileFieldPreview(field.Label)).ToList()));
     }
 }

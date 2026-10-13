@@ -31,5 +31,8 @@ public class TilePreviewTests : TileApiTests
         var preview = await response.Content.ReadFromJsonAsync<JsonObject>();
         Assert.That(preview["id"]?.GetValue<Guid>(), Is.EqualTo(id));
         Assert.That(preview["name"]?.GetValue<string>(), Is.EqualTo("Klient i kurs"));
+        Assert.That(
+            preview["fields"]!.AsArray().Select(field => field["label"]?.GetValue<string>()),
+            Is.EqualTo(new[] { "Temperatura", "Nazwa", "Kurs EUR" }));
     }
 }
