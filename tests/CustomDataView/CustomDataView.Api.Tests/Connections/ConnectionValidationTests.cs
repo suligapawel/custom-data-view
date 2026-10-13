@@ -45,6 +45,7 @@ public class ConnectionValidationTests : ConnectionApiTests
     }
 
     [TestCase("PUT")]
+    [TestCase(null)]
     [Test(Description = "scenario_TEMP-007-014 - #10")]
     public async Task Given_UnsupportedMethod_When_UserSavesConnection_Then_SavingIsRejectedWithMethodError(string method)
     {
