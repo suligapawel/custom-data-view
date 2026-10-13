@@ -7,6 +7,9 @@ namespace CustomDataView.Core.Tiles.Definitions;
 
 public static partial class TransformationParameterValues
 {
+    public static bool IsStorable(JsonNode value)
+        => value?.GetValueKind() is JsonValueKind.String or JsonValueKind.Number;
+
     public static string ToText(JsonNode value)
         => value.GetValueKind() == JsonValueKind.String ? value.GetValue<string>() : value.ToJsonString();
 

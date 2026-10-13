@@ -44,6 +44,18 @@ public static class TileDefinitionValidator
         {
             errors[$"{key}.path"] = [$"Ścieżka pola {key} jest wymagana i musi być poprawną ścieżką JSONPath."];
         }
+
+        for (var position = 0; position < field.Transformations.Count; position++)
+        {
+            foreach (var (name, value) in field.Transformations[position].Parameters)
+            {
+                if (!TransformationParameterValues.IsStorable(value))
+                {
+                    errors[$"{key}.transformations[{position}].parameters.{name}"] =
+                        ["Wartość parametru transformacji musi być tekstem lub liczbą."];
+                }
+            }
+        }
     }
 
     private static bool IsValidText(string text) => !string.IsNullOrWhiteSpace(text) && text.Length <= MaxTextLength;
