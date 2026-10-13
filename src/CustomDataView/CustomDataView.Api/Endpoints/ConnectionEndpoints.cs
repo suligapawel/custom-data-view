@@ -1,3 +1,4 @@
+using CustomDataView.Api.Requests;
 using CustomDataView.Core.Connections.Management;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -11,8 +12,8 @@ public static class ConnectionEndpoints
 
     public static IEndpointRouteBuilder MapConnectionEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapPost(ConnectionsUrl, (IConnectionService service) =>
-            Results.Created((string)null, new { id = service.Add() }));
+        endpoints.MapPost(ConnectionsUrl, (ConnectionRequest request, IConnectionService service) =>
+            Results.Created((string)null, new { id = service.Add(request.BodyText) }));
         endpoints.MapGet($"{ConnectionsUrl}/{{id:guid}}", (Guid id, IConnectionService service) =>
             Results.Ok(service.Get(id)));
         return endpoints;

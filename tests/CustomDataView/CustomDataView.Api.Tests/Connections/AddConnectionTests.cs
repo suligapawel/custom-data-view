@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json.Nodes;
 
 namespace CustomDataView.Api.Tests.Connections;
 
@@ -42,6 +43,30 @@ public class AddConnectionTests
         Assert.That(created.Id, Is.Not.EqualTo(Guid.Empty));
         var details = await client.GetAsync($"{ConnectionsUrl}/{created.Id}");
         Assert.That(details.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+    }
+
+    [Test(Description = "scenario_TEMP-007-014 - #2")]
+    public async Task Given_PostConnectionDefinition_When_UserSavesItWithBodyTemplate_Then_DetailsShowUnchangedBodyTemplate()
+    {
+        var response = await client.PostAsJsonAsync(ConnectionsUrl, new
+        {
+            name = "Wyszukiwanie sprzedawców",
+            method = "POST",
+            url = "https://api.example.com/sellers/search",
+            body = new { contractId = "{id}", limit = "{limit}" },
+            bodyParameters = new object[]
+            {
+                new { name = "id", required = true },
+                new { name = "limit", required = false, defaultValue = 10 }
+            }
+        });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        var created = await response.Content.ReadFromJsonAsync<CreatedConnection>();
+        var details = await client.GetFromJsonAsync<JsonObject>($"{ConnectionsUrl}/{created.Id}");
+        Assert.That(
+            JsonNode.DeepEquals(details["body"], JsonNode.Parse("""{"contractId": "{id}", "limit": "{limit}"}""")),
+            Is.True);
     }
 
     private sealed record CreatedConnection(Guid Id);
