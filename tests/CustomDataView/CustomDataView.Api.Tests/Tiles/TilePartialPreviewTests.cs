@@ -31,6 +31,25 @@ public class TilePartialPreviewTests : TileApiTests
             preview.ToJsonString());
     }
 
+    [Test(Description = "scenario_TEMP-015-023 - #45")]
+    public async Task Given_RateSourceRespondingWith503_When_UserPreviewsRateTile_Then_FieldHasSourceErrorWithReasonAndStatus()
+    {
+        var id = await CreateTile(new { name = "Kurs", fields = new[] { Field(RateConnectionId, "$.rate", "Kurs EUR") } });
+        RateSourceFails(_ => new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
+
+        var preview = await Preview(id, RateValues());
+
+        Assert.That(
+            JsonNode.DeepEquals(
+                preview["fields"]![0]!["error"],
+                JsonNode.Parse("""{"code": "source_unavailable", "reason": "unexpected_status", "status": 503}""")),
+            Is.True,
+            preview.ToJsonString());
+    }
+
+    private object RateValues()
+        => new { connections = new[] { new { connectionId = RateConnectionId, query = new { currency = "EUR" } } } };
+
     private void RateSourceFails(Func<HttpRequestMessage, HttpResponseMessage> respond)
     {
         var respondNormally = Factory.ExternalApi.Respond;

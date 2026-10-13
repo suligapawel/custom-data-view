@@ -102,7 +102,11 @@ public sealed class TilePreviewService(
     {
         if (!response.IsSuccess)
         {
-            return new TileFieldPreview(field.Label, null, new TileFieldError(TileFieldErrorCodes.SourceUnavailable));
+            var reason = response.ErrorCode == TileFieldErrorCodes.SourceUnavailable ? null : response.ErrorCode;
+            return new TileFieldPreview(
+                field.Label,
+                null,
+                new TileFieldError(TileFieldErrorCodes.SourceUnavailable, Reason: reason, Status: response.Status));
         }
 
         JsonPathParser.TryParse(field.Path, out var path);
