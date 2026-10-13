@@ -249,5 +249,6 @@ public class TestConnectionTests : ConnectionApiTests
 
         var request = Factory.ExternalApi.Requests.Single();
         Assert.That(request.Headers, Does.Contain("Accept-Language: pl"));
+        Assert.That(request.ContentType, Is.EqualTo("application/vnd.api+json"));
     }
 }

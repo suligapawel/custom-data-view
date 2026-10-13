@@ -15,7 +15,15 @@ public static class ConnectionRequestBuilder
         var request = new HttpRequestMessage(method, url) { Content = content };
         foreach (var header in definition.Headers)
         {
-            request.Headers.TryAddWithoutValidation(header.Name, header.Value);
+            if (header.Name.StartsWith("Content-", StringComparison.OrdinalIgnoreCase))
+            {
+                content?.Headers.Remove(header.Name);
+                content?.Headers.TryAddWithoutValidation(header.Name, header.Value);
+            }
+            else
+            {
+                request.Headers.TryAddWithoutValidation(header.Name, header.Value);
+            }
         }
 
         return request;
