@@ -38,8 +38,11 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
 3.2. Definicje połączeń
 
 - Dodawanie, odczyt listy, odczyt szczegółów, edycja i usuwanie definicji połączenia.
-- Definicja połączenia zawiera: nazwę (wymagana, 1-100 znaków, bez wymogu unikalności), URL (http lub https), metodę
-  GET lub POST, parametry query, nagłówki oraz body JSON (tylko dla POST).
+- Połączenie jest szablonem żądania: nazwa (wymagana, 1-100 znaków, bez wymogu unikalności), szablon URL (http lub
+  https) z parametrami ścieżki `{name}`, rodzaj GET lub POST, stałe nagłówki, deklaracje parametrów ścieżki i query oraz
+  dla POST szablon body JSON z deklaracjami parametrów body.
+- Deklaracja parametru zawiera nazwę, informację, czy jest wymagany, oraz opcjonalną wartość domyślną. Wartości
+  parametrów są przekazywane w czasie wykonania i podmieniane w szablonie.
 - Brak obsługi uwierzytelniania do zewnętrznych API.
 - Usunięcie połączenia używanego przez pole dowolnego kafelka jest blokowane.
 
@@ -61,11 +64,13 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
 
 3.5. Test i podgląd
 
-- Test połączenia wykonuje żądanie zgodnie z definicją (zapisaną po id lub niezapisaną przekazaną w żądaniu). Sukces
+- Test połączenia wykonuje żądanie zgodnie z definicją (zapisaną po id lub niezapisaną przekazaną w żądaniu) i
+  wartościami parametrów przekazanymi w żądaniu testu. Sukces
   zwraca status HTTP odpowiedzi, czas odpowiedzi oraz pełną treść JSON (bez obcinania); niepowodzenie zwraca odpowiedź
   błędu z kodem (source_unavailable, unexpected_status, invalid_json, response_too_large).
 - Podgląd kafelka zwraca JSON kafelka wygenerowany zgodnie z definicją (zapisaną lub niezapisaną): dla każdego pola
-  etykietę i przetransformowaną wartość albo kod błędu.
+  etykietę i przetransformowaną wartość albo kod błędu. Wartości parametrów połączeń są przekazywane w żądaniu podglądu
+  (osobno dla każdego połączenia); kafelek ich nie przechowuje.
 - Błąd źródła, brak wartości pod ścieżką lub błąd transformacji nie przerywa podglądu: zwracany jest częściowy wynik z
   błędem per pole (source_unavailable, path_not_found, transformation_failed) i status HTTP 200.
 - Każde połączenie użyte w podglądzie kafelka jest wywoływane najwyżej raz.
@@ -174,6 +179,8 @@ przez kafelki należy do grupy kafelków.
     - Podgląd zwraca identyfikator i nazwę kafelka oraz listę pól w kolejności definicji.
     - Każde pole zawiera etykietę i wartość po zastosowaniu łańcucha transformacji.
     - Każde połączenie użyte w kafelku jest wywoływane najwyżej raz, nawet gdy korzysta z niego wiele pól.
+    - Podgląd przyjmuje w żądaniu wartości parametrów dla każdego połączenia użytego w kafelku; brak wymaganej wartości
+      zwraca błąd walidacji.
     - Wynik podglądu nie jest zapisywany.
     - Podgląd nieistniejącego kafelka zwraca 404.
 
@@ -181,7 +188,8 @@ przez kafelki należy do grupy kafelków.
   Tytuł: Podgląd niezapisanego kafelka  
   Opis: Jako użytkownik chcę zobaczyć podgląd kafelka przed jego zapisaniem, aby dopracować definicję.  
   Kryteria akceptacji:
-    - Podgląd przyjmuje definicję kafelka w żądaniu i zwraca wynik w tym samym formacie co podgląd zapisanego kafelka.
+    - Podgląd przyjmuje definicję kafelka i wartości parametrów połączeń w żądaniu i zwraca wynik w tym samym formacie
+      co podgląd zapisanego kafelka.
     - Definicja podlega tym samym regułom walidacji co dodanie kafelka.
     - Podgląd nie tworzy kafelka.
 
