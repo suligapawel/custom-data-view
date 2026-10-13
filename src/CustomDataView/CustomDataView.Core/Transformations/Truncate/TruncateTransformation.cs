@@ -10,7 +10,7 @@ public sealed class TruncateTransformation : DecoratorTransformation
     {
     }
 
-    public override string Key => "truncate";
+    public override string Key => TruncateTransformationDefinition.TransformationKey;
 
     protected override object Transform(object value)
     {

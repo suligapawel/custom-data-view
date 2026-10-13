@@ -1,12 +1,17 @@
 namespace CustomDataView.Core.Transformations.Catalog;
 
-public sealed class TransformationCatalog
+public sealed class TransformationCatalog : ITransformationCatalog
 {
     private readonly Dictionary<string, ITransformationDefinition> _definitions;
 
     public TransformationCatalog(IEnumerable<ITransformationDefinition> definitions)
     {
         _definitions = definitions.ToDictionary(definition => definition.Key, StringComparer.Ordinal);
+    }
+
+    public IReadOnlyList<ITransformationDefinition> GetAll()
+    {
+        return _definitions.Values.OrderBy(definition => definition.Key, StringComparer.Ordinal).ToList();
     }
 
     public ITransformationDefinition Find(string key)

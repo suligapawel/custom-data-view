@@ -13,7 +13,7 @@ public sealed class DateFormatTransformation : DecoratorTransformation
     {
     }
 
-    public override string Key => "date_format";
+    public override string Key => DateFormatTransformationDefinition.TransformationKey;
 
     protected override object Transform(object value)
     {

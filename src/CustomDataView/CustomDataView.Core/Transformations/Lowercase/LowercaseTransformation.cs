@@ -7,7 +7,7 @@ public sealed class LowercaseTransformation : DecoratorTransformation
     {
     }
 
-    public override string Key => "lowercase";
+    public override string Key => LowercaseTransformationDefinition.TransformationKey;
 
     protected override object Transform(object value)
     {

@@ -4,9 +4,9 @@ namespace CustomDataView.Core.Transformations.Chain;
 
 public sealed class TransformationChainBuilder
 {
-    private readonly TransformationCatalog _catalog;
+    private readonly ITransformationCatalog _catalog;
 
-    public TransformationChainBuilder(TransformationCatalog catalog)
+    public TransformationChainBuilder(ITransformationCatalog catalog)
     {
         _catalog = catalog;
     }
