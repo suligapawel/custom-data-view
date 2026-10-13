@@ -13,7 +13,8 @@ public static class ConnectionEndpoints
     public static IEndpointRouteBuilder MapConnectionEndpoints(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapPost(ConnectionsUrl, (ConnectionRequest request, IConnectionService service) =>
-            Results.Created((string)null, new { id = service.Add(request.BodyText) }));
+            Results.Created((string)null, new { id = service.Add(request.ToDefinition()) }));
+        endpoints.MapGet(ConnectionsUrl, (IConnectionService service) => Results.Ok(service.GetAll()));
         endpoints.MapGet($"{ConnectionsUrl}/{{id:guid}}", (Guid id, IConnectionService service) =>
             Results.Ok(service.Get(id)));
         return endpoints;

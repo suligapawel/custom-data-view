@@ -1,3 +1,3 @@
 namespace CustomDataView.Core.Connections.Definitions;
 
-public sealed record Connection(Guid Id, string Body);
+public sealed record Connection(Guid Id, ConnectionDefinition Definition);

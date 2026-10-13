@@ -1,7 +1,10 @@
+using CustomDataView.Core.Connections.Definitions;
+
 namespace CustomDataView.Core.Connections.Management;
 
 public interface IConnectionService
 {
-    Guid Add(string body);
+    Guid Add(ConnectionDefinition definition);
+    IReadOnlyList<ConnectionSummaryDto> GetAll();
     ConnectionDto Get(Guid id);
 }
