@@ -1,3 +1,4 @@
+using CustomDataView.Api.Responses;
 using CustomDataView.Core.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
@@ -20,9 +21,10 @@ public sealed class CustomDataViewExceptionHandler : IExceptionHandler
             return true;
         }
 
-        if (exception is ConnectionInUseException)
+        if (exception is ConnectionInUseException inUse)
         {
-            await Results.Conflict().ExecuteAsync(httpContext);
+            await Results.Conflict(new ConnectionInUseResponse(ConnectionInUseResponse.ConnectionInUseCode, inUse.Tiles))
+                .ExecuteAsync(httpContext);
             return true;
         }
 
