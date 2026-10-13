@@ -82,6 +82,17 @@ public class TextTransformationTests
         Assert.That(exception.Parameter, Is.EqualTo("max_length"));
     }
 
+    [Test(Description = "scenario_TEMP-001-006 - #12")]
+    public void Given_TruncateWithZeroMaxLength_When_ValueIsTransformed_Then_FailsWithInvalidMaxLengthParameter()
+    {
+        var transformation = CreateTruncate(0);
+
+        var exception = Assert.Throws<TransformationFailedException>(() => transformation.Apply("abcdef"));
+
+        Assert.That(exception.Reason, Is.EqualTo(TransformationFailureReasons.InvalidParameter));
+        Assert.That(exception.Parameter, Is.EqualTo("max_length"));
+    }
+
     private static TruncateTransformation CreateTruncate(JsonNode maxLength)
     {
         var parameters = new TransformationParameters(new Dictionary<string, JsonNode> { ["max_length"] = maxLength });
