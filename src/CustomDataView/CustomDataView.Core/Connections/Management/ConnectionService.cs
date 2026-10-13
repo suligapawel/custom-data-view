@@ -27,14 +27,30 @@ public sealed class ConnectionService(IConnectionRepository repository) : IConne
     public ConnectionDto Get(Guid id)
     {
         var connection = repository.Get(id);
-        var body = (connection.Definition as PostConnectionDefinition)?.Body;
+        var definition = connection.Definition;
+        var post = definition as PostConnectionDefinition;
         return new ConnectionDto(
             connection.Id,
-            connection.Definition.Name,
-            MethodOf(connection.Definition),
-            connection.Definition.Url,
-            connection.Definition.Headers,
-            body is null ? null : JsonNode.Parse(body));
+            definition.Name,
+            MethodOf(definition),
+            definition.Url,
+            definition.Headers,
+            ToDtos(definition.PathParameters),
+            ToDtos(definition.QueryParameters),
+            ParseJson(post?.Body),
+            ToDtos(post?.BodyParameters ?? []));
+    }
+
+    private static List<ParameterDeclarationDto> ToDtos(IReadOnlyList<ParameterDeclaration> parameters)
+    {
+        return parameters
+            .Select(parameter => new ParameterDeclarationDto(parameter.Name, parameter.Required, ParseJson(parameter.DefaultValue)))
+            .ToList();
+    }
+
+    private static JsonNode ParseJson(string json)
+    {
+        return json is null ? null : JsonNode.Parse(json);
     }
 
     private static string MethodOf(ConnectionDefinition definition)

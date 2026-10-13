@@ -32,5 +32,23 @@ public class ConnectionDetailsTests : ConnectionApiTests
         Assert.That(
             JsonNode.DeepEquals(details["headers"], JsonNode.Parse("""[{"name": "Accept-Language", "value": "pl"}]""")),
             Is.True);
+        Assert.That(
+            JsonNode.DeepEquals(
+                details["pathParameters"],
+                JsonNode.Parse("""[{"name": "contract_id", "required": true, "defaultValue": null}]""")),
+            Is.True);
+        Assert.That(
+            JsonNode.DeepEquals(
+                details["queryParameters"],
+                JsonNode.Parse("""[{"name": "pageSize", "required": false, "defaultValue": "20"}]""")),
+            Is.True);
+        Assert.That(
+            JsonNode.DeepEquals(
+                details["bodyParameters"],
+                JsonNode.Parse("""
+                    [{"name": "id", "required": true, "defaultValue": null},
+                     {"name": "limit", "required": false, "defaultValue": 10}]
+                    """)),
+            Is.True);
     }
 }
