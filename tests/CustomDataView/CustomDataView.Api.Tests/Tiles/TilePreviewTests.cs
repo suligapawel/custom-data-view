@@ -167,6 +167,22 @@ public class TilePreviewTests : TileApiTests
         AssertValues(preview, """["acme", 4.31789, 1234.567, "Kraków"]""");
     }
 
+    [Test(Description = "scenario_TEMP-015-023 - #36")]
+    public async Task Given_FieldsFromCustomerAndRate_When_UserPreviewsWithValuesPerConnection_Then_EachSourceGetsItsValues()
+    {
+        var id = await CreateTile(new
+        {
+            name = "Klient i kurs",
+            fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa"), Field(RateConnectionId, "$.rate", "Kurs EUR") }
+        });
+
+        await Preview(id, CustomerAndRateValues());
+
+        Assert.That(
+            Factory.ExternalApi.Requests.Select(request => request.Url).Order(),
+            Is.EqualTo(new[] { "https://api.example.com/customers/42", "https://api.example.com/rates?currency=EUR" }));
+    }
+
     private async Task<JsonObject> Preview(Guid id, object values)
     {
         var response = await Client.PostAsJsonAsync($"{TilesUrl}/{id}/preview", values);
