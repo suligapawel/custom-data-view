@@ -12,5 +12,7 @@ public sealed class TestTileRepository : ITileRepository
         tiles.Add(tile);
     }
 
+    public Tile Get(Guid id) => tiles.SingleOrDefault(tile => tile.Id == id);
+
     public IReadOnlyList<Tile> GetAll() => tiles.ToList();
 }
