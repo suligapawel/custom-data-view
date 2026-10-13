@@ -11,8 +11,13 @@ public sealed class TransformationParameters
         _values = values ?? new Dictionary<string, JsonNode>();
     }
 
-    public int GetInteger(string name)
+    public int GetInteger(string key, string name)
     {
-        return _values[name].GetValue<int>();
+        if (!_values.TryGetValue(name, out var value))
+        {
+            throw new TransformationFailedException(key, TransformationFailureReasons.InvalidParameter, name);
+        }
+
+        return value.GetValue<int>();
     }
 }

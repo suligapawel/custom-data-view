@@ -15,7 +15,7 @@ public sealed class RoundTransformation : ITransformation
 
     public object Apply(object value)
     {
-        var decimals = _parameters.GetInteger("decimals");
+        var decimals = _parameters.GetInteger(Key, "decimals");
         return Math.Round(TransformationValue.ToNumber(Key, _inner.Apply(value)), decimals, MidpointRounding.AwayFromZero);
     }
 }
