@@ -52,6 +52,21 @@ public class TransformationChainTests
         Assert.That(result.Value, Is.Null);
     }
 
+    [Test(Description = "scenario_TEMP-001-006 - #18")]
+    public void Given_ChainWithTransformationOutsideCatalog_When_ValueIsTransformed_Then_FailsWithUnknownTransformation()
+    {
+        var executor = CreateExecutor();
+        var steps = new[]
+        {
+            Step("uppercase"),
+            Step("reverse")
+        };
+
+        var result = executor.Execute("abc", steps);
+
+        Assert.That(result.Error, Is.EqualTo(new TransformationChainError("transformation_failed", "reverse", "unknown_transformation")));
+    }
+
     private static TransformationChainExecutor CreateExecutor()
     {
         ITransformationDefinition[] definitions =

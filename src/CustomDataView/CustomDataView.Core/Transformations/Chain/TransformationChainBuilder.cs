@@ -16,7 +16,10 @@ public sealed class TransformationChainBuilder
         ITransformation chain = new IdentityTransformation();
         foreach (var step in steps)
         {
-            chain = _catalog.Find(step.Key).Create(chain, new TransformationParameters(step.Parameters));
+            var definition = _catalog.Find(step.Key);
+            chain = definition is null
+                ? new UnknownTransformation(chain, step.Key)
+                : definition.Create(chain, new TransformationParameters(step.Parameters));
         }
 
         return chain;
