@@ -26,6 +26,16 @@ public class DateFormatTransformationTests
         Assert.That(result, Is.EqualTo("2026-10-13 00:00"));
     }
 
+    [Test(Description = "scenario_TEMP-001-006 - #7")]
+    public void Given_DateFormatWithMonthNamePattern_When_ValueIsDate_Then_MonthNameIsInInvariantCulture()
+    {
+        var transformation = CreateDateFormat("d MMMM yyyy");
+
+        var result = transformation.Apply("2026-10-13");
+
+        Assert.That(result, Is.EqualTo("13 October 2026"));
+    }
+
     private static DateFormatTransformation CreateDateFormat(JsonNode pattern)
     {
         var parameters = new TransformationParameters(new Dictionary<string, JsonNode> { ["pattern"] = pattern });
