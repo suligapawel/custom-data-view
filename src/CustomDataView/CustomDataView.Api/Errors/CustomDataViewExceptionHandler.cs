@@ -20,6 +20,12 @@ public sealed class CustomDataViewExceptionHandler : IExceptionHandler
             return true;
         }
 
+        if (exception is ConnectionInUseException)
+        {
+            await Results.Conflict().ExecuteAsync(httpContext);
+            return true;
+        }
+
         if (exception is BadHttpRequestException badRequest)
         {
             await Results.Problem(statusCode: badRequest.StatusCode, title: "Nieprawidłowe żądanie.").ExecuteAsync(httpContext);

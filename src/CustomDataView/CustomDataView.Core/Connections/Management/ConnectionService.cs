@@ -2,10 +2,11 @@ using System.Text.Json.Nodes;
 using CustomDataView.Core.Connections.Definitions;
 using CustomDataView.Core.Connections.Persistence;
 using CustomDataView.Core.Exceptions;
+using CustomDataView.Core.Tiles.Persistence;
 
 namespace CustomDataView.Core.Connections.Management;
 
-public sealed class ConnectionService(IConnectionRepository repository) : IConnectionService
+public sealed class ConnectionService(IConnectionRepository repository, ITileRepository tiles) : IConnectionService
 {
     public Guid Add(ConnectionDefinition definition)
     {
@@ -48,6 +49,12 @@ public sealed class ConnectionService(IConnectionRepository repository) : IConne
     public void Delete(Guid id)
     {
         _ = repository.Get(id) ?? throw new NotFoundException(id);
+        var usingTiles = tiles.GetUsingConnection(id);
+        if (usingTiles.Count > 0)
+        {
+            throw new ConnectionInUseException(id, usingTiles);
+        }
+
         repository.Delete(id);
     }
 
