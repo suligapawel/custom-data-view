@@ -23,4 +23,9 @@ public static class TransformationValue
 
         throw new TransformationFailedException(key, TransformationFailureReasons.InvalidValue);
     }
+
+    public static string ToText(string key, object value)
+    {
+        return Convert.ToString(value, CultureInfo.InvariantCulture);
+    }
 }
