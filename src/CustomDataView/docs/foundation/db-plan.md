@@ -31,8 +31,6 @@ zostaną dodane w kolejnych wersjach planu.
 | name          | varchar(50) | PK, NOT NULL                                        | Nazwa placeholdera `{name}` w URL (snake_case) |
 | required      | boolean     | NOT NULL                                            | Czy wartość jest wymagana przy wywołaniu     |
 | default_value | text        | NULL                                                | Wartość domyślna; NULL = brak                |
-| created_at    | timestamptz | NOT NULL, DEFAULT now()                             | Moment zapisu wiersza                        |
-| updated_at    | timestamptz | NOT NULL, DEFAULT now()                             | Moment ostatniej zmiany wiersza              |
 
 PK: `(connection_id, name)`.
 
@@ -44,8 +42,6 @@ PK: `(connection_id, name)`.
 | name          | text    | PK, NOT NULL                                        | Klucz query zewnętrznego API; unikalny         |
 | required      | boolean | NOT NULL                                            | Czy wartość jest wymagana przy wywołaniu      |
 | default_value | text    | NULL                                                | Wartość domyślna; NULL = brak                 |
-| created_at    | timestamptz | NOT NULL, DEFAULT now()                         | Moment zapisu wiersza                         |
-| updated_at    | timestamptz | NOT NULL, DEFAULT now()                         | Moment ostatniej zmiany wiersza               |
 
 PK: `(connection_id, name)`.
 
@@ -57,8 +53,6 @@ PK: `(connection_id, name)`.
 | name          | varchar(50) | PK, NOT NULL                                        | Nazwa miejsca `"{name}"` w szablonie treści (snake_case) |
 | required      | boolean     | NOT NULL                                            | Czy wartość jest wymagana przy wywołaniu           |
 | default_value | json        | NULL                                                | Wartość domyślna (dowolna wartość JSON); NULL = brak |
-| created_at    | timestamptz | NOT NULL, DEFAULT now()                             | Moment zapisu wiersza                              |
-| updated_at    | timestamptz | NOT NULL, DEFAULT now()                             | Moment ostatniej zmiany wiersza                    |
 
 PK: `(connection_id, name)`.
 
@@ -114,9 +108,8 @@ Wszystkie klucze obce: `ON DELETE CASCADE`.
     przez pola kafelków (TEMP-020) zapewni przyszły FK z tabeli pól kafelka z `ON DELETE RESTRICT`.
 11. **Brak outboxa dla połączeń.** Operacje na połączeniach nie publikują zdarzeń integracyjnych w MVP.
 12. **Brak RLS.** W MVP wszystkie definicje są wspólne i nie ma użytkowników.
-13. **`created_at` i `updated_at` w tabelach parametrów.** Każda tabela ma znaczniki czasu, zgodnie z konwencją
-    planu. Ponieważ edycja odtwarza wiersze parametrów (decyzja 5), oba znaczniki wskazują moment ostatniego zapisu
-    definicji połączenia, a nie pierwszego dodania danego parametru; pierwotny moment dodania połączenia przechowuje
-    `connections.created_at`.
+13. **Brak `created_at` i `updated_at` w tabelach parametrów** (decyzja dewelopera). Parametry są zapisywane zawsze
+    razem z połączeniem (edycja odtwarza wszystkie wiersze — decyzja 5), więc ich znaczniki czasu wynikają
+    z `connections.created_at` i `connections.updated_at`.
 14. **Brak tabeli nagłówków** (decyzja dewelopera). Wszystkie połączenia wysyłają te same nagłówki, predefiniowane
     w kodzie (treść POST zawsze jako `Content-Type: application/json`), więc definicja połączenia ich nie zawiera.

@@ -29,8 +29,6 @@
 | name          | varchar(50) | PK (2/2), NOT NULL                              |
 | required      | boolean     | NOT NULL                                        |
 | default_value | text        | NULL                                            |
-| created_at    | timestamptz | NOT NULL, DEFAULT now()                         |
-| updated_at    | timestamptz | NOT NULL, DEFAULT now()                         |
 
 ### connection_query_parameters
 
@@ -40,8 +38,6 @@
 | name          | text    | PK (2/2), NOT NULL                              |
 | required      | boolean | NOT NULL                                        |
 | default_value | text    | NULL                                            |
-| created_at    | timestamptz | NOT NULL, DEFAULT now()                     |
-| updated_at    | timestamptz | NOT NULL, DEFAULT now()                     |
 
 ### connection_body_parameters
 
@@ -51,8 +47,6 @@
 | name          | varchar(50) | PK (2/2), NOT NULL                              |
 | required      | boolean     | NOT NULL                                        |
 | default_value | json        | NULL (dowolna wartość JSON)                     |
-| created_at    | timestamptz | NOT NULL, DEFAULT now()                         |
-| updated_at    | timestamptz | NOT NULL, DEFAULT now()                         |
 
 ## Relacje
 
@@ -91,7 +85,7 @@
 9. Twarde usuwanie z kaskadą na parametry. Blokadę usunięcia połączenia używanego przez kafelki (TEMP-020) zapewni
    przyszły FK z tabeli pól kafelka (`ON DELETE RESTRICT`).
 10. Brak zdarzeń integracyjnych dla połączeń — outbox nie jest potrzebny w tym zakresie.
-11. Tabele parametrów mają `created_at` i `updated_at` (uzupełnione po bramce weryfikacyjnej). Wiersze są odtwarzane
-    przy edycji, więc znaczniki wskazują ostatni zapis definicji połączenia.
+11. Tabele parametrów nie mają `created_at` ani `updated_at` — parametry zapisuje się zawsze razem z połączeniem,
+    więc znaczniki czasu wynikają z `connections`.
 12. Brak tabeli nagłówków — nagłówki są stałe i predefiniowane w kodzie (treść POST zawsze jako
     `Content-Type: application/json`).
