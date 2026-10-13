@@ -168,6 +168,18 @@ public class ConnectionValidationTests : ConnectionApiTests
         await AssertRejected(definition, "pathParameters[1].name");
     }
 
+    [Test(Description = "scenario_TEMP-007-014 - #17")]
+    public async Task Given_TwoBodyParametersNamedLimit_When_UserSavesConnection_Then_SavingIsRejected()
+    {
+        var definition = ValidPostDefinition();
+        definition["body"] = new JsonObject { ["limit"] = "{limit}" };
+        definition["bodyParameters"] = new JsonArray(
+            new JsonObject { ["name"] = "limit" },
+            new JsonObject { ["name"] = "limit" });
+
+        await AssertRejected(definition, "bodyParameters[1].name");
+    }
+
     private static JsonObject ValidPostDefinition()
     {
         return new JsonObject

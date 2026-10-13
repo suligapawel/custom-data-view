@@ -138,6 +138,10 @@ public static class ConnectionDefinitionValidator
             {
                 errors[$"bodyParameters[{index}].name"] = [SnakeCaseMessage];
             }
+            else if (IsRepeated(input.BodyParameters, index))
+            {
+                errors[$"bodyParameters[{index}].name"] = [RepeatedNameMessage];
+            }
             else if (!placeholders.Contains(input.BodyParameters[index].Name))
             {
                 errors[$"bodyParameters[{index}].name"] = ["Parametr treści nie występuje w treści."];
