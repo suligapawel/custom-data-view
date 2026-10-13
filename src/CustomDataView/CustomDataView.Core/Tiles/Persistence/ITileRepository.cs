@@ -8,4 +8,5 @@ public interface ITileRepository
     Tile Get(Guid id);
     IReadOnlyList<Tile> GetAll();
     void Update(Tile tile);
+    void Delete(Guid id);
 }

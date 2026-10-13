@@ -21,4 +21,9 @@ public sealed class TestTileRepository : ITileRepository
         var index = tiles.FindIndex(stored => stored.Id == tile.Id);
         tiles[index] = tile;
     }
+
+    public void Delete(Guid id)
+    {
+        tiles.RemoveAll(tile => tile.Id == id);
+    }
 }

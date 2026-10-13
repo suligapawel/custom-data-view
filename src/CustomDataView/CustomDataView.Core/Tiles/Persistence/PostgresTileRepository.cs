@@ -73,6 +73,12 @@ public sealed class PostgresTileRepository(NpgsqlDataSource dataSource, IEnumera
         transaction.Commit();
     }
 
+    public void Delete(Guid id)
+    {
+        using var db = dataSource.OpenConnection();
+        db.Execute("DELETE FROM custom_data_view.tiles WHERE id = @Id", new { Id = id });
+    }
+
     private static void InsertFields(IDbConnection db, IDbTransaction transaction, Tile tile)
     {
         var fields = tile.Definition.Fields;

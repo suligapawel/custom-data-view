@@ -128,6 +128,23 @@ public class PostgresTileRepositoryTests
         Assert.That(repository.GetAll().Select(Json), Is.EqualTo(new[] { Json(updated), Json(second) }));
     }
 
+    [Test]
+    public void Given_SavedTileWithTransformations_When_ItIsDeleted_Then_ItIsGoneAndConnectionsRemain()
+    {
+        var tile = new Tile(Guid.NewGuid(), new TileDefinition("Klient",
+        [
+            new TileField(customerConnectionId, "$.balance", "Saldo",
+                [new TransformationStep("round", new Dictionary<string, JsonNode> { ["decimals"] = 2 })])
+        ]));
+        repository.Add(tile);
+
+        repository.Delete(tile.Id);
+
+        Assert.That(repository.Get(tile.Id), Is.Null);
+        Assert.That(repository.GetAll(), Is.Empty);
+        Assert.That(new PostgresConnectionRepository(dataSource).Get(customerConnectionId), Is.Not.Null);
+    }
+
     private static string Json(Tile tile) => JsonSerializer.Serialize(tile);
 
     private Guid AddConnection(string name)
