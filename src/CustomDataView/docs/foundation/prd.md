@@ -62,8 +62,8 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
 3.5. Test i podgląd
 
 - Test połączenia wykonuje żądanie zgodnie z definicją (zapisaną po id lub niezapisaną przekazaną w żądaniu). Sukces
-  zwraca status HTTP odpowiedzi, czas odpowiedzi oraz obciętą treść JSON; niepowodzenie zwraca odpowiedź błędu z kodem
-  (source_unavailable, unexpected_status, invalid_json, response_too_large).
+  zwraca status HTTP odpowiedzi, czas odpowiedzi oraz pełną treść JSON (bez obcinania); niepowodzenie zwraca odpowiedź
+  błędu z kodem (source_unavailable, unexpected_status, invalid_json, response_too_large).
 - Podgląd kafelka zwraca JSON kafelka wygenerowany zgodnie z definicją (zapisaną lub niezapisaną): dla każdego pola
   etykietę i przetransformowaną wartość albo kod błędu.
 - Błąd źródła, brak wartości pod ścieżką lub błąd transformacji nie przerywa podglądu: zwracany jest częściowy wynik z
@@ -100,91 +100,6 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
 Historyjki są uporządkowane w kolejności realizacji, od najmniejszych funkcjonalności: katalog transformacji pól,
 połączenia, kafelki, widoki. Każda grupa korzysta wyłącznie z grup wcześniejszych; blokada usuwania połączeń używanych
 przez kafelki należy do grupy kafelków.
-
-- ID: TEMP-007  
-  Tytuł: Dodanie połączenia GET  
-  Opis: Jako użytkownik chcę zdefiniować połączenie GET do zewnętrznego REST API, aby móc wskazywać dane z jego
-  odpowiedzi.  
-  Kryteria akceptacji:
-    - Można zapisać połączenie z nazwą, URL, metodą GET, opcjonalnymi parametrami query i nagłówkami.
-    - Odpowiedź zawiera identyfikator nowego połączenia.
-    - Zapisane połączenie jest widoczne na liście połączeń.
-
-- ID: TEMP-008  
-  Tytuł: Dodanie połączenia POST z body  
-  Opis: Jako użytkownik chcę zdefiniować połączenie POST z body JSON, aby korzystać z API wymagających zapytań w treści
-  żądania.  
-  Kryteria akceptacji:
-    - Można zapisać połączenie z metodą POST i body JSON.
-    - Body jest przechowywane i zwracane w szczegółach połączenia bez zmian.
-    - Połączenie POST bez body jest dozwolone.
-
-- ID: TEMP-009  
-  Tytuł: Walidacja definicji połączenia  
-  Opis: Jako użytkownik chcę otrzymać informację o błędach w definicji połączenia, aby nie zapisać niedziałającej
-  konfiguracji.  
-  Kryteria akceptacji:
-    - Brak nazwy lub nazwa dłuższa niż 100 znaków zwraca błąd walidacji.
-    - URL pusty, niebezwzględny lub o schemacie innym niż http/https zwraca błąd walidacji.
-    - Metoda inna niż GET lub POST zwraca błąd walidacji.
-    - Body podane dla metody GET zwraca błąd walidacji.
-    - Body, które nie jest poprawnym JSON, zwraca błąd walidacji.
-    - Nagłówek lub parametr query z pustą nazwą zwraca błąd walidacji.
-    - Nazwy nie muszą być unikalne; dwa połączenia o tej samej nazwie zapisują się poprawnie.
-    - Przy błędzie walidacji nic nie zostaje zapisane.
-
-- ID: TEMP-010  
-  Tytuł: Przeglądanie połączeń  
-  Opis: Jako użytkownik chcę zobaczyć listę i szczegóły połączeń, aby wiedzieć, jakie źródła danych są
-  skonfigurowane.  
-  Kryteria akceptacji:
-    - Lista zwraca identyfikator, nazwę, metodę i URL każdego połączenia.
-    - Lista jest pusta, gdy nie zdefiniowano żadnego połączenia.
-    - Szczegóły zwracają pełną definicję: nazwę, URL, metodę, parametry query, nagłówki i body.
-    - Szczegóły nieistniejącego połączenia zwracają 404.
-
-- ID: TEMP-011  
-  Tytuł: Edycja połączenia  
-  Opis: Jako użytkownik chcę zmienić definicję połączenia, aby dostosować ją do zmian w zewnętrznym API.  
-  Kryteria akceptacji:
-    - Edycja zastępuje nazwę, URL, metodę, parametry query, nagłówki i body.
-    - Edycja podlega tym samym regułom walidacji co dodanie.
-    - Kafelki korzystające z połączenia używają po edycji nowej definicji.
-    - Edycja nieistniejącego połączenia zwraca 404.
-
-- ID: TEMP-012  
-  Tytuł: Usunięcie połączenia  
-  Opis: Jako użytkownik chcę usunąć połączenie, którego już nie potrzebuję, aby utrzymać porządek w konfiguracji.  
-  Kryteria akceptacji:
-    - Połączenie nieużywane przez żadne pole kafelka zostaje usunięte.
-    - Usunięte połączenie nie występuje na liście, a jego szczegóły zwracają 404.
-    - Usunięcie nieistniejącego połączenia zwraca 404.
-
-- ID: TEMP-013  
-  Tytuł: Test połączenia  
-  Opis: Jako użytkownik chcę przetestować połączenie, zapisane lub jeszcze niezapisane, aby sprawdzić, czy zewnętrzne
-  API odpowiada zgodnie z definicją.  
-  Kryteria akceptacji:
-    - Test przyjmuje identyfikator zapisanego połączenia albo pełną definicję połączenia w żądaniu; oba warianty działają
-      tak samo.
-    - Definicja przekazana w żądaniu podlega tym samym regułom walidacji co dodanie połączenia.
-    - Test wykonuje żądanie zgodnie z definicją (URL, metoda, query, nagłówki, body).
-    - Odpowiedź 2xx z poprawnym JSON kończy test sukcesem: wynik zawiera status HTTP, czas odpowiedzi i obciętą treść
-      JSON.
-    - Każdy inny wynik kończy test odpowiedzią błędu z kodem: source_unavailable (timeout lub brak połączenia),
-      unexpected_status (status inny niż 2xx, wraz z otrzymanym statusem), invalid_json lub response_too_large.
-    - Test nie tworzy ani nie zmienia połączenia, a jego wynik nie jest zapisywany.
-    - Test nieistniejącego połączenia zwraca 404.
-
-- ID: TEMP-014  
-  Tytuł: Ograniczenia żądań do zewnętrznych API  
-  Opis: Jako operator systemu chcę, aby testy i podglądy miały limity czasu i rozmiaru, aby pojedyncza definicja nie
-  zablokowała aplikacji.  
-  Kryteria akceptacji:
-    - Każde żądanie do zewnętrznego API jest przerywane po przekroczeniu globalnego timeoutu.
-    - Odpowiedź przekraczająca globalny limit rozmiaru nie jest wczytywana w całości i skutkuje błędem
-      response_too_large lub source_unavailable dla pól podglądu.
-    - Treść odpowiedzi zwracana w teście połączenia jest obcinana do ustalonego limitu.
 
 - ID: TEMP-015  
   Tytuł: Dodanie kafelka  
