@@ -591,3 +591,64 @@ Then  lista nadal zawiera 1 połączenie
 And   definicja połączenia "Sprzedawcy kontraktu" pozostaje bez zmian
 And   wynik testu nie jest nigdzie zapisany
 ```
+
+#### Scenario #42
+
+Test połączenia wysyła stałe nagłówki z definicji
+
+```
+Given istnieje połączenie POST z nagłówkami "Accept-Language" o wartości "pl" oraz "Content-Type" o wartości "application/vnd.api+json"
+And   połączenie ma szablon treści {"status": "active"}
+When  użytkownik testuje połączenie
+Then  zewnętrzne API otrzymuje nagłówek "Accept-Language" o wartości "pl"
+And   treść jest oznaczona typem "application/vnd.api+json"
+```
+
+#### Scenario #43
+
+Opcjonalny parametr adresu używa wartości domyślnej
+
+```
+Given istnieje połączenie GET z adresem "https://api.example.com/{version}/sellers"
+And   parametr adresu "version" jest opcjonalny z wartością domyślną "v1"
+When  użytkownik testuje połączenie bez wartości parametru "version"
+Then  zewnętrzne API otrzymuje zapytanie na adres "https://api.example.com/v1/sellers"
+```
+
+#### Scenario #44
+
+Niepoprawne wartości parametrów zapytania i treści przy teście
+
+```
+Scenario Outline: odrzucenie wartości parametrów zapytania i treści
+Given istnieje połączenie POST z wymaganym parametrem zapytania "status" i wymaganym parametrem treści "id"
+When  użytkownik testuje połączenie z wartościami <values>
+Then  test zostaje odrzucony z informacją o błędzie parametru <parameter>
+And   zewnętrzne API nie otrzymuje żadnego zapytania
+
+Examples:
+  | values                                        | parameter            |
+  | bez wartości "status"                         | zapytania "status"   |
+  | "status" = 5 jako liczba                      | zapytania "status"   |
+  | "status" = pusta lista                        | zapytania "status"   |
+  | nieznany parametr zapytania "foo"             | zapytania "foo"      |
+  | bez wartości "id"                             | treści "id"          |
+  | nieznany parametr treści "foo"                | treści "foo"         |
+```
+
+#### Scenario #45
+
+Sprzeczna deklaracja parametru adresu lub treści
+
+```
+Scenario Outline: odrzucenie deklaracji parametru
+Given użytkownik definiuje połączenie z parametrem <declaration>
+When  użytkownik zapisuje połączenie
+Then  zapis zostaje odrzucony z informacją o błędzie deklaracji parametru
+
+Examples:
+  | declaration                                                   |
+  | adresu "id", wymaganym i z wartością domyślną "42"             |
+  | treści "limit", wymaganym i z wartością domyślną 10            |
+  | zapytania "pageSize" z wartością domyślną 20 jako liczbą       |
+```
