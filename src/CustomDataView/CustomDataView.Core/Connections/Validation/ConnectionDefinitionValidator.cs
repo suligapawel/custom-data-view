@@ -12,7 +12,8 @@ public static class ConnectionDefinitionValidator
             errors["name"] = ["Nazwa połączenia jest wymagana."];
         }
 
-        if (input.Url is null)
+        if (!Uri.TryCreate(input.Url, UriKind.Absolute, out var url)
+            || (url.Scheme != Uri.UriSchemeHttp && url.Scheme != Uri.UriSchemeHttps))
         {
             errors["url"] = ["Adres połączenia musi być bezwzględnym adresem http lub https."];
         }

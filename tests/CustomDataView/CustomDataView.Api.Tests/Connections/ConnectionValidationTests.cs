@@ -19,6 +19,7 @@ public class ConnectionValidationTests : ConnectionApiTests
     }
 
     [TestCase(null)]
+    [TestCase("/contracts/42")]
     [Test(Description = "scenario_TEMP-007-014 - #8")]
     public async Task Given_InvalidUrl_When_UserSavesConnection_Then_SavingIsRejectedWithUrlError(string url)
     {
