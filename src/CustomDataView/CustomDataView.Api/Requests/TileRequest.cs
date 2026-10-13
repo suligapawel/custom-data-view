@@ -14,7 +14,7 @@ public sealed record TileRequest(string Name, IReadOnlyList<TileFieldRequest> Fi
     private TileInput ToInput()
         => new TileInput(
             Name,
-            Fields
+            (Fields ?? [])
                 .Select(field => new TileFieldInput(
                     field.ConnectionId,
                     field.Path,

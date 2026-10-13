@@ -14,6 +14,11 @@ public static class TileDefinitionValidator
             errors["name"] = [$"Nazwa kafelka jest wymagana i może mieć najwyżej {MaxNameLength} znaków."];
         }
 
+        if (input.Fields.Count == 0)
+        {
+            errors["fields"] = ["Kafelek musi mieć co najmniej jedno pole."];
+        }
+
         return errors;
     }
 }
