@@ -26,4 +26,12 @@ public class MissingTileTests : TileApiTests
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
+
+    [Test(Description = "scenario_TEMP-015-023 - #24")]
+    public async Task Given_TileDoesNotExist_When_UserDeletesIt_Then_TileIsNotFound()
+    {
+        var response = await Client.DeleteAsync($"{TilesUrl}/{Guid.NewGuid()}");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
 }

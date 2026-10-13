@@ -44,6 +44,7 @@ public sealed class TileService(ITileRepository repository, TileReferencesValida
 
     public void Delete(Guid id)
     {
+        _ = repository.Get(id) ?? throw new NotFoundException(id);
         repository.Delete(id);
     }
 
