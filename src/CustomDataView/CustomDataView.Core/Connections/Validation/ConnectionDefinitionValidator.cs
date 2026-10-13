@@ -32,6 +32,11 @@ public static class ConnectionDefinitionValidator
             errors["body"] = ["Treść jest dozwolona tylko dla połączenia POST."];
         }
 
+        if (IsGet(input.Method) && input.BodyParameters.Count > 0)
+        {
+            errors["bodyParameters"] = ["Parametry treści są dozwolone tylko dla połączenia POST."];
+        }
+
         return errors;
     }
 

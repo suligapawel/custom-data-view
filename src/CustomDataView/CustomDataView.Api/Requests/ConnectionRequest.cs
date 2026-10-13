@@ -4,7 +4,12 @@ using CustomDataView.Core.Connections.Validation;
 
 namespace CustomDataView.Api.Requests;
 
-public sealed record ConnectionRequest(string Name, string Method, string Url, JsonElement? Body)
+public sealed record ConnectionRequest(
+    string Name,
+    string Method,
+    string Url,
+    JsonElement? Body,
+    IReadOnlyList<ParameterDeclarationInput> BodyParameters)
 {
     public IDictionary<string, string[]> Validate()
     {
@@ -13,6 +18,6 @@ public sealed record ConnectionRequest(string Name, string Method, string Url, J
 
     public ConnectionInput ToInput()
     {
-        return new ConnectionInput(Name, Method, Url, Body);
+        return new ConnectionInput(Name, Method, Url, Body, BodyParameters ?? []);
     }
 }

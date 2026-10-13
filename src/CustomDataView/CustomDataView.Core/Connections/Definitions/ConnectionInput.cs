@@ -2,7 +2,12 @@ using System.Text.Json;
 
 namespace CustomDataView.Core.Connections.Definitions;
 
-public sealed record ConnectionInput(string Name, string Method, string Url, JsonElement? Body)
+public sealed record ConnectionInput(
+    string Name,
+    string Method,
+    string Url,
+    JsonElement? Body,
+    IReadOnlyList<ParameterDeclarationInput> BodyParameters)
 {
     public ConnectionDefinition ToDefinition()
     {

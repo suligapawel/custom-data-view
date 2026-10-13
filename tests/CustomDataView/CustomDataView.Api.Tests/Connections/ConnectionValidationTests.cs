@@ -55,13 +55,17 @@ public class ConnectionValidationTests : ConnectionApiTests
         await AssertRejected(definition, "method");
     }
 
+    [TestCase("body")]
+    [TestCase("bodyParameters")]
     [Test(Description = "scenario_TEMP-007-014 - #11")]
-    public async Task Given_GetConnectionWithBodyTemplate_When_UserSavesConnection_Then_SavingIsRejectedWithBodyError()
+    public async Task Given_GetConnectionWithBodyElement_When_UserSavesConnection_Then_SavingIsRejected(string element)
     {
         var definition = ValidGetDefinition();
-        definition["body"] = new JsonObject { ["q"] = 1 };
+        definition[element] = element == "body"
+            ? new JsonObject { ["q"] = 1 }
+            : new JsonArray(new JsonObject { ["name"] = "limit" });
 
-        await AssertRejected(definition, "body");
+        await AssertRejected(definition, element);
     }
 
     private static JsonObject ValidGetDefinition()
