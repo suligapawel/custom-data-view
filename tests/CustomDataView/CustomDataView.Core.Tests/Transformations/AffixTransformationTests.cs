@@ -27,6 +27,16 @@ public class AffixTransformationTests
         Assert.That(result, Is.EqualTo("ID: 7"));
     }
 
+    [Test(Description = "scenario_TEMP-001-006 - #9")]
+    public void Given_PrefixWithEmptyText_When_ValueIsAbc_Then_ResultIsUnchangedText()
+    {
+        var transformation = new PrefixTransformation(new IdentityTransformation(), CreateText(""));
+
+        var result = transformation.Apply("abc");
+
+        Assert.That(result, Is.EqualTo("abc"));
+    }
+
     private static TransformationParameters CreateText(JsonNode text)
     {
         return new TransformationParameters(new Dictionary<string, JsonNode> { ["text"] = text });
