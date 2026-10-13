@@ -92,7 +92,11 @@ public static class ConnectionDefinitionValidator
 
         for (var index = 0; index < input.BodyParameters.Count; index++)
         {
-            if (!placeholders.Contains(input.BodyParameters[index].Name))
+            if (!ParameterNames.IsSnakeCase(input.BodyParameters[index].Name))
+            {
+                errors[$"bodyParameters[{index}].name"] = [SnakeCaseMessage];
+            }
+            else if (!placeholders.Contains(input.BodyParameters[index].Name))
             {
                 errors[$"bodyParameters[{index}].name"] = ["Parametr treści nie występuje w treści."];
             }

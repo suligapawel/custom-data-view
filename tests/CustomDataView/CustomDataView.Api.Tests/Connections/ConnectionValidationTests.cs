@@ -116,14 +116,25 @@ public class ConnectionValidationTests : ConnectionApiTests
         await AssertRejected(definition, errorKey);
     }
 
+    [TestCase("path", "Id")]
+    [TestCase("body", "contract-id")]
     [Test(Description = "scenario_TEMP-007-014 - #15")]
-    public async Task Given_PathParameterNameNotInSnakeCase_When_UserSavesConnection_Then_SavingIsRejected()
+    public async Task Given_ParameterNameNotInSnakeCase_When_UserSavesConnection_Then_SavingIsRejected(string section, string name)
     {
-        var definition = ValidGetDefinition();
-        definition["url"] = "https://api.example.com/contracts/{Id}/sellers";
-        definition["pathParameters"] = new JsonArray(new JsonObject { ["name"] = "Id", ["required"] = true });
+        var definition = section == "path" ? ValidGetDefinition() : ValidPostDefinition();
+        if (section == "path")
+        {
+            definition["url"] = $"https://api.example.com/contracts/{{{name}}}/sellers";
+            definition["pathParameters"] = new JsonArray(new JsonObject { ["name"] = name, ["required"] = true });
+        }
+        else
+        {
+            definition["body"] = new JsonObject { ["contractId"] = $"{{{name}}}" };
+            definition["bodyParameters"] = new JsonArray(new JsonObject { ["name"] = name, ["required"] = true });
+        }
 
-        await AssertRejected(definition, "pathParameters[0].name");
+        var errors = await AssertRejected(definition, $"{section}Parameters[0].name");
+        Assert.That(errors[$"{section}Parameters[0].name"]![0]!.GetValue<string>(), Does.Contain("snake_case"));
     }
 
     private static JsonObject ValidPostDefinition()
@@ -149,12 +160,14 @@ public class ConnectionValidationTests : ConnectionApiTests
         };
     }
 
-    private async Task AssertRejected(JsonObject definition, string errorKey)
+    private async Task<JsonObject> AssertRejected(JsonObject definition, string errorKey)
     {
         var response = await Client.PostAsJsonAsync(ConnectionsUrl, definition);
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
         var problem = await response.Content.ReadFromJsonAsync<JsonObject>();
-        Assert.That(problem["errors"]!.AsObject().ContainsKey(errorKey), Is.True);
+        var errors = problem["errors"]!.AsObject();
+        Assert.That(errors.ContainsKey(errorKey), Is.True);
+        return errors;
     }
 }
