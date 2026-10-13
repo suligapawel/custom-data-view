@@ -67,9 +67,9 @@ public static class ConnectionDefinitionValidator
 
         for (var index = 0; index < input.Headers.Count; index++)
         {
-            if (string.IsNullOrEmpty(input.Headers[index].Name))
+            if (!ParameterNames.IsHeaderToken(input.Headers[index].Name))
             {
-                errors[$"headers[{index}].name"] = ["Nazwa nagłówka jest wymagana."];
+                errors[$"headers[{index}].name"] = ["Nazwa nagłówka jest wymagana i nie może zawierać spacji ani dwukropka."];
             }
         }
 
@@ -90,9 +90,9 @@ public static class ConnectionDefinitionValidator
 
         for (var index = 0; index < input.Headers.Count; index++)
         {
-            if (string.IsNullOrEmpty(input.Headers[index].Name))
+            if (!ParameterNames.IsHeaderToken(input.Headers[index].Name))
             {
-                errors[$"headers[{index}].name"] = ["Nazwa nagłówka jest wymagana."];
+                errors[$"headers[{index}].name"] = ["Nazwa nagłówka jest wymagana i nie może zawierać spacji ani dwukropka."];
             }
         }
 

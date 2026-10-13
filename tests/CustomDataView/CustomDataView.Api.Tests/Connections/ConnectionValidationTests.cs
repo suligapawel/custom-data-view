@@ -220,6 +220,16 @@ public class ConnectionValidationTests : ConnectionApiTests
         await AssertRejected(definition, "pathParameters[0].defaultValue");
     }
 
+    [TestCase("Accept Language", "pl", "headers[0].name")]
+    [Test(Description = "scenario_TEMP-007-014 - #19")]
+    public async Task Given_InvalidHeader_When_UserSavesConnection_Then_SavingIsRejected(string name, string value, string errorKey)
+    {
+        var definition = ValidGetDefinition();
+        definition["headers"] = new JsonArray(new JsonObject { ["name"] = name, ["value"] = value });
+
+        await AssertRejected(definition, errorKey);
+    }
+
     private static JsonObject ValidPostDefinition()
     {
         return new JsonObject
