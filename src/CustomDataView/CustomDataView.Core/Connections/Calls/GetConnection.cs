@@ -1,6 +1,5 @@
 using CustomDataView.Core.Connections.Definitions;
 using CustomDataView.Core.Connections.Http;
-using CustomDataView.Core.Connections.Templates;
 
 namespace CustomDataView.Core.Connections.Calls;
 
@@ -8,7 +7,7 @@ public sealed class GetConnection(GetConnectionDefinition definition, IExternalA
 {
     public Task<ExternalApiResult> Get(ConnectionParameterValues parameters, CancellationToken cancellationToken)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, UrlTemplate.Resolve(definition.Url, parameters.Path, definition.QueryParameters, parameters.Query));
+        var request = ConnectionRequestBuilder.Build(HttpMethod.Get, definition, parameters, null);
         return client.Send(request, cancellationToken);
     }
 }

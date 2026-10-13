@@ -21,10 +21,11 @@ public sealed class FakeExternalApi : HttpMessageHandler
         requests.Add(new ReceivedRequest(
             request.Method.Method,
             request.RequestUri!.AbsoluteUri,
+            string.Join("\n", request.Headers.Select(header => $"{header.Key}: {string.Join(",", header.Value)}")),
             request.Content?.Headers.ContentType?.MediaType,
             body));
         return await Respond(request, cancellationToken);
     }
 
-    public sealed record ReceivedRequest(string Method, string Url, string ContentType, string Body);
+    public sealed record ReceivedRequest(string Method, string Url, string Headers, string ContentType, string Body);
 }

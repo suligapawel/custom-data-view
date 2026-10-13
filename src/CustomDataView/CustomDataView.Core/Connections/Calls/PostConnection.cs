@@ -9,14 +9,13 @@ public sealed class PostConnection(PostConnectionDefinition definition, IExterna
 {
     public Task<ExternalApiResult> Get(ConnectionParameterValues parameters, CancellationToken cancellationToken)
     {
-        var url = UrlTemplate.Resolve(definition.Url, parameters.Path, definition.QueryParameters, parameters.Query);
-        var request = new HttpRequestMessage(HttpMethod.Post, url);
-        if (definition.Body is not null)
-        {
-            var body = BodyTemplate.Resolve(definition.Body, definition.BodyParameters, parameters.Body);
-            request.Content = new StringContent(body, Encoding.UTF8, "application/json");
-        }
-
+        var content = definition.Body is null
+            ? null
+            : new StringContent(
+                BodyTemplate.Resolve(definition.Body, definition.BodyParameters, parameters.Body),
+                Encoding.UTF8,
+                "application/json");
+        var request = ConnectionRequestBuilder.Build(HttpMethod.Post, definition, parameters, content);
         return client.Send(request, cancellationToken);
     }
 }

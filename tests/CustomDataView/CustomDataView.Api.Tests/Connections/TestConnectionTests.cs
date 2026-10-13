@@ -228,4 +228,26 @@ public class TestConnectionTests : ConnectionApiTests
         Assert.That(connections, Has.Count.EqualTo(1));
         Assert.That(await Client.GetStringAsync($"{ConnectionsUrl}/{id}"), Is.EqualTo(before));
     }
+
+    [Test(Description = "scenario_TEMP-007-014 - #42")]
+    public async Task Given_PostConnectionWithHeaders_When_UserTestsIt_Then_ExternalApiReceivesHeaders()
+    {
+        var id = await CreateConnection(new
+        {
+            name = "Wyszukiwanie sprzedawców",
+            method = "POST",
+            url = "https://api.example.com/sellers/search",
+            headers = new[]
+            {
+                new { name = "Accept-Language", value = "pl" },
+                new { name = "Content-Type", value = "application/vnd.api+json" }
+            },
+            body = new { status = "active" }
+        });
+
+        await Client.PostAsJsonAsync($"{ConnectionsUrl}/{id}/test", new { });
+
+        var request = Factory.ExternalApi.Requests.Single();
+        Assert.That(request.Headers, Does.Contain("Accept-Language: pl"));
+    }
 }
