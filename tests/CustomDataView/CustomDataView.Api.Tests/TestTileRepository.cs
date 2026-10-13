@@ -1,0 +1,16 @@
+using CustomDataView.Core.Tiles.Definitions;
+using CustomDataView.Core.Tiles.Persistence;
+
+namespace CustomDataView.Api.Tests;
+
+public sealed class TestTileRepository : ITileRepository
+{
+    private readonly List<Tile> tiles = [];
+
+    public void Add(Tile tile)
+    {
+        tiles.Add(tile);
+    }
+
+    public IReadOnlyList<Tile> GetAll() => tiles.ToList();
+}

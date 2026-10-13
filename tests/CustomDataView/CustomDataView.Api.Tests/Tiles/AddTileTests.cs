@@ -21,6 +21,9 @@ public class AddTileTests : TileApiTests
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
         var created = await response.Content.ReadFromJsonAsync<JsonObject>();
-        Assert.That(Guid.TryParse(created?["id"]?.GetValue<string>(), out _), Is.True);
+        Assert.That(Guid.TryParse(created?["id"]?.GetValue<string>(), out var id), Is.True);
+        var tiles = await Client.GetFromJsonAsync<JsonArray>(TilesUrl);
+        Assert.That(tiles.Select(tile => tile["id"]?.GetValue<Guid>()), Is.EqualTo(new Guid?[] { id }));
+        Assert.That(tiles.Single()["name"]?.GetValue<string>(), Is.EqualTo("Klient i kurs"));
     }
 }

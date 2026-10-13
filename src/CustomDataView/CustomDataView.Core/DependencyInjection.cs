@@ -3,6 +3,8 @@ using CustomDataView.Core.Connections.Http;
 using CustomDataView.Core.Connections.Management;
 using CustomDataView.Core.Connections.Persistence;
 using CustomDataView.Core.Connections.Testing;
+using CustomDataView.Core.Tiles.Management;
+using CustomDataView.Core.Tiles.Persistence;
 using CustomDataView.Core.Transformations.Abstractions;
 using CustomDataView.Core.Transformations.Catalog;
 using CustomDataView.Core.Transformations.Execution;
@@ -44,6 +46,13 @@ public static class DependencyInjection
         services.AddOptions<ExternalApiOptions>().BindConfiguration(ExternalApiOptions.SectionName);
         services.AddHttpClient(ExternalApiClient.HttpClientName)
             .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false });
+        return services;
+    }
+
+    public static IServiceCollection AddCustomDataViewTiles(this IServiceCollection services)
+    {
+        services.AddSingleton<ITileRepository, PostgresTileRepository>();
+        services.AddSingleton<ITileService, TileService>();
         return services;
     }
 }

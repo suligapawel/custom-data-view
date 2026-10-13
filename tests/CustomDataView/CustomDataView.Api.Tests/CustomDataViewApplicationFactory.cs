@@ -1,5 +1,6 @@
 using CustomDataView.Core.Connections.Http;
 using CustomDataView.Core.Connections.Persistence;
+using CustomDataView.Core.Tiles.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -16,6 +17,7 @@ public class CustomDataViewApplicationFactory : WebApplicationFactory<Program>
         builder.ConfigureTestServices(services =>
         {
             services.AddSingleton<IConnectionRepository, TestConnectionRepository>();
+            services.AddSingleton<ITileRepository, TestTileRepository>();
             services.AddHttpClient(ExternalApiClient.HttpClientName).ConfigurePrimaryHttpMessageHandler(() => ExternalApi);
         });
     }

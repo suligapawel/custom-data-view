@@ -1,4 +1,6 @@
+using CustomDataView.Api.Requests;
 using CustomDataView.Api.Responses;
+using CustomDataView.Core.Tiles.Management;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -14,16 +16,23 @@ public static class TileEndpoints
         public IEndpointRouteBuilder MapTileEndpoints()
         {
             return endpoints
-                .AddTile();
+                .AddTile()
+                .GetTiles();
         }
 
         private IEndpointRouteBuilder AddTile()
         {
-            endpoints.MapPost(TilesUrl, () =>
+            endpoints.MapPost(TilesUrl, (TileRequest request, ITileService service) =>
             {
-                var id = Guid.NewGuid();
+                var id = service.Add(request.ToDefinition());
                 return Results.Created($"{TilesUrl}/{id}", new TileCreatedResponse(id));
             });
+            return endpoints;
+        }
+
+        private IEndpointRouteBuilder GetTiles()
+        {
+            endpoints.MapGet(TilesUrl, (ITileService service) => Results.Ok(service.GetAll()));
             return endpoints;
         }
     }

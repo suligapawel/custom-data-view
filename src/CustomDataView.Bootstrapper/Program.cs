@@ -8,6 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddCustomDataViewTransformations();
 builder.Services.AddCustomDataViewConnections();
+builder.Services.AddCustomDataViewTiles();
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
 builder.Services.AddExceptionHandler<CustomDataViewExceptionHandler>();
