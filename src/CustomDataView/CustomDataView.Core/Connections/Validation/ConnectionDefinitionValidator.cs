@@ -1,4 +1,5 @@
 using CustomDataView.Core.Connections.Definitions;
+using CustomDataView.Core.Connections.Templates;
 
 namespace CustomDataView.Core.Connections.Validation;
 
@@ -13,7 +14,8 @@ public static class ConnectionDefinitionValidator
         }
 
         if (!Uri.TryCreate(input.Url, UriKind.Absolute, out var url)
-            || (url.Scheme != Uri.UriSchemeHttp && url.Scheme != Uri.UriSchemeHttps))
+            || (url.Scheme != Uri.UriSchemeHttp && url.Scheme != Uri.UriSchemeHttps)
+            || UrlTemplate.HasPlaceholdersOutsidePath(input.Url))
         {
             errors["url"] = ["Adres połączenia musi być bezwzględnym adresem http lub https."];
         }
