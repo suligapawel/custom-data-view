@@ -4,14 +4,14 @@ namespace CustomDataView.Core.Tiles.Validation;
 
 public static class TileDefinitionValidator
 {
-    private const int MaxNameLength = 100;
+    private const int MaxTextLength = 100;
 
     public static IDictionary<string, string[]> Validate(TileInput input)
     {
         var errors = new Dictionary<string, string[]>();
-        if (string.IsNullOrWhiteSpace(input.Name) || input.Name.Length > MaxNameLength)
+        if (!IsValidText(input.Name))
         {
-            errors["name"] = [$"Nazwa kafelka jest wymagana i może mieć najwyżej {MaxNameLength} znaków."];
+            errors["name"] = [$"Nazwa kafelka jest wymagana i może mieć najwyżej {MaxTextLength} znaków."];
         }
 
         if (input.Fields.Count == 0)
@@ -19,6 +19,21 @@ public static class TileDefinitionValidator
             errors["fields"] = ["Kafelek musi mieć co najmniej jedno pole."];
         }
 
+        for (var index = 0; index < input.Fields.Count; index++)
+        {
+            ValidateField(input.Fields[index], $"fields[{index}]", errors);
+        }
+
         return errors;
     }
+
+    private static void ValidateField(TileFieldInput field, string key, Dictionary<string, string[]> errors)
+    {
+        if (!IsValidText(field.Label))
+        {
+            errors[$"{key}.label"] = [$"Etykieta pola jest wymagana i może mieć najwyżej {MaxTextLength} znaków."];
+        }
+    }
+
+    private static bool IsValidText(string text) => !string.IsNullOrWhiteSpace(text) && text.Length <= MaxTextLength;
 }

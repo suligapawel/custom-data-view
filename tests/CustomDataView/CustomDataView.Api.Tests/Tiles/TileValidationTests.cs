@@ -36,6 +36,20 @@ public class TileValidationTests : TileApiTests
         await AssertRejected(response, "fields");
     }
 
+    [TestCase(null)]
+    [TestCase("   ")]
+    [TestCase(101)]
+    [Test(Description = "scenario_TEMP-015-023 - #9")]
+    public async Task Given_SecondFieldWithInvalidLabel_When_UserSavesTile_Then_SaveIsRejectedWithSecondLabelError(object label)
+    {
+        var tile = ValidTile();
+        tile["fields"]![1]!["label"] = label is int length ? new string('a', length) : (string)label;
+
+        var response = await Client.PostAsJsonAsync(TilesUrl, tile);
+
+        await AssertRejected(response, "fields[1].label");
+    }
+
     private JsonObject ValidTile()
         => new()
         {
