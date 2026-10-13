@@ -35,4 +35,12 @@ public class ListConnectionsTests : ConnectionApiTests
             Is.EqualTo(new[] { "https://api.example.com/contracts/{id}/sellers", "https://api.example.com/sellers/search" }));
         Assert.That(connections.Select(connection => connection["id"]?.GetValue<Guid>()), Has.All.Not.EqualTo(Guid.Empty));
     }
+
+    [Test(Description = "scenario_TEMP-007-014 - #21")]
+    public async Task Given_NoConnections_When_UserBrowsesList_Then_ListIsEmpty()
+    {
+        var connections = await Client.GetFromJsonAsync<JsonArray>(ConnectionsUrl);
+
+        Assert.That(connections, Is.Empty);
+    }
 }
