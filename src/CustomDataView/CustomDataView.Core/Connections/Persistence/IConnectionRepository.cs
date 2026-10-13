@@ -7,4 +7,5 @@ public interface IConnectionRepository
     void Add(Connection connection);
     Connection Get(Guid id);
     IReadOnlyList<Connection> GetAll();
+    void Update(Connection connection);
 }

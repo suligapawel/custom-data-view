@@ -44,7 +44,8 @@ public sealed class ConnectionService(IConnectionRepository repository) : IConne
 
     public void Update(Guid id, ConnectionDefinition definition)
     {
-        _ = repository.Get(id) ?? throw new NotFoundException(id);
+        var connection = repository.Get(id) ?? throw new NotFoundException(id);
+        repository.Update(connection with { Definition = definition });
     }
 
     public void Delete(Guid id)

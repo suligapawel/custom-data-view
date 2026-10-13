@@ -25,6 +25,14 @@ public sealed class InMemoryConnectionRepository : IConnectionRepository
         }
     }
 
+    public void Update(Connection connection)
+    {
+        lock (Sync)
+        {
+            Connections[connection.Id] = connection;
+        }
+    }
+
     public IReadOnlyList<Connection> GetAll()
     {
         lock (Sync)

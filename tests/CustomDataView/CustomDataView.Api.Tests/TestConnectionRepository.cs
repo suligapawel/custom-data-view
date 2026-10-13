@@ -17,6 +17,12 @@ public sealed class TestConnectionRepository : IConnectionRepository
         return connections.SingleOrDefault(connection => connection.Id == id);
     }
 
+    public void Update(Connection connection)
+    {
+        var index = connections.FindIndex(stored => stored.Id == connection.Id);
+        connections[index] = connection;
+    }
+
     public IReadOnlyList<Connection> GetAll()
     {
         return connections.ToList();
