@@ -66,6 +66,29 @@ public class TilePartialPreviewTests : TileApiTests
                               """);
     }
 
+    [Test(Description = "scenario_TEMP-015-023 - #47")]
+    public async Task Given_RoundOnNameAndPlainBalance_When_UserPreviewsTile_Then_OnlyNameFieldHasTransformationError()
+    {
+        var id = await CreateTile(new
+        {
+            name = "Klient",
+            fields = new[]
+            {
+                Field(CustomerConnectionId, "$.name", "Nazwa jako liczba", Transformation("round", new { decimals = 1 })),
+                Field(CustomerConnectionId, "$.balance", "Saldo")
+            }
+        });
+
+        var preview = await Preview(id, CustomerValues());
+
+        AssertFields(preview, """
+                              [
+                                {"label": "Nazwa jako liczba", "error": {"code": "transformation_failed", "transformation": "round", "reason": "invalid_value"}},
+                                {"label": "Saldo", "value": 1234.567}
+                              ]
+                              """);
+    }
+
     private static void AssertFields(JsonObject preview, string expected)
         => Assert.That(JsonNode.DeepEquals(preview["fields"], JsonNode.Parse(expected)), Is.True, preview.ToJsonString());
 
