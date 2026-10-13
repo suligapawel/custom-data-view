@@ -4,31 +4,12 @@ using System.Text.Json.Nodes;
 
 namespace CustomDataView.Api.Tests.Connections;
 
-public class AddConnectionTests
+public class AddConnectionTests : ConnectionApiTests
 {
-    private const string ConnectionsUrl = "/api/custom-data-view/connections";
-
-    private CustomDataViewApplicationFactory factory;
-    private HttpClient client;
-
-    [SetUp]
-    public void SetUp()
-    {
-        factory = new CustomDataViewApplicationFactory();
-        client = factory.CreateClient();
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        client.Dispose();
-        factory.Dispose();
-    }
-
     [Test(Description = "scenario_TEMP-007-014 - #1")]
     public async Task Given_NoContractSellersConnection_When_UserSavesGetConnectionWithPathParameter_Then_ConnectionIsSavedWithNewId()
     {
-        var response = await client.PostAsJsonAsync(ConnectionsUrl, new
+        var response = await Client.PostAsJsonAsync(ConnectionsUrl, new
         {
             name = "Sprzedawcy kontraktu",
             method = "GET",
@@ -41,14 +22,14 @@ public class AddConnectionTests
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
         var created = await response.Content.ReadFromJsonAsync<CreatedConnection>();
         Assert.That(created.Id, Is.Not.EqualTo(Guid.Empty));
-        var details = await client.GetAsync($"{ConnectionsUrl}/{created.Id}");
+        var details = await Client.GetAsync($"{ConnectionsUrl}/{created.Id}");
         Assert.That(details.StatusCode, Is.EqualTo(HttpStatusCode.OK));
     }
 
     [Test(Description = "scenario_TEMP-007-014 - #2")]
     public async Task Given_PostConnectionDefinition_When_UserSavesItWithBodyTemplate_Then_DetailsShowUnchangedBodyTemplate()
     {
-        var response = await client.PostAsJsonAsync(ConnectionsUrl, new
+        var response = await Client.PostAsJsonAsync(ConnectionsUrl, new
         {
             name = "Wyszukiwanie sprzedawców",
             method = "POST",
@@ -63,7 +44,7 @@ public class AddConnectionTests
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
         var created = await response.Content.ReadFromJsonAsync<CreatedConnection>();
-        var details = await client.GetFromJsonAsync<JsonObject>($"{ConnectionsUrl}/{created.Id}");
+        var details = await Client.GetFromJsonAsync<JsonObject>($"{ConnectionsUrl}/{created.Id}");
         Assert.That(
             JsonNode.DeepEquals(details["body"], JsonNode.Parse("""{"contractId": "{id}", "limit": "{limit}"}""")),
             Is.True);
@@ -72,7 +53,7 @@ public class AddConnectionTests
     [Test(Description = "scenario_TEMP-007-014 - #3")]
     public async Task Given_PostConnectionWithoutBodyTemplate_When_UserSavesIt_Then_ConnectionIsSaved()
     {
-        var response = await client.PostAsJsonAsync(ConnectionsUrl, new
+        var response = await Client.PostAsJsonAsync(ConnectionsUrl, new
         {
             name = "Odświeżenie danych",
             method = "POST",
@@ -81,9 +62,7 @@ public class AddConnectionTests
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
         var created = await response.Content.ReadFromJsonAsync<CreatedConnection>();
-        var details = await client.GetFromJsonAsync<JsonObject>($"{ConnectionsUrl}/{created.Id}");
+        var details = await Client.GetFromJsonAsync<JsonObject>($"{ConnectionsUrl}/{created.Id}");
         Assert.That(details["body"], Is.Null);
     }
-
-    private sealed record CreatedConnection(Guid Id);
 }
