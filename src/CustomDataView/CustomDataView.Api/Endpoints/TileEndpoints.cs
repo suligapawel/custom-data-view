@@ -2,6 +2,7 @@ using CustomDataView.Api.Requests;
 using CustomDataView.Api.Responses;
 using CustomDataView.Core.Tiles.Management;
 using CustomDataView.Core.Tiles.Preview;
+using CustomDataView.Core.Tiles.Validation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -85,9 +86,10 @@ public static class TileEndpoints
         {
             endpoints.MapPost(
                 $"{TilesUrl}/preview",
-                async (TileDraftPreviewRequest request, ITilePreviewService service, CancellationToken cancellationToken) =>
+                async (TileDraftPreviewRequest request, TileReferencesValidator referencesValidator,
+                    ITilePreviewService service, CancellationToken cancellationToken) =>
                 {
-                    var errors = request.Validate();
+                    var errors = request.Validate(referencesValidator);
                     if (errors.Count > 0)
                     {
                         return Results.ValidationProblem(errors);

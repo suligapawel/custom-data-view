@@ -60,7 +60,9 @@ public class TileDraftPreviewTests : TileApiTests
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
         var problem = await response.Content.ReadFromJsonAsync<JsonObject>();
-        Assert.That(problem["errors"]!.AsObject().Select(error => error.Key), Does.Contain("tile.name"));
+        Assert.That(
+            problem["errors"]!.AsObject().Select(error => error.Key),
+            Is.SupersetOf(new[] { "tile.name", "tile.fields[0].connectionId" }));
         Assert.That(Factory.ExternalApi.Requests, Is.Empty);
     }
 }

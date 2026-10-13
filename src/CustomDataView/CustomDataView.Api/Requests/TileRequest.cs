@@ -11,7 +11,7 @@ public sealed record TileRequest(string Name, IReadOnlyList<TileFieldRequest> Fi
 
     public TileDefinition ToDefinition() => ToInput().ToDefinition();
 
-    private TileInput ToInput()
+    public TileInput ToInput()
         => new TileInput(
             Name,
             (Fields ?? [])
