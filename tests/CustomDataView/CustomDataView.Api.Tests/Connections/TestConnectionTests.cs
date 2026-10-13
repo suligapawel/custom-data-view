@@ -64,4 +64,28 @@ public class TestConnectionTests : ConnectionApiTests
 
         Assert.That(Factory.ExternalApi.Requests.Single().Url, Is.EqualTo(address));
     }
+
+    [TestCase("{}", "https://api.example.com/sellers?tag=a&tag=b")]
+    [TestCase("""{"tag": ["x", "y", "z"]}""", "https://api.example.com/sellers?tag=x&tag=y&tag=z")]
+    [Test(Description = "scenario_TEMP-007-014 - #30")]
+    public async Task Given_RepeatedQueryParameter_When_UserTestsIt_Then_EachValueIsSent(string values, string address)
+    {
+        var id = await CreateConnection(new
+        {
+            name = "Sprzedawcy",
+            method = "GET",
+            url = "https://api.example.com/sellers",
+            queryParameters = new object[]
+            {
+                new { name = "tag", required = false, defaultValue = "a" },
+                new { name = "tag", required = false, defaultValue = "b" }
+            }
+        });
+
+        await Client.PostAsJsonAsync(
+            $"{ConnectionsUrl}/{id}/test",
+            new JsonObject { ["parameters"] = new JsonObject { ["query"] = JsonNode.Parse(values) } });
+
+        Assert.That(Factory.ExternalApi.Requests.Single().Url, Is.EqualTo(address));
+    }
 }

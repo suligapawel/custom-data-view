@@ -25,7 +25,7 @@ public static partial class UrlTemplate
     {
         var resolved = PlaceholderPattern().Replace(url, match => Uri.EscapeDataString(pathValues[match.Value[1..^1]]));
         var query = queryParameters
-            .SelectMany(parameter => QueryValues(parameter, queryValues)
+            .SelectMany((parameter, index) => QueryValues(queryParameters, index, queryValues)
                 .Select(value => $"{Uri.EscapeDataString(parameter.Name)}={Uri.EscapeDataString(value)}"))
             .ToList();
         if (query.Count > 0)
@@ -37,12 +37,15 @@ public static partial class UrlTemplate
     }
 
     private static IReadOnlyList<string> QueryValues(
-        ParameterDeclaration parameter,
+        IReadOnlyList<ParameterDeclaration> queryParameters,
+        int index,
         IReadOnlyDictionary<string, IReadOnlyList<string>> queryValues)
     {
+        var parameter = queryParameters[index];
         if (queryValues.TryGetValue(parameter.Name, out var values))
         {
-            return values;
+            var isFirstDeclaration = queryParameters.Take(index).All(previous => previous.Name != parameter.Name);
+            return isFirstDeclaration ? values : [];
         }
 
         return parameter.DefaultValue is null ? [] : [JsonSerializer.Deserialize<string>(parameter.DefaultValue)];
