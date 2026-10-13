@@ -27,7 +27,7 @@ public sealed class TileService(ITileRepository repository, TileReferencesValida
 
     public TileDto Get(Guid id)
     {
-        var tile = repository.Get(id);
+        var tile = repository.Get(id) ?? throw new NotFoundException(id);
         return new TileDto(
             tile.Id,
             tile.Definition.Name,
