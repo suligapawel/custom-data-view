@@ -1,3 +1,4 @@
+using System.Text.Json;
 using CustomDataView.Core.Connections.Calls;
 using CustomDataView.Core.Connections.Definitions;
 
@@ -5,16 +6,16 @@ namespace CustomDataView.Core.Connections.Validation;
 
 public static class ParameterValuesValidator
 {
-    public static IDictionary<string, string[]> Validate(ConnectionDefinition definition, ConnectionParameterValues values)
+    public static IDictionary<string, string[]> Validate(ConnectionDefinition definition, ParameterValuesInput values)
     {
         var errors = new Dictionary<string, string[]>();
         foreach (var parameter in definition.PathParameters)
         {
             if (values.Path.TryGetValue(parameter.Name, out var value))
             {
-                if (string.IsNullOrEmpty(value))
+                if (value.ValueKind != JsonValueKind.String || value.GetString() == string.Empty)
                 {
-                    errors[$"parameters.path.{parameter.Name}"] = ["Wartość parametru adresu nie może być pusta."];
+                    errors[$"parameters.path.{parameter.Name}"] = ["Wartość parametru adresu musi być niepustym tekstem."];
                 }
             }
             else if (parameter.Required)

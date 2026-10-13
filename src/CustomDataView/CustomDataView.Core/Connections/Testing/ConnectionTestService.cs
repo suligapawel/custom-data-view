@@ -8,7 +8,7 @@ namespace CustomDataView.Core.Connections.Testing;
 
 public sealed class ConnectionTestService(IConnectionRepository repository, IConnectionFactory factory) : IConnectionTestService
 {
-    public Task<ExternalApiResult> Test(Guid id, ConnectionParameterValues parameters, CancellationToken cancellationToken)
+    public Task<ExternalApiResult> Test(Guid id, ParameterValuesInput parameters, CancellationToken cancellationToken)
     {
         var connection = repository.Get(id) ?? throw new NotFoundException(id);
         var errors = ParameterValuesValidator.Validate(connection.Definition, parameters);
@@ -17,6 +17,6 @@ public sealed class ConnectionTestService(IConnectionRepository repository, ICon
             throw new ValidationException(errors);
         }
 
-        return factory.Create(connection.Definition).Get(parameters, cancellationToken);
+        return factory.Create(connection.Definition).Get(parameters.ToValues(), cancellationToken);
     }
 }
