@@ -1,4 +1,5 @@
 using CustomDataView.Core.Tiles.Definitions;
+using CustomDataView.Core.Tiles.Paths;
 
 namespace CustomDataView.Core.Tiles.Validation;
 
@@ -32,6 +33,11 @@ public static class TileDefinitionValidator
         if (!IsValidText(field.Label))
         {
             errors[$"{key}.label"] = [$"Etykieta pola jest wymagana i może mieć najwyżej {MaxTextLength} znaków."];
+        }
+
+        if (!JsonPathParser.TryParse(field.Path, out _))
+        {
+            errors[$"{key}.path"] = [$"Ścieżka pola {key} jest wymagana i musi być poprawną ścieżką JSONPath."];
         }
     }
 

@@ -50,6 +50,23 @@ public class TileValidationTests : TileApiTests
         await AssertRejected(response, "fields[1].label");
     }
 
+    [TestCase(null)]
+    [TestCase("sellers[0]")]
+    [TestCase("$..name")]
+    [TestCase("$.items[?(@.x)]")]
+    [TestCase("$.items[0:2]")]
+    [TestCase("$.a[")]
+    [Test(Description = "scenario_TEMP-015-023 - #10")]
+    public async Task Given_FirstFieldWithInvalidPath_When_UserSavesTile_Then_SaveIsRejectedWithFirstPathError(string path)
+    {
+        var tile = ValidTile();
+        tile["fields"]![0]!["path"] = path;
+
+        var response = await Client.PostAsJsonAsync(TilesUrl, tile);
+
+        await AssertRejected(response, "fields[0].path");
+    }
+
     private JsonObject ValidTile()
         => new()
         {
