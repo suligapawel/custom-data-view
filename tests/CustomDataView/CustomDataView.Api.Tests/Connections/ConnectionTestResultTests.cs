@@ -20,6 +20,7 @@ public class ConnectionTestResultTests : ConnectionApiTests
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         var result = await response.Content.ReadFromJsonAsync<JsonObject>();
         Assert.That(result["status"]?.GetValue<int>(), Is.EqualTo(200));
+        Assert.That(result["elapsedMs"]?.GetValue<long>(), Is.GreaterThanOrEqualTo(0));
         Assert.That(JsonNode.DeepEquals(result["body"], JsonNode.Parse("""{"sellers": [{"name": "ACME"}]}""")), Is.True);
     }
 
