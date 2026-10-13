@@ -24,6 +24,23 @@ public class ConnectionTestResultTests : ConnectionApiTests
         Assert.That(JsonNode.DeepEquals(result["body"], JsonNode.Parse("""{"sellers": [{"name": "ACME"}]}""")), Is.True);
     }
 
+    [Test(Description = "scenario_TEMP-007-014 - #37")]
+    public async Task Given_ExternalApiRefusingConnections_When_UserTestsConnection_Then_TestFailsWithSourceUnavailable()
+    {
+        Factory.ExternalApi.Respond = (_, _) => throw new HttpRequestException("Connection refused");
+
+        var response = await TestConnection();
+
+        await AssertFailure(response, "source_unavailable");
+    }
+
+    private static async Task AssertFailure(HttpResponseMessage response, string code)
+    {
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadGateway));
+        var result = await response.Content.ReadFromJsonAsync<JsonObject>();
+        Assert.That(result["code"]?.GetValue<string>(), Is.EqualTo(code));
+    }
+
     private Task<HttpResponseMessage> TestConnection()
     {
         return Client.PostAsJsonAsync($"{ConnectionsUrl}/test", new

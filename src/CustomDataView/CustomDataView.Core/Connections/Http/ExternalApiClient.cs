@@ -11,9 +11,16 @@ public sealed class ExternalApiClient(IHttpClientFactory httpClientFactory) : IE
     {
         using var client = httpClientFactory.CreateClient(HttpClientName);
         var stopwatch = Stopwatch.StartNew();
-        using var response = await client.SendAsync(request, cancellationToken);
-        var content = await response.Content.ReadAsStringAsync(cancellationToken);
-        stopwatch.Stop();
-        return new ExternalApiResult((int)response.StatusCode, stopwatch.ElapsedMilliseconds, JsonNode.Parse(content));
+        try
+        {
+            using var response = await client.SendAsync(request, cancellationToken);
+            var content = await response.Content.ReadAsStringAsync(cancellationToken);
+            stopwatch.Stop();
+            return ExternalApiResult.Success((int)response.StatusCode, stopwatch.ElapsedMilliseconds, JsonNode.Parse(content));
+        }
+        catch (HttpRequestException)
+        {
+            return ExternalApiResult.Failure(ExternalApiErrorCodes.SourceUnavailable);
+        }
     }
 }

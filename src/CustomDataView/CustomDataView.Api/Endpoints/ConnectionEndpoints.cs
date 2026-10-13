@@ -1,4 +1,5 @@
 using CustomDataView.Api.Requests;
+using CustomDataView.Api.Responses;
 using CustomDataView.Core.Connections.Management;
 using CustomDataView.Core.Connections.Testing;
 using Microsoft.AspNetCore.Builder;
@@ -54,12 +55,12 @@ public static class ConnectionEndpoints
 
                 var definition = request.Connection.ToInput().ToDefinition();
                 var parameters = ConnectionTestRequest.ValuesOf(request.Parameters);
-                return Results.Ok(await service.Test(definition, parameters, cancellationToken));
+                return ConnectionTestResponses.From(await service.Test(definition, parameters, cancellationToken));
             });
         endpoints.MapPost(
             $"{ConnectionsUrl}/{{id:guid}}/test",
             async (Guid id, ConnectionTestRequest request, IConnectionTestService service, CancellationToken cancellationToken) =>
-                Results.Ok(await service.Test(id, ConnectionTestRequest.ValuesOf(request), cancellationToken)));
+                ConnectionTestResponses.From(await service.Test(id, ConnectionTestRequest.ValuesOf(request), cancellationToken)));
         return endpoints;
     }
 }
