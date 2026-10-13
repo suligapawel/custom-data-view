@@ -9,7 +9,7 @@ public sealed class PrefixTransformation : DecoratorTransformation
     {
     }
 
-    public override string Key => "prefix";
+    public override string Key => PrefixTransformationDefinition.TransformationKey;
 
     protected override object Transform(object value)
     {

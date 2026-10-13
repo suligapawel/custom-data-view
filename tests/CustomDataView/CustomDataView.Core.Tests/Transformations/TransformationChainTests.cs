@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using CustomDataView.Core.Transformations;
 using CustomDataView.Core.Transformations.Catalog;
 using CustomDataView.Core.Transformations.Chain;
+using CustomDataView.Core.Transformations.Prefix;
 using CustomDataView.Core.Transformations.Round;
 using CustomDataView.Core.Transformations.Suffix;
 using CustomDataView.Core.Transformations.Uppercase;
@@ -67,10 +68,26 @@ public class TransformationChainTests
         Assert.That(result.Error, Is.EqualTo(new TransformationChainError("transformation_failed", "reverse", "unknown_transformation")));
     }
 
+    [Test(Description = "scenario_TEMP-001-006 - #19")]
+    public void Given_SamePrefixTwice_When_ValueIsX_Then_BothPrefixesAreApplied()
+    {
+        var executor = CreateExecutor();
+        var steps = new[]
+        {
+            Step("prefix", ("text", "a")),
+            Step("prefix", ("text", "b"))
+        };
+
+        var result = executor.Execute("x", steps);
+
+        Assert.That(result.Value, Is.EqualTo("bax"));
+    }
+
     private static TransformationChainExecutor CreateExecutor()
     {
         ITransformationDefinition[] definitions =
         [
+            new PrefixTransformationDefinition(),
             new RoundTransformationDefinition(),
             new SuffixTransformationDefinition(),
             new UppercaseTransformationDefinition()
