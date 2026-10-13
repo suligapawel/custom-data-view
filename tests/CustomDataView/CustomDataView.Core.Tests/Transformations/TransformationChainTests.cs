@@ -4,6 +4,7 @@ using CustomDataView.Core.Transformations.Catalog;
 using CustomDataView.Core.Transformations.Chain;
 using CustomDataView.Core.Transformations.Round;
 using CustomDataView.Core.Transformations.Suffix;
+using CustomDataView.Core.Transformations.Uppercase;
 
 namespace CustomDataView.Core.Tests.Transformations;
 
@@ -34,12 +35,30 @@ public class TransformationChainTests
         Assert.That(result.Value, Is.EqualTo(21.4567m));
     }
 
+    [Test(Description = "scenario_TEMP-001-006 - #17")]
+    public void Given_ChainWithRoundInTheMiddle_When_RoundFails_Then_ChainStopsWithRoundFailure()
+    {
+        var executor = CreateExecutor();
+        var steps = new[]
+        {
+            Step("uppercase"),
+            Step("round", ("decimals", 1)),
+            Step("suffix", ("text", " °C"))
+        };
+
+        var result = executor.Execute("abc", steps);
+
+        Assert.That(result.Error, Is.EqualTo(new TransformationChainError("transformation_failed", "round", "invalid_value")));
+        Assert.That(result.Value, Is.Null);
+    }
+
     private static TransformationChainExecutor CreateExecutor()
     {
         ITransformationDefinition[] definitions =
         [
             new RoundTransformationDefinition(),
-            new SuffixTransformationDefinition()
+            new SuffixTransformationDefinition(),
+            new UppercaseTransformationDefinition()
         ];
         return new TransformationChainExecutor(new TransformationChainBuilder(new TransformationCatalog(definitions)));
     }
