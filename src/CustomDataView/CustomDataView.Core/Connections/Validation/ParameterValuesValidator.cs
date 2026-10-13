@@ -42,6 +42,12 @@ public static class ParameterValuesValidator
         }
 
         AddUndeclared("query", definition.QueryParameters, values.Query, errors);
+        var bodyParameters = (definition as PostConnectionDefinition)?.BodyParameters ?? [];
+        foreach (var parameter in bodyParameters.Where(parameter => parameter.Required && !values.Body.ContainsKey(parameter.Name)))
+        {
+            errors[$"parameters.body.{parameter.Name}"] = ["Wartość wymaganego parametru jest wymagana."];
+        }
+
         return errors;
     }
 
