@@ -1,6 +1,5 @@
 using System.Text.Json;
 using CustomDataView.Core.Connections.Definitions;
-using CustomDataView.Core.Connections.Validation;
 
 namespace CustomDataView.Api.Requests;
 
@@ -9,18 +8,45 @@ public sealed record ConnectionRequest(
     string Method,
     string Url,
     IReadOnlyList<NameValuePair> Headers,
-    IReadOnlyList<ParameterDeclarationInput> PathParameters,
-    IReadOnlyList<ParameterDeclarationInput> QueryParameters,
+    IReadOnlyList<ParameterDeclarationRequest> PathParameters,
+    IReadOnlyList<ParameterDeclarationRequest> QueryParameters,
     JsonElement? Body,
-    IReadOnlyList<ParameterDeclarationInput> BodyParameters)
+    IReadOnlyList<ParameterDeclarationRequest> BodyParameters)
 {
     public IDictionary<string, string[]> Validate()
     {
-        return ConnectionDefinitionValidator.Validate(ToInput());
+        return ConnectionRequestValidator.Validate(this);
     }
 
-    public ConnectionInput ToInput()
+    public ConnectionDefinition ToDefinition()
     {
-        return new ConnectionInput(Name, Method, Url, Headers ?? [], PathParameters ?? [], QueryParameters ?? [], Body, BodyParameters ?? []);
+        var headers = Headers ?? [];
+        var pathParameters = ToDeclarations(PathParameters);
+        var queryParameters = ToDeclarations(QueryParameters);
+        if (ConnectionMethods.IsPost(Method))
+        {
+            return new PostConnectionDefinition(
+                Name,
+                Url,
+                headers,
+                pathParameters,
+                queryParameters,
+                RawJson(Body),
+                ToDeclarations(BodyParameters));
+        }
+
+        return new GetConnectionDefinition(Name, Url, headers, pathParameters, queryParameters);
+    }
+
+    private static List<ParameterDeclaration> ToDeclarations(IReadOnlyList<ParameterDeclarationRequest> parameters)
+    {
+        return (parameters ?? [])
+            .Select(parameter => new ParameterDeclaration(parameter.Name, parameter.Required, RawJson(parameter.DefaultValue)))
+            .ToList();
+    }
+
+    private static string RawJson(JsonElement? element)
+    {
+        return element is { ValueKind: not JsonValueKind.Null } value ? value.GetRawText() : null;
     }
 }

@@ -37,7 +37,7 @@ public static class ConnectionEndpoints
                     return Results.ValidationProblem(errors);
                 }
 
-                var id = service.Add(request.ToInput().ToDefinition());
+                var id = service.Add(request.ToDefinition());
                 return Results.Created($"{ConnectionsUrl}/{id}", new ConnectionCreatedResponse(id));
             });
             return endpoints;
@@ -65,7 +65,7 @@ public static class ConnectionEndpoints
                     return Results.ValidationProblem(errors);
                 }
 
-                service.Update(id, request.ToInput().ToDefinition());
+                service.Update(id, request.ToDefinition());
                 return Results.NoContent();
             });
             return endpoints;
@@ -93,7 +93,7 @@ public static class ConnectionEndpoints
                         return Results.ValidationProblem(errors);
                     }
 
-                    var definition = request.Connection.ToInput().ToDefinition();
+                    var definition = request.Connection.ToDefinition();
                     var parameters = ConnectionTestRequest.ValuesOf(request.Parameters);
                     return ConnectionTestResponses.From(await service.Test(definition, parameters, cancellationToken));
                 });
