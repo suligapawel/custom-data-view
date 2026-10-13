@@ -5,8 +5,7 @@
 - Tylko definicje połączeń (PRD 3.2, historyjki TEMP-007 … TEMP-014). Kafelki i widoki zostaną dodane w kolejnych
   planach.
 - Silnik: PostgreSQL. Dostęp: Dapper, bez Entity Framework.
-- Schemat: `custom_data_view` (snake_case nazwy modułu). Pierwsza migracja tworzy schemat oraz
-  `custom_data_view.__migration_history`.
+- Schemat: `custom_data_view` (snake_case nazwy modułu).
 
 ## Tabele
 

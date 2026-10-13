@@ -62,12 +62,6 @@ PK: `(connection_id, name)`.
 
 PK: `(connection_id, name)`.
 
-### custom_data_view.__migration_history
-
-Tabela historii migracji modułu tworzona przez pierwszą migrację razem ze schematem (wymóg `AGENTS.md`;
-`DatabaseMigrator` jej nie tworzy). Repozytorium nie ma jeszcze mechanizmu migracji, więc jej strukturę ustali
-implementacja migratora — nie jest częścią modelu domeny.
-
 ## Relationships
 
 | From table                  | To table    | Type        | Foreign key column                                        |
