@@ -16,6 +16,16 @@ public class DateFormatTransformationTests
         Assert.That(result, Is.EqualTo("2026-10-13 10:00"));
     }
 
+    [Test(Description = "scenario_TEMP-001-006 - #7")]
+    public void Given_DateFormatWithDateTimePattern_When_ValueIsDateOnly_Then_ResultHasMidnight()
+    {
+        var transformation = CreateDateFormat("yyyy-MM-dd HH:mm");
+
+        var result = transformation.Apply("2026-10-13");
+
+        Assert.That(result, Is.EqualTo("2026-10-13 00:00"));
+    }
+
     private static DateFormatTransformation CreateDateFormat(JsonNode pattern)
     {
         var parameters = new TransformationParameters(new Dictionary<string, JsonNode> { ["pattern"] = pattern });
