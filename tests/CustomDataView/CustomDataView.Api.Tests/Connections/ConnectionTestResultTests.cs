@@ -72,6 +72,20 @@ public class ConnectionTestResultTests : ConnectionApiTests
         Assert.That(Factory.ExternalApi.Requests, Has.Count.EqualTo(1));
     }
 
+    [TestCase(200, "<html>…</html>")]
+    [Test(Description = "scenario_TEMP-007-014 - #39")]
+    public async Task Given_ExternalApiRespondingWithInvalidJson_When_UserTestsConnection_Then_TestFailsWithInvalidJson(int status, string content)
+    {
+        Factory.ExternalApi.Respond = (_, _) => Task.FromResult(new HttpResponseMessage((HttpStatusCode)status)
+        {
+            Content = new StringContent(content)
+        });
+
+        var response = await TestConnection();
+
+        await AssertFailure(response, "invalid_json");
+    }
+
     private static async Task<JsonObject> AssertFailure(HttpResponseMessage response, string code)
     {
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadGateway));

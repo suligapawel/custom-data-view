@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Options;
 
@@ -27,6 +28,10 @@ public sealed class ExternalApiClient(IHttpClientFactory httpClientFactory, IOpt
             var content = await response.Content.ReadAsStringAsync(timeout.Token);
             stopwatch.Stop();
             return ExternalApiResult.Success((int)response.StatusCode, stopwatch.ElapsedMilliseconds, JsonNode.Parse(content));
+        }
+        catch (JsonException)
+        {
+            return ExternalApiResult.Failure(ExternalApiErrorCodes.InvalidJson);
         }
         catch (HttpRequestException)
         {
