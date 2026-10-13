@@ -6,6 +6,8 @@ public sealed class DateFormatTransformationDefinition : ITransformationDefiniti
 
     public string Key => TransformationKey;
 
+    public string Name => "Formatowanie daty";
+
     public ITransformation Create(ITransformation inner, TransformationParameters parameters)
     {
         return new DateFormatTransformation(inner, parameters);

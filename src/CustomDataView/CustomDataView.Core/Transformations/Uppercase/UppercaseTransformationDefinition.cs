@@ -6,6 +6,8 @@ public sealed class UppercaseTransformationDefinition : ITransformationDefinitio
 
     public string Key => TransformationKey;
 
+    public string Name => "Wielkie litery";
+
     public ITransformation Create(ITransformation inner, TransformationParameters parameters)
     {
         return new UppercaseTransformation(inner, parameters);

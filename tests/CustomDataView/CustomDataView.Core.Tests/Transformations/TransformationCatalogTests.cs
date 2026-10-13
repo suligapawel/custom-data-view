@@ -15,6 +15,12 @@ public class TransformationCatalogTests
         Assert.That(
             transformations.Select(transformation => transformation.Key),
             Is.EqualTo(new[] { "date_format", "lowercase", "prefix", "round", "suffix", "truncate", "uppercase" }));
+        Assert.That(
+            transformations.Select(transformation => transformation.Name),
+            Is.EqualTo(new[]
+            {
+                "Formatowanie daty", "Małe litery", "Prefiks", "Zaokrąglenie", "Sufiks", "Przycięcie tekstu", "Wielkie litery"
+            }));
     }
 
     private static ITransformationCatalog CreateCatalog()

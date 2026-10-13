@@ -6,6 +6,8 @@ public sealed class SuffixTransformationDefinition : ITransformationDefinition
 
     public string Key => TransformationKey;
 
+    public string Name => "Sufiks";
+
     public ITransformation Create(ITransformation inner, TransformationParameters parameters)
     {
         return new SuffixTransformation(inner, parameters);

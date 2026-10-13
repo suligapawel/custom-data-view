@@ -6,6 +6,8 @@ public sealed class LowercaseTransformationDefinition : ITransformationDefinitio
 
     public string Key => TransformationKey;
 
+    public string Name => "Małe litery";
+
     public ITransformation Create(ITransformation inner, TransformationParameters parameters)
     {
         return new LowercaseTransformation(inner, parameters);

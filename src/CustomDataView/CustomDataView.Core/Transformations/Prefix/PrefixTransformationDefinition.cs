@@ -6,6 +6,8 @@ public sealed class PrefixTransformationDefinition : ITransformationDefinition
 
     public string Key => TransformationKey;
 
+    public string Name => "Prefiks";
+
     public ITransformation Create(ITransformation inner, TransformationParameters parameters)
     {
         return new PrefixTransformation(inner, parameters);

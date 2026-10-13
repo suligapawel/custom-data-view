@@ -6,6 +6,8 @@ public sealed class RoundTransformationDefinition : ITransformationDefinition
 
     public string Key => TransformationKey;
 
+    public string Name => "Zaokrąglenie";
+
     public ITransformation Create(ITransformation inner, TransformationParameters parameters)
     {
         return new RoundTransformation(inner, parameters);
