@@ -89,6 +89,24 @@ public class TilePartialPreviewTests : TileApiTests
                               """);
     }
 
+    [Test(Description = "scenario_TEMP-015-023 - #48")]
+    public async Task Given_WildcardOverWholeResponseWithUppercase_When_UserPreviewsTile_Then_WholeFieldHasTransformationError()
+    {
+        var id = await CreateTile(new
+        {
+            name = "Klient",
+            fields = new[] { Field(CustomerConnectionId, "$.*", "Tagi", Transformation("uppercase")) }
+        });
+
+        var preview = await Preview(id, CustomerValues());
+
+        AssertFields(preview, """
+                              [
+                                {"label": "Tagi", "error": {"code": "transformation_failed", "transformation": "uppercase", "reason": "invalid_value"}}
+                              ]
+                              """);
+    }
+
     private static void AssertFields(JsonObject preview, string expected)
         => Assert.That(JsonNode.DeepEquals(preview["fields"], JsonNode.Parse(expected)), Is.True, preview.ToJsonString());
 

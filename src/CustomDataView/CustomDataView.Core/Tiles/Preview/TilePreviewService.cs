@@ -111,27 +111,20 @@ public sealed class TilePreviewService(
 
         JsonPathParser.TryParse(field.Path, out var path);
         var matches = path.Evaluate(response.Body);
-        if (path.HasWildcard)
-        {
-            return new TileFieldPreview(
-                field.Label,
-                new JsonArray(matches
-                    .Select(match => TransformationValue.ToJson(
-                        transformations.Apply(TransformationValue.FromJson(match), field.Transformations).Value))
-                    .ToArray()));
-        }
-
-        if (matches.Count == 0)
+        if (!path.HasWildcard && matches.Count == 0)
         {
             return new TileFieldPreview(field.Label, null, new TileFieldError(TileFieldErrorCodes.PathNotFound));
         }
 
-        var result = transformations.Apply(TransformationValue.FromJson(matches.Single()), field.Transformations);
-        if (result.Error is { } error)
+        var results = matches
+            .Select(match => transformations.Apply(TransformationValue.FromJson(match), field.Transformations))
+            .ToList();
+        if (results.FirstOrDefault(result => result.Error is not null)?.Error is { } error)
         {
             return new TileFieldPreview(field.Label, null, new TileFieldError(error.Code, error.Key, error.Reason));
         }
 
-        return new TileFieldPreview(field.Label, TransformationValue.ToJson(result.Value));
+        var values = results.Select(result => TransformationValue.ToJson(result.Value)).ToArray();
+        return new TileFieldPreview(field.Label, path.HasWildcard ? new JsonArray(values) : values.Single());
     }
 }
