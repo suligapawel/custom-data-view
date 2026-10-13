@@ -34,4 +34,13 @@ public class MissingTileTests : TileApiTests
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
+
+    [Test(Description = "scenario_TEMP-015-023 - #41")]
+    public async Task Given_TileDoesNotExist_When_UserPreviewsIt_Then_TileIsNotFoundAndNoSourceIsCalled()
+    {
+        var response = await Client.PostAsJsonAsync($"{TilesUrl}/{Guid.NewGuid()}/preview", CustomerValues());
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        Assert.That(Factory.ExternalApi.Requests, Is.Empty);
+    }
 }

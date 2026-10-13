@@ -29,7 +29,7 @@ public sealed class TilePreviewService(
         IReadOnlyList<ConnectionValuesInput> values,
         CancellationToken cancellationToken)
     {
-        var tile = tiles.Get(id);
+        var tile = tiles.Get(id) ?? throw new NotFoundException(id);
         var definition = tile.Definition;
         var responses = await Call(definition, values, cancellationToken);
         return new TilePreview(
