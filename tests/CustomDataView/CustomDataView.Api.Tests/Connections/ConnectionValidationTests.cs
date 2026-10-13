@@ -116,6 +116,16 @@ public class ConnectionValidationTests : ConnectionApiTests
         await AssertRejected(definition, errorKey);
     }
 
+    [Test(Description = "scenario_TEMP-007-014 - #15")]
+    public async Task Given_PathParameterNameNotInSnakeCase_When_UserSavesConnection_Then_SavingIsRejected()
+    {
+        var definition = ValidGetDefinition();
+        definition["url"] = "https://api.example.com/contracts/{Id}/sellers";
+        definition["pathParameters"] = new JsonArray(new JsonObject { ["name"] = "Id", ["required"] = true });
+
+        await AssertRejected(definition, "pathParameters[0].name");
+    }
+
     private static JsonObject ValidPostDefinition()
     {
         return new JsonObject

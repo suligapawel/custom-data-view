@@ -6,6 +6,8 @@ namespace CustomDataView.Core.Connections.Validation;
 
 public static class ConnectionDefinitionValidator
 {
+    private const string SnakeCaseMessage = "Nazwa parametru musi być w formacie snake_case i mieć najwyżej 50 znaków.";
+
     public static IDictionary<string, string[]> Validate(ConnectionInput input)
     {
         var errors = new Dictionary<string, string[]>();
@@ -33,7 +35,11 @@ public static class ConnectionDefinitionValidator
 
             for (var index = 0; index < input.PathParameters.Count; index++)
             {
-                if (!placeholders.Contains(input.PathParameters[index].Name))
+                if (!ParameterNames.IsSnakeCase(input.PathParameters[index].Name))
+                {
+                    errors[$"pathParameters[{index}].name"] = [SnakeCaseMessage];
+                }
+                else if (!placeholders.Contains(input.PathParameters[index].Name))
                 {
                     errors[$"pathParameters[{index}].name"] = ["Parametr adresu nie występuje w adresie."];
                 }
