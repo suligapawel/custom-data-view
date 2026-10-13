@@ -19,7 +19,8 @@ public static class TileEndpoints
             return endpoints
                 .AddTile()
                 .GetTiles()
-                .GetTile();
+                .GetTile()
+                .UpdateTile();
         }
 
         private IEndpointRouteBuilder AddTile()
@@ -47,6 +48,22 @@ public static class TileEndpoints
         private IEndpointRouteBuilder GetTile()
         {
             endpoints.MapGet(TileUrl, (Guid id, ITileService service) => Results.Ok(service.Get(id)));
+            return endpoints;
+        }
+
+        private IEndpointRouteBuilder UpdateTile()
+        {
+            endpoints.MapPut(TileUrl, (Guid id, TileRequest request, ITileService service) =>
+            {
+                var errors = request.Validate();
+                if (errors.Count > 0)
+                {
+                    return Results.ValidationProblem(errors);
+                }
+
+                service.Update(id, request.ToDefinition());
+                return Results.NoContent();
+            });
             return endpoints;
         }
     }

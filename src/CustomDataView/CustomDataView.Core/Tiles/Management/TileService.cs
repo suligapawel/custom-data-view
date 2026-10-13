@@ -9,12 +9,7 @@ public sealed class TileService(ITileRepository repository, TileReferencesValida
 {
     public Guid Add(TileDefinition definition)
     {
-        var errors = referencesValidator.Validate(definition);
-        if (errors.Count > 0)
-        {
-            throw new ValidationException(errors);
-        }
-
+        ValidateReferences(definition);
         var tile = new Tile(Guid.NewGuid(), definition);
         repository.Add(tile);
         return tile.Id;
@@ -38,5 +33,21 @@ public sealed class TileService(ITileRepository repository, TileReferencesValida
                     field.Label,
                     field.Transformations.Select(step => new TransformationStepDto(step.Key, step.Parameters)).ToList()))
                 .ToList());
+    }
+
+    public void Update(Guid id, TileDefinition definition)
+    {
+        var tile = repository.Get(id) ?? throw new NotFoundException(id);
+        ValidateReferences(definition);
+        repository.Update(tile with { Definition = definition });
+    }
+
+    private void ValidateReferences(TileDefinition definition)
+    {
+        var errors = referencesValidator.Validate(definition);
+        if (errors.Count > 0)
+        {
+            throw new ValidationException(errors);
+        }
     }
 }
