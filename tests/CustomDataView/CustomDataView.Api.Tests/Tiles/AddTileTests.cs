@@ -20,5 +20,7 @@ public class AddTileTests : TileApiTests
         });
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        var created = await response.Content.ReadFromJsonAsync<JsonObject>();
+        Assert.That(Guid.TryParse(created?["id"]?.GetValue<string>(), out _), Is.True);
     }
 }

@@ -1,3 +1,4 @@
+using CustomDataView.Api.Responses;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -21,7 +22,7 @@ public static class TileEndpoints
             endpoints.MapPost(TilesUrl, () =>
             {
                 var id = Guid.NewGuid();
-                return Results.Created($"{TilesUrl}/{id}", null);
+                return Results.Created($"{TilesUrl}/{id}", new TileCreatedResponse(id));
             });
             return endpoints;
         }
