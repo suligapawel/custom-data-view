@@ -100,6 +100,11 @@ public sealed class TilePreviewService(
 
     private TileFieldPreview PreviewField(TileField field, ExternalApiResult response)
     {
+        if (!response.IsSuccess)
+        {
+            return new TileFieldPreview(field.Label, null, new TileFieldError(TileFieldErrorCodes.SourceUnavailable));
+        }
+
         JsonPathParser.TryParse(field.Path, out var path);
         var matches = path.Evaluate(response.Body);
         if (path.HasWildcard)
