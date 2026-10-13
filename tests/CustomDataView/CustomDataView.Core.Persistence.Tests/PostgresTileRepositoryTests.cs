@@ -102,6 +102,32 @@ public class PostgresTileRepositoryTests
         } })));
     }
 
+    [Test]
+    public void Given_TwoSavedTiles_When_FirstIsUpdated_Then_ItsDefinitionIsReplacedAndOrderIsKept()
+    {
+        var first = new Tile(Guid.NewGuid(), new TileDefinition("Klient",
+        [
+            new TileField(customerConnectionId, "$.name", "Nazwa",
+                [new TransformationStep("round", new Dictionary<string, JsonNode> { ["decimals"] = 2 })]),
+            new TileField(customerConnectionId, "$.balance", "Saldo", [])
+        ]));
+        var second = new Tile(Guid.NewGuid(), new TileDefinition("Kurs", [new TileField(rateConnectionId, "$.rate", "Kurs EUR", [])]));
+        repository.Add(first);
+        repository.Add(second);
+        var updated = first with
+        {
+            Definition = new TileDefinition("Klient VIP",
+            [
+                new TileField(rateConnectionId, "$.address.city", "Miasto",
+                    [new TransformationStep("suffix", new Dictionary<string, JsonNode> { ["text"] = " zł" })])
+            ])
+        };
+
+        repository.Update(updated);
+
+        Assert.That(repository.GetAll().Select(Json), Is.EqualTo(new[] { Json(updated), Json(second) }));
+    }
+
     private static string Json(Tile tile) => JsonSerializer.Serialize(tile);
 
     private Guid AddConnection(string name)

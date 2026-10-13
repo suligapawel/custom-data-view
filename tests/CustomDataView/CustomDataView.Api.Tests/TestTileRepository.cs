@@ -15,4 +15,10 @@ public sealed class TestTileRepository : ITileRepository
     public Tile Get(Guid id) => tiles.SingleOrDefault(tile => tile.Id == id);
 
     public IReadOnlyList<Tile> GetAll() => tiles.ToList();
+
+    public void Update(Tile tile)
+    {
+        var index = tiles.FindIndex(stored => stored.Id == tile.Id);
+        tiles[index] = tile;
+    }
 }

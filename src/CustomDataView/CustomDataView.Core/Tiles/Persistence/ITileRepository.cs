@@ -7,4 +7,5 @@ public interface ITileRepository
     void Add(Tile tile);
     Tile Get(Guid id);
     IReadOnlyList<Tile> GetAll();
+    void Update(Tile tile);
 }

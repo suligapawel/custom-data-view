@@ -60,6 +60,19 @@ public sealed class PostgresTileRepository(NpgsqlDataSource dataSource, IEnumera
         return tiles.Select(tile => ToTile(tile, fields)).ToList();
     }
 
+    public void Update(Tile tile)
+    {
+        using var db = dataSource.OpenConnection();
+        using var transaction = db.BeginTransaction();
+        db.Execute(
+            "UPDATE custom_data_view.tiles SET name = @Name, updated_at = now() WHERE id = @Id",
+            new { tile.Id, tile.Definition.Name },
+            transaction);
+        db.Execute("DELETE FROM custom_data_view.tile_fields WHERE tile_id = @Id", new { tile.Id }, transaction);
+        InsertFields(db, transaction, tile);
+        transaction.Commit();
+    }
+
     private static void InsertFields(IDbConnection db, IDbTransaction transaction, Tile tile)
     {
         var fields = tile.Definition.Fields;
