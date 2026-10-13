@@ -29,5 +29,8 @@ public class ConnectionDetailsTests : ConnectionApiTests
         Assert.That(details["name"]?.GetValue<string>(), Is.EqualTo("Wyszukiwanie sprzedawców"));
         Assert.That(details["method"]?.GetValue<string>(), Is.EqualTo("POST"));
         Assert.That(details["url"]?.GetValue<string>(), Is.EqualTo("https://api.example.com/contracts/{contract_id}/sellers/search"));
+        Assert.That(
+            JsonNode.DeepEquals(details["headers"], JsonNode.Parse("""[{"name": "Accept-Language", "value": "pl"}]""")),
+            Is.True);
     }
 }

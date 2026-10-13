@@ -17,9 +17,9 @@ public sealed record ConnectionInput(
         if (string.Equals(Method, "POST", StringComparison.OrdinalIgnoreCase))
         {
             var body = Body is { ValueKind: not JsonValueKind.Null } element ? element.GetRawText() : null;
-            return new PostConnectionDefinition(Name, Url, body);
+            return new PostConnectionDefinition(Name, Url, Headers, body);
         }
 
-        return new GetConnectionDefinition(Name, Url);
+        return new GetConnectionDefinition(Name, Url, Headers);
     }
 }

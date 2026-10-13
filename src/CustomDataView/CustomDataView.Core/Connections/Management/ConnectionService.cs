@@ -33,6 +33,7 @@ public sealed class ConnectionService(IConnectionRepository repository) : IConne
             connection.Definition.Name,
             MethodOf(connection.Definition),
             connection.Definition.Url,
+            connection.Definition.Headers,
             body is null ? null : JsonNode.Parse(body));
     }
 
