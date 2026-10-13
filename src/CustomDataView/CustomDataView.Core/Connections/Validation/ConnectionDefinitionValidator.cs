@@ -70,6 +70,8 @@ public static class ConnectionDefinitionValidator
             {
                 errors[$"queryParameters[{index}].name"] = ["Nazwa parametru zapytania jest wymagana."];
             }
+
+            ValidateDefaultValue(input.QueryParameters[index], $"queryParameters[{index}]", errors);
         }
 
         if (IsGet(input.Method) && input.Body is { ValueKind: not JsonValueKind.Null })
@@ -91,6 +93,8 @@ public static class ConnectionDefinitionValidator
             {
                 errors[$"queryParameters[{index}].name"] = ["Nazwa parametru zapytania jest wymagana."];
             }
+
+            ValidateDefaultValue(input.QueryParameters[index], $"queryParameters[{index}]", errors);
         }
 
         if (IsGet(input.Method) && input.BodyParameters.Count > 0)
@@ -103,6 +107,17 @@ public static class ConnectionDefinitionValidator
         }
 
         return errors;
+    }
+
+    private static void ValidateDefaultValue(
+        ParameterDeclarationInput parameter,
+        string key,
+        Dictionary<string, string[]> errors)
+    {
+        if (parameter.Required && parameter.DefaultValue is not null)
+        {
+            errors[$"{key}.defaultValue"] = ["Parametr wymagany nie może mieć wartości domyślnej."];
+        }
     }
 
     private static bool IsRepeated(IReadOnlyList<ParameterDeclarationInput> parameters, int index)

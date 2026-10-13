@@ -201,6 +201,16 @@ public class ConnectionValidationTests : ConnectionApiTests
         await AssertAccepted(definition);
     }
 
+    [Test(Description = "scenario_TEMP-007-014 - #18")]
+    public async Task Given_RequiredQueryParameterWithDefaultValue_When_UserSavesConnection_Then_SavingIsRejected()
+    {
+        var definition = ValidGetDefinition();
+        definition["queryParameters"] = new JsonArray(
+            new JsonObject { ["name"] = "pageSize", ["required"] = true, ["defaultValue"] = "20" });
+
+        await AssertRejected(definition, "queryParameters[0].defaultValue");
+    }
+
     private static JsonObject ValidPostDefinition()
     {
         return new JsonObject
