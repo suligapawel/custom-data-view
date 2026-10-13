@@ -115,6 +115,19 @@ public class TilePreviewTests : TileApiTests
         AssertValues(preview, """[["10 zł", "20 zł", "30 zł"]]""");
     }
 
+    [TestCase("$['unit-name']", "\"Sprzedaż\"")]
+    [TestCase("$.tags[0]", "\"a\"")]
+    [TestCase("$.tags[-1]", "\"c\"")]
+    [Test(Description = "scenario_TEMP-015-023 - #33")]
+    public async Task Given_FieldWithSupportedPathForm_When_UserPreviewsTile_Then_FieldHasPointedValue(string path, string value)
+    {
+        var id = await CreateTile(new { name = "Klient", fields = new[] { Field(CustomerConnectionId, path, "Wartość") } });
+
+        var preview = await Preview(id, CustomerValues());
+
+        AssertValues(preview, $"[{value}]");
+    }
+
     private async Task<JsonObject> Preview(Guid id, object values)
     {
         var response = await Client.PostAsJsonAsync($"{TilesUrl}/{id}/preview", values);
