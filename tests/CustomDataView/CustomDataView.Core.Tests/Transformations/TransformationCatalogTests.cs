@@ -1,3 +1,4 @@
+using CustomDataView.Core.Transformations;
 using CustomDataView.Core.Transformations.Catalog;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -22,6 +23,22 @@ public class TransformationCatalogTests
                 "Formatowanie daty", "Małe litery", "Prefiks", "Zaokrąglenie", "Sufiks", "Przycięcie tekstu", "Wielkie litery"
             }));
         Assert.That(transformations.Select(transformation => transformation.Description), Has.All.Not.Empty);
+    }
+
+    [Test(Description = "scenario_TEMP-001-006 - #2")]
+    public void Given_UserBrowsesCatalog_When_ChecksParameters_Then_EachTransformationDescribesItsParameters()
+    {
+        var catalog = CreateCatalog();
+
+        var parameters = catalog.GetAll().ToDictionary(transformation => transformation.Key, transformation => transformation.Parameters);
+
+        Assert.That(parameters["round"], Is.EqualTo(new[] { new TransformationParameterDescriptor("decimals", "integer") }));
+        Assert.That(parameters["date_format"], Is.EqualTo(new[] { new TransformationParameterDescriptor("pattern", "string") }));
+        Assert.That(parameters["prefix"], Is.EqualTo(new[] { new TransformationParameterDescriptor("text", "string") }));
+        Assert.That(parameters["suffix"], Is.EqualTo(new[] { new TransformationParameterDescriptor("text", "string") }));
+        Assert.That(parameters["truncate"], Is.EqualTo(new[] { new TransformationParameterDescriptor("max_length", "integer") }));
+        Assert.That(parameters["uppercase"], Is.Empty);
+        Assert.That(parameters["lowercase"], Is.Empty);
     }
 
     private static ITransformationCatalog CreateCatalog()

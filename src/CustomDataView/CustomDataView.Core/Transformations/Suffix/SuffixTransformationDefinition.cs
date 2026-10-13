@@ -10,6 +10,9 @@ public sealed class SuffixTransformationDefinition : ITransformationDefinition
 
     public string Description => "Dokleja tekst po wartości.";
 
+    public IReadOnlyList<TransformationParameterDescriptor> Parameters { get; } =
+        [new TransformationParameterDescriptor("text", TransformationParameterTypes.String)];
+
     public ITransformation Create(ITransformation inner, TransformationParameters parameters)
     {
         return new SuffixTransformation(inner, parameters);

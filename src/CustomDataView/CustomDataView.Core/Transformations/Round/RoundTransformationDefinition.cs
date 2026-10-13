@@ -10,6 +10,9 @@ public sealed class RoundTransformationDefinition : ITransformationDefinition
 
     public string Description => "Zaokrągla liczbę do podanej liczby miejsc po przecinku (0-10).";
 
+    public IReadOnlyList<TransformationParameterDescriptor> Parameters { get; } =
+        [new TransformationParameterDescriptor("decimals", TransformationParameterTypes.Integer)];
+
     public ITransformation Create(ITransformation inner, TransformationParameters parameters)
     {
         return new RoundTransformation(inner, parameters);

@@ -8,5 +8,7 @@ public interface ITransformationDefinition
 
     string Description { get; }
 
+    IReadOnlyList<TransformationParameterDescriptor> Parameters { get; }
+
     ITransformation Create(ITransformation inner, TransformationParameters parameters);
 }

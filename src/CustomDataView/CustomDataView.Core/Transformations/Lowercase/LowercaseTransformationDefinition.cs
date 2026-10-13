@@ -10,6 +10,8 @@ public sealed class LowercaseTransformationDefinition : ITransformationDefinitio
 
     public string Description => "Zamienia tekst na małe litery w kulturze niezmiennej.";
 
+    public IReadOnlyList<TransformationParameterDescriptor> Parameters => [];
+
     public ITransformation Create(ITransformation inner, TransformationParameters parameters)
     {
         return new LowercaseTransformation(inner, parameters);

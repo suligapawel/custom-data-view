@@ -10,6 +10,8 @@ public sealed class UppercaseTransformationDefinition : ITransformationDefinitio
 
     public string Description => "Zamienia tekst na wielkie litery w kulturze niezmiennej.";
 
+    public IReadOnlyList<TransformationParameterDescriptor> Parameters => [];
+
     public ITransformation Create(ITransformation inner, TransformationParameters parameters)
     {
         return new UppercaseTransformation(inner, parameters);

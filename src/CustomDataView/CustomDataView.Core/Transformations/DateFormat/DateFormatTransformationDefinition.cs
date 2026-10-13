@@ -10,6 +10,9 @@ public sealed class DateFormatTransformationDefinition : ITransformationDefiniti
 
     public string Description => "Formatuje datę ISO 8601 według wzorca w kulturze niezmiennej.";
 
+    public IReadOnlyList<TransformationParameterDescriptor> Parameters { get; } =
+        [new TransformationParameterDescriptor("pattern", TransformationParameterTypes.String)];
+
     public ITransformation Create(ITransformation inner, TransformationParameters parameters)
     {
         return new DateFormatTransformation(inner, parameters);

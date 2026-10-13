@@ -10,6 +10,9 @@ public sealed class TruncateTransformationDefinition : ITransformationDefinition
 
     public string Description => "Przycina tekst do maksymalnej liczby znaków.";
 
+    public IReadOnlyList<TransformationParameterDescriptor> Parameters { get; } =
+        [new TransformationParameterDescriptor("max_length", TransformationParameterTypes.Integer)];
+
     public ITransformation Create(ITransformation inner, TransformationParameters parameters)
     {
         return new TruncateTransformation(inner, parameters);
