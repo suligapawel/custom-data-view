@@ -73,6 +73,7 @@ public class ConnectionTestResultTests : ConnectionApiTests
     }
 
     [TestCase(200, "<html>…</html>")]
+    [TestCase(204, "")]
     [Test(Description = "scenario_TEMP-007-014 - #39")]
     public async Task Given_ExternalApiRespondingWithInvalidJson_When_UserTestsConnection_Then_TestFailsWithInvalidJson(int status, string content)
     {
