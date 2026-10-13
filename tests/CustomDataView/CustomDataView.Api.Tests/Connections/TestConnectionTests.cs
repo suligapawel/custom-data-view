@@ -111,6 +111,7 @@ public class TestConnectionTests : ConnectionApiTests
 
         var request = Factory.ExternalApi.Requests.Single();
         Assert.That(request.Method, Is.EqualTo("POST"));
+        Assert.That(request.ContentType, Is.EqualTo("application/json"));
         Assert.That(JsonNode.DeepEquals(JsonNode.Parse(request.Body), JsonNode.Parse("""{"contractId": "C-42", "limit": 5}""")), Is.True);
     }
 }
