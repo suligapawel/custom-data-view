@@ -8,4 +8,5 @@ public interface ITileService
     IReadOnlyList<TileSummaryDto> GetAll();
     TileDto Get(Guid id);
     void Update(Guid id, TileDefinition definition);
+    void Delete(Guid id);
 }

@@ -42,6 +42,11 @@ public sealed class TileService(ITileRepository repository, TileReferencesValida
         repository.Update(tile with { Definition = definition });
     }
 
+    public void Delete(Guid id)
+    {
+        repository.Delete(id);
+    }
+
     private void ValidateReferences(TileDefinition definition)
     {
         var errors = referencesValidator.Validate(definition);

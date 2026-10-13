@@ -20,7 +20,8 @@ public static class TileEndpoints
                 .AddTile()
                 .GetTiles()
                 .GetTile()
-                .UpdateTile();
+                .UpdateTile()
+                .DeleteTile();
         }
 
         private IEndpointRouteBuilder AddTile()
@@ -62,6 +63,16 @@ public static class TileEndpoints
                 }
 
                 service.Update(id, request.ToDefinition());
+                return Results.NoContent();
+            });
+            return endpoints;
+        }
+
+        private IEndpointRouteBuilder DeleteTile()
+        {
+            endpoints.MapDelete(TileUrl, (Guid id, ITileService service) =>
+            {
+                service.Delete(id);
                 return Results.NoContent();
             });
             return endpoints;
