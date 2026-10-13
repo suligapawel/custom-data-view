@@ -106,6 +106,10 @@ public static class ConnectionDefinitionValidator
             {
                 errors[$"queryParameters[{index}].defaultValue"] = [RequiredWithDefaultMessage];
             }
+            else if (parameter.DefaultValue is { ValueKind: not JsonValueKind.String })
+            {
+                errors[$"queryParameters[{index}].defaultValue"] = ["Wartość domyślna parametru zapytania musi być tekstem."];
+            }
         }
     }
 

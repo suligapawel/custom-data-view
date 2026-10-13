@@ -257,6 +257,7 @@ public class ConnectionValidationTests : ConnectionApiTests
 
     [TestCase("pathParameters", "id", true, "\"42\"")]
     [TestCase("bodyParameters", "limit", true, "10")]
+    [TestCase("queryParameters", "pageSize", false, "20")]
     [Test(Description = "scenario_TEMP-007-014 - #45")]
     public async Task Given_ContradictoryParameterDeclaration_When_UserSavesConnection_Then_SavingIsRejected(
         string section,
