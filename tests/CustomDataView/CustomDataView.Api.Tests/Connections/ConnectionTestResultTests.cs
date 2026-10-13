@@ -87,6 +87,21 @@ public class ConnectionTestResultTests : ConnectionApiTests
         await AssertFailure(response, "invalid_json");
     }
 
+    [Test(Description = "scenario_TEMP-007-014 - #40")]
+    public async Task Given_ExternalApiRespondingWithMoreThanOneMegabyte_When_UserTestsConnection_Then_TestFailsWithResponseTooLarge()
+    {
+        var stream = new CountingStream(5 * 1024 * 1024);
+        Factory.ExternalApi.Respond = (_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StreamContent(stream)
+        });
+
+        var response = await TestConnection();
+
+        await AssertFailure(response, "response_too_large");
+        Assert.That(stream.BytesRead, Is.LessThan(2 * 1024 * 1024));
+    }
+
     private static async Task<JsonObject> AssertFailure(HttpResponseMessage response, string code)
     {
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadGateway));

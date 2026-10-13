@@ -25,8 +25,13 @@ public sealed class ExternalApiClient(IHttpClientFactory httpClientFactory, IOpt
                 return ExternalApiResult.Failure(ExternalApiErrorCodes.UnexpectedStatus, (int)response.StatusCode);
             }
 
-            var content = await response.Content.ReadAsStringAsync(timeout.Token);
+            var content = await ReadLimited(response.Content, timeout.Token);
             stopwatch.Stop();
+            if (content is null)
+            {
+                return ExternalApiResult.Failure(ExternalApiErrorCodes.ResponseTooLarge);
+            }
+
             return ExternalApiResult.Success((int)response.StatusCode, stopwatch.ElapsedMilliseconds, JsonNode.Parse(content));
         }
         catch (JsonException)
@@ -41,5 +46,30 @@ public sealed class ExternalApiClient(IHttpClientFactory httpClientFactory, IOpt
         {
             return ExternalApiResult.Failure(ExternalApiErrorCodes.SourceUnavailable);
         }
+    }
+
+    private async Task<byte[]> ReadLimited(HttpContent content, CancellationToken cancellationToken)
+    {
+        var maxBytes = options.Value.MaxResponseBytes;
+        if (content.Headers.ContentLength > maxBytes)
+        {
+            return null;
+        }
+
+        await using var stream = await content.ReadAsStreamAsync(cancellationToken);
+        using var buffer = new MemoryStream();
+        var chunk = new byte[81920];
+        int read;
+        while ((read = await stream.ReadAsync(chunk, cancellationToken)) > 0)
+        {
+            if (buffer.Length + read > maxBytes)
+            {
+                return null;
+            }
+
+            buffer.Write(chunk, 0, read);
+        }
+
+        return buffer.ToArray();
     }
 }
