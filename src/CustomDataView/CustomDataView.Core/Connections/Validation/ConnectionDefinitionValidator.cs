@@ -1,3 +1,4 @@
+using System.Text.Json;
 using CustomDataView.Core.Connections.Definitions;
 using CustomDataView.Core.Connections.Templates;
 
@@ -26,12 +27,21 @@ public static class ConnectionDefinitionValidator
             errors["method"] = ["Rodzaj połączenia musi być GET albo POST."];
         }
 
+        if (IsGet(input.Method) && input.Body is { ValueKind: not JsonValueKind.Null })
+        {
+            errors["body"] = ["Treść jest dozwolona tylko dla połączenia POST."];
+        }
+
         return errors;
     }
 
     private static bool IsSupportedMethod(string method)
     {
-        return string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(method, "POST", StringComparison.OrdinalIgnoreCase);
+        return IsGet(method) || string.Equals(method, "POST", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsGet(string method)
+    {
+        return string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase);
     }
 }

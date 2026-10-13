@@ -55,6 +55,15 @@ public class ConnectionValidationTests : ConnectionApiTests
         await AssertRejected(definition, "method");
     }
 
+    [Test(Description = "scenario_TEMP-007-014 - #11")]
+    public async Task Given_GetConnectionWithBodyTemplate_When_UserSavesConnection_Then_SavingIsRejectedWithBodyError()
+    {
+        var definition = ValidGetDefinition();
+        definition["body"] = new JsonObject { ["q"] = 1 };
+
+        await AssertRejected(definition, "body");
+    }
+
     private static JsonObject ValidGetDefinition()
     {
         return new JsonObject
