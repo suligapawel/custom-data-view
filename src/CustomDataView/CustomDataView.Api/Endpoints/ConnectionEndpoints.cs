@@ -25,6 +25,17 @@ public static class ConnectionEndpoints
         endpoints.MapGet(ConnectionsUrl, (IConnectionService service) => Results.Ok(service.GetAll()));
         endpoints.MapGet($"{ConnectionsUrl}/{{id:guid}}", (Guid id, IConnectionService service) =>
             Results.Ok(service.Get(id)));
+        endpoints.MapPut($"{ConnectionsUrl}/{{id:guid}}", (Guid id, ConnectionRequest request, IConnectionService service) =>
+        {
+            var errors = request.Validate();
+            if (errors.Count > 0)
+            {
+                return Results.ValidationProblem(errors);
+            }
+
+            service.Update(id, request.ToInput().ToDefinition());
+            return Results.NoContent();
+        });
         return endpoints;
     }
 }

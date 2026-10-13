@@ -7,4 +7,5 @@ public interface IConnectionService
     Guid Add(ConnectionDefinition definition);
     IReadOnlyList<ConnectionSummaryDto> GetAll();
     ConnectionDto Get(Guid id);
+    void Update(Guid id, ConnectionDefinition definition);
 }

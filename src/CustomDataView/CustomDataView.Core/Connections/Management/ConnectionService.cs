@@ -42,6 +42,11 @@ public sealed class ConnectionService(IConnectionRepository repository) : IConne
             ToDtos(post?.BodyParameters ?? []));
     }
 
+    public void Update(Guid id, ConnectionDefinition definition)
+    {
+        _ = repository.Get(id) ?? throw new NotFoundException(id);
+    }
+
     private static List<ParameterDeclarationDto> ToDtos(IReadOnlyList<ParameterDeclaration> parameters)
     {
         return parameters
