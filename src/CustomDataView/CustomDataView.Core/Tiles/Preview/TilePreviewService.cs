@@ -75,7 +75,7 @@ public sealed class TilePreviewService(
         {
             foreach (var error in ParameterValuesValidator.Validate(connection.Definition, parameters))
             {
-                errors[$"connections[{connection.Id}].{error.Key}"] = error.Value;
+                errors[ParameterKey(error.Key)] = error.Value;
             }
         }
 
@@ -84,6 +84,8 @@ public sealed class TilePreviewService(
             throw new ValidationException(errors);
         }
     }
+
+    private static string ParameterKey(string sectionKey) => $"parameters.{sectionKey.Split('.', 3)[2]}";
 
     private TileFieldPreview PreviewField(TileField field, ExternalApiResult response)
     {

@@ -7,7 +7,7 @@ namespace CustomDataView.Api.Tests.Tiles;
 public class TilePreviewValuesTests : TileApiTests
 {
     [Test(Description = "scenario_TEMP-015-023 - #37")]
-    public async Task Given_FieldsFromCustomerAndRate_When_UserPreviewsWithoutCustomer_Then_PreviewIsRejectedWithoutCalls()
+    public async Task Given_FieldsFromCustomerAndRate_When_UserPreviewsWithCurrencyOnly_Then_PreviewIsRejectedWithoutCalls()
     {
         var id = await CustomerAndRateTile();
 
@@ -16,7 +16,7 @@ public class TilePreviewValuesTests : TileApiTests
             parameters = new { currency = "EUR" }
         });
 
-        await AssertRejected(response, $"connections[{CustomerConnectionId}].parameters.path.customer_id");
+        await AssertRejected(response, "parameters.customer_id");
         Assert.That(Factory.ExternalApi.Requests, Is.Empty);
     }
 
