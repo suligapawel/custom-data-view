@@ -50,7 +50,7 @@ docelowego. Różnią się tylko węzłami:
 | | W widoku | W kafelku |
 |---|---|---|
 | Węzeł | kafelek | połączenie |
-| Źródło | pole kafelka źródłowego (etykieta) | pole tego kafelka (etykieta); jego połączenie jest węzłem źródłowym |
+| Źródło | kafelek `from` + etykieta pola | połączenie `from` + etykieta pola tego kafelka |
 | Cel | parametr kafelka docelowego | parametr konkretnego połączenia tego kafelka |
 | Gdzie zapisane | definicja widoku | definicja kafelka |
 
@@ -91,7 +91,7 @@ Engine(nodes, edges, externalParameters, executeNode)
 - **Adapter kafelka:**
   - węzeł to połączenie;
   - `executeNode` waliduje parametry tego połączenia, wywołuje je i wylicza jego pola (JSONPath i transformacje);
-  - cel wskazuje konkretne połączenie;
+  - źródło i cel wskazują konkretne połączenia (`from` i `to`);
   - `dependency_failed` to błąd każdego pola tego połączenia (`TileFieldError`).
 - **Sprawdzane jest konkretne pole źródłowe, a nie cały węzeł.** Jeśli kafelek A ma błąd w polu „Temperatura”, ale
   „ID miasta” jest poprawne, wiązanie z „ID miasta” działa. Ta sama reguła obowiązuje na obu poziomach.
@@ -235,8 +235,8 @@ Wiązania są pogrupowane po parze kafelków (`from` → `to`), a każda para ma
 
 ### Wiązania w kafelku: kształt API
 
-Kafelek dostaje opcjonalną sekcję `bindings`. Wpisy są pogrupowane po połączeniu docelowym (`to`), a każdy ma tablicę
-mapowań `map` (pole → parametr). Połączenie źródłowe nie jest podawane: wynika z pola, które wskazuje etykieta.
+Kafelek dostaje opcjonalną sekcję `bindings` w tym samym kształcie co widok (decyzja użytkownika: spójność obu
+poziomów). Wpisy są pogrupowane po parze połączeń (`from` → `to`), a każdy ma tablicę mapowań `map` (pole → parametr).
 
 ```json
 {
@@ -247,6 +247,7 @@ mapowań `map` (pole → parametr). Połączenie źródłowe nie jest podawane: 
   ],
   "bindings": [
     {
+      "from": "<ID_WYSZUKIWANIE_MIASTA>",
       "to": "<ID_PROGNOZA>",
       "map": [ { "field": "ID miasta", "parameter": "cityId" } ]
     }
@@ -254,8 +255,12 @@ mapowań `map` (pole → parametr). Połączenie źródłowe nie jest podawane: 
 }
 ```
 
-- `field` to etykieta pola tego kafelka (tak samo jak w widoku).
-- `to` to połączenie używane przez kafelek (przez któreś z jego pól).
+- `from` to połączenie źródłowe, używane przez kafelek (przez któreś z jego pól).
+- `field` to etykieta pola tego kafelka, które pochodzi z połączenia `from` (tak samo jak w widoku: pole kafelka
+  `from`).
+- `to` to połączenie docelowe, używane przez kafelek (przez któreś z jego pól).
+- `from` jest informacją wynikającą z pola (etykiety są unikalne w kafelku), ale jest podawane jawnie dla spójności
+  z widokiem i czytelności zależności. Dlatego walidacja pilnuje zgodności `from` z polem.
 - `parameter` to parametr zadeklarowany w połączeniu `to` (path, query albo body).
 - Wiązanie dotyczy tylko połączenia `to`. Inne połączenia kafelka deklarujące parametr o tej nazwie dalej dostają
   wartość z zewnątrz.
@@ -264,10 +269,10 @@ mapowań `map` (pole → parametr). Połączenie źródłowe nie jest podawane: 
 
 ### Walidacja zapisu kafelka (`TileDefinitionValidator` / `TileReferencesValidator`)
 
-- `to` jest połączeniem używanym przez któreś pole kafelka i występuje w `bindings` najwyżej raz.
+- `from` i `to` są połączeniami używanymi przez pola kafelka i są różne.
+- Para `from` → `to` występuje najwyżej raz.
 - `map` ma co najmniej jedno mapowanie.
-- `field` istnieje w kafelku (szukane po etykiecie).
-- Połączenie pola źródłowego jest różne od `to`.
+- `field` istnieje w kafelku (szukane po etykiecie) i pochodzi z połączenia `from`.
 - `parameter` jest zadeklarowany w połączeniu `to` i ma w nim najwyżej jedno źródło.
 - Wiązania między połączeniami nie tworzą cyklu (A → B → A, także dłuższe).
 - Pole z wildcardem jest dozwolone jako źródło, tak jak w widoku.
@@ -386,12 +391,15 @@ mapowań `map` (pole → parametr). Połączenie źródłowe nie jest podawane: 
   |----------------------|--------------|-------------------------------------------------------|
   | tile_id              | uuid         | PK, NOT NULL, FK → tiles.id ON DELETE CASCADE         |
   | target_connection_id | uuid         | PK, NOT NULL, FK → connections.id ON DELETE RESTRICT  |
+  | source_connection_id | uuid         | NOT NULL, FK → connections.id ON DELETE RESTRICT      |
   | target_parameter     | varchar(50)  | PK, NOT NULL; jak `name` w `connection_*_parameters`  |
   | source_field         | varchar(100) | NOT NULL; etykieta pola tego kafelka                  |
 
   - PK `(tile_id, target_connection_id, target_parameter)`: jeden parametr połączenia ma jedno źródło w kafelku.
-  - Etykiety nie da się objąć kluczem obcym (unikalność jest na wyrażeniu), dlatego istnienie pola i to, że jego
-    połączenie jest różne od docelowego, sprawdza aplikacja przy zapisie kafelka.
+  - CHECK `source_connection_id <> target_connection_id`.
+  - Etykiety nie da się objąć kluczem obcym (unikalność jest na wyrażeniu), dlatego istnienie pola i jego zgodność
+    z `source_connection_id` sprawdza aplikacja przy zapisie kafelka.
+  - Grupowanie `from`/`to`/`map` w API jest odtwarzane przy odczycie; w bazie jest jeden wiersz na mapowanie.
   - Repozytorium kafelków zapisuje `tiles`, pola, transformacje i `tile_bindings` w jednej transakcji (PUT zastępuje
     całość).
 - Zaktualizować sekcje Relationships i Indexes oraz opis w Overview.
