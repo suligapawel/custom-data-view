@@ -14,7 +14,7 @@ public sealed class ViewService(IViewRepository repository, ITileRepository tile
     }
 
     public IReadOnlyList<ViewSummaryDto> GetAll()
-        => repository.GetAll().Select(view => new ViewSummaryDto(view.Id, view.Name)).ToList();
+        => repository.GetAll().Select(view => new ViewSummaryDto(view.Id, view.Name, view.TileCount)).ToList();
 
     public ViewDto Get(Guid id)
     {

@@ -58,8 +58,15 @@ public sealed class PostgresViewRepository(NpgsqlDataSource dataSource) : IViewR
     public IReadOnlyList<ViewSummary> GetAll()
     {
         using var db = dataSource.OpenConnection();
-        return db.Query<ViewRow>("SELECT id, name FROM custom_data_view.views ORDER BY created_at, id")
-            .Select(view => new ViewSummary(view.Id, view.Name))
+        return db.Query<ViewSummaryRow>(
+                """
+                SELECT view.id, view.name, count(tile.tile_id)::int AS tile_count
+                FROM custom_data_view.views view
+                LEFT JOIN custom_data_view.view_tiles tile ON tile.view_id = view.id
+                GROUP BY view.id
+                ORDER BY view.created_at, view.id
+                """)
+            .Select(view => new ViewSummary(view.Id, view.Name, view.TileCount))
             .ToList();
     }
 
@@ -67,6 +74,13 @@ public sealed class PostgresViewRepository(NpgsqlDataSource dataSource) : IViewR
     {
         public Guid Id { get; init; }
         public string Name { get; init; }
+    }
+
+    private sealed record ViewSummaryRow
+    {
+        public Guid Id { get; init; }
+        public string Name { get; init; }
+        public int TileCount { get; init; }
     }
 
     private sealed record ViewTileRow

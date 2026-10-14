@@ -62,12 +62,13 @@ public class PostgresViewRepositoryTests
     public void Given_TwoSavedViews_When_AllAreLoaded_Then_TheyAreInAddingOrder()
     {
         var first = new View(Guid.NewGuid(), new ViewDefinition("Pulpit", []));
-        var second = new View(Guid.NewGuid(), new ViewDefinition("Pulpit", []));
+        var second = new View(Guid.NewGuid(), new ViewDefinition("Pulpit",
+            [new ViewTile(customerTileId, 0, null), new ViewTile(rateTileId, 1, null)]));
 
         repository.Add(first);
         repository.Add(second);
 
-        Assert.That(repository.GetAll(), Is.EqualTo(new[] { new ViewSummary(first.Id, "Pulpit"), new ViewSummary(second.Id, "Pulpit") }));
+        Assert.That(repository.GetAll(), Is.EqualTo(new[] { new ViewSummary(first.Id, "Pulpit", 0), new ViewSummary(second.Id, "Pulpit", 2) }));
     }
 
     [Test]

@@ -29,5 +29,5 @@ public sealed class TestViewRepository : IViewRepository
 
     public View Get(Guid id) => views.SingleOrDefault(view => view.Id == id);
 
-    public IReadOnlyList<ViewSummary> GetAll() => views.Select(view => new ViewSummary(view.Id, view.Definition.Name)).ToList();
+    public IReadOnlyList<ViewSummary> GetAll() => views.Select(view => new ViewSummary(view.Id, view.Definition.Name, view.Definition.Tiles.Count)).ToList();
 }

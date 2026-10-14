@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json.Nodes;
 
 namespace CustomDataView.Api.Tests.Views;
 
@@ -33,5 +34,9 @@ public class TileChangesInViewsTests : ViewApiTests
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
         Assert.That(Tiles(await GetView(salesId)).Select(tile => tile.Item1), Is.EqualTo(new Guid?[] { RateTileId }));
         Assert.That(Tiles(await GetView(serviceId)).Select(tile => tile.Item1), Is.EqualTo(new Guid?[] { OrdersTileId }));
+        var views = await Client.GetFromJsonAsync<JsonArray>(ViewsUrl);
+        Assert.That(
+            views.Select(view => (view["id"]?.GetValue<Guid>(), view["tileCount"]?.GetValue<int>())),
+            Is.EqualTo(new (Guid?, int?)[] { (salesId, 1), (serviceId, 1) }));
     }
 }
