@@ -44,7 +44,7 @@ public class TilePreviewValuesTests : TileApiTests
     }
 
     [Test(Description = "scenario_TEMP-015-023 - #39")]
-    public async Task Given_OnlyCustomerField_When_UserPreviewsWithRateValuesToo_Then_RateValuesAreIgnored()
+    public async Task Given_OnlyCustomerField_When_UserPreviewsWithCurrencyToo_Then_UndeclaredParameterIsIgnored()
     {
         var id = await CreateTile(new { name = "Klient", fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa") } });
 
