@@ -32,11 +32,7 @@ public class TileDraftPreviewTests : TileApiTests
         var response = await Client.PostAsJsonAsync($"{TilesUrl}/preview", new
         {
             tile,
-            connections = new object[]
-            {
-                new { connectionId = CustomerConnectionId, path = new { customer_id = "42" } },
-                new { connectionId = RateConnectionId, query = new { currency = "EUR" } }
-            }
+            parameters = new { customer_id = "42", currency = "EUR" }
         });
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));

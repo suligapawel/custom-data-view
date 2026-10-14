@@ -168,7 +168,7 @@ public class TilePreviewTests : TileApiTests
     }
 
     [Test(Description = "scenario_TEMP-015-023 - #36")]
-    public async Task Given_FieldsFromCustomerAndRate_When_UserPreviewsWithValuesPerConnection_Then_EachSourceGetsItsValues()
+    public async Task Given_FieldsFromCustomerAndRate_When_UserPreviewsWithParameterValuesOnly_Then_SourcesDeclaringThemGetThem()
     {
         var id = await CreateTile(new
         {
@@ -176,7 +176,7 @@ public class TilePreviewTests : TileApiTests
             fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa"), Field(RateConnectionId, "$.rate", "Kurs EUR") }
         });
 
-        await Preview(id, CustomerAndRateValues());
+        await Preview(id, new { parameters = new { customer_id = "42", currency = "EUR" } });
 
         Assert.That(
             Factory.ExternalApi.Requests.Select(request => request.Url).Order(),

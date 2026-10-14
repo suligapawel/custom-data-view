@@ -13,28 +13,10 @@ public class TilePreviewValuesTests : TileApiTests
 
         var response = await Client.PostAsJsonAsync($"{TilesUrl}/{id}/preview", new
         {
-            connections = new[] { new { connectionId = RateConnectionId, query = new { currency = "EUR" } } }
+            parameters = new { currency = "EUR" }
         });
 
         await AssertRejected(response, $"connections[{CustomerConnectionId}].parameters.path.customer_id");
-        Assert.That(Factory.ExternalApi.Requests, Is.Empty);
-    }
-
-    [Test(Description = "scenario_TEMP-015-023 - #38")]
-    public async Task Given_CustomerField_When_UserPreviewsWithCustomerValuesTwice_Then_PreviewIsRejectedWithoutCalls()
-    {
-        var id = await CreateTile(new { name = "Klient", fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa") } });
-
-        var response = await Client.PostAsJsonAsync($"{TilesUrl}/{id}/preview", new
-        {
-            connections = new[]
-            {
-                new { connectionId = CustomerConnectionId, path = new { customer_id = "42" } },
-                new { connectionId = CustomerConnectionId, path = new { customer_id = "43" } }
-            }
-        });
-
-        await AssertRejected(response, "connections[1].connectionId");
         Assert.That(Factory.ExternalApi.Requests, Is.Empty);
     }
 

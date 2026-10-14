@@ -97,7 +97,7 @@ public static class TileEndpoints
 
                     return Results.Ok(await service.Preview(
                         request.Tile.ToDefinition(),
-                        TilePreviewRequest.ValuesOf(request.Connections),
+                        TilePreviewRequest.ValuesOf(request.Parameters),
                         cancellationToken));
                 });
             return endpoints;

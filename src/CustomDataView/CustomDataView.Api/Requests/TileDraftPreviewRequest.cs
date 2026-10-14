@@ -1,8 +1,9 @@
+using System.Text.Json;
 using CustomDataView.Core.Tiles.Validation;
 
 namespace CustomDataView.Api.Requests;
 
-public sealed record TileDraftPreviewRequest(TileRequest Tile, IReadOnlyList<ConnectionValuesRequest> Connections)
+public sealed record TileDraftPreviewRequest(TileRequest Tile, Dictionary<string, JsonElement> Parameters)
 {
     public IDictionary<string, string[]> Validate(TileReferencesValidator referencesValidator)
     {

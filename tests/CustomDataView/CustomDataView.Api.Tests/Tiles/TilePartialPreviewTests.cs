@@ -131,7 +131,7 @@ public class TilePartialPreviewTests : TileApiTests
         => Assert.That(JsonNode.DeepEquals(preview["fields"], JsonNode.Parse(expected)), Is.True, preview.ToJsonString());
 
     private object RateValues()
-        => new { connections = new[] { new { connectionId = RateConnectionId, query = new { currency = "EUR" } } } };
+        => new { parameters = new { currency = "EUR" } };
 
     private void RateSourceFails(Func<HttpRequestMessage, HttpResponseMessage> respond)
     {

@@ -20,33 +20,28 @@ public sealed class TilePreviewService(
     IConnectionFactory factory,
     ITransformationService transformations) : ITilePreviewService
 {
-    private static readonly ParameterValuesInput NoValues = new(
-        new Dictionary<string, JsonElement>(),
-        new Dictionary<string, JsonElement>(),
-        new Dictionary<string, JsonElement>());
-
     public async Task<TilePreview> Preview(
         Guid id,
-        IReadOnlyList<ConnectionValuesInput> values,
+        IReadOnlyDictionary<string, JsonElement> parameters,
         CancellationToken cancellationToken)
     {
         var tile = tiles.Get(id) ?? throw new NotFoundException(id);
-        return await Preview(tile.Id, tile.Definition, values, cancellationToken);
+        return await Preview(tile.Id, tile.Definition, parameters, cancellationToken);
     }
 
     public Task<TilePreview> Preview(
         TileDefinition definition,
-        IReadOnlyList<ConnectionValuesInput> values,
+        IReadOnlyDictionary<string, JsonElement> parameters,
         CancellationToken cancellationToken)
-        => Preview(null, definition, values, cancellationToken);
+        => Preview(null, definition, parameters, cancellationToken);
 
     private async Task<TilePreview> Preview(
         Guid? id,
         TileDefinition definition,
-        IReadOnlyList<ConnectionValuesInput> values,
+        IReadOnlyDictionary<string, JsonElement> parameters,
         CancellationToken cancellationToken)
     {
-        var responses = await Call(definition, values, cancellationToken);
+        var responses = await Call(definition, parameters, cancellationToken);
         return new TilePreview(
             id,
             definition.Name,
@@ -55,28 +50,27 @@ public sealed class TilePreviewService(
 
     private async Task<Dictionary<Guid, ExternalApiResult>> Call(
         TileDefinition definition,
-        IReadOnlyList<ConnectionValuesInput> values,
+        IReadOnlyDictionary<string, JsonElement> parameters,
         CancellationToken cancellationToken)
     {
         var used = definition.Fields
             .Select(field => field.ConnectionId)
             .Distinct()
-            .Select(connectionId => (
-                Connection: connections.Get(connectionId),
-                Parameters: values.FirstOrDefault(value => value.ConnectionId == connectionId)?.Parameters ?? NoValues))
+            .Select(connections.Get)
+            .Select(connection => (
+                Connection: connection,
+                Parameters: TileParameterValues.For(connection.Definition, parameters)))
             .ToList();
-        ValidateValues(used, values);
+        ValidateValues(used);
         var results = await Task.WhenAll(used.Select(async call => (
             connectionId: call.Connection.Id,
             result: await factory.Create(call.Connection.Definition).Get(call.Parameters.ToValues(), cancellationToken))));
         return results.ToDictionary(call => call.connectionId, call => call.result);
     }
 
-    private static void ValidateValues(
-        IReadOnlyList<(Connection Connection, ParameterValuesInput Parameters)> used,
-        IReadOnlyList<ConnectionValuesInput> values)
+    private static void ValidateValues(IReadOnlyList<(Connection Connection, ParameterValuesInput Parameters)> used)
     {
-        var errors = RepeatedConnections(values);
+        var errors = new Dictionary<string, string[]>();
         foreach (var (connection, parameters) in used)
         {
             foreach (var error in ParameterValuesValidator.Validate(connection.Definition, parameters))
@@ -89,21 +83,6 @@ public sealed class TilePreviewService(
         {
             throw new ValidationException(errors);
         }
-    }
-
-    private static Dictionary<string, string[]> RepeatedConnections(IReadOnlyList<ConnectionValuesInput> values)
-    {
-        var errors = new Dictionary<string, string[]>();
-        for (var index = 0; index < values.Count; index++)
-        {
-            var connectionId = values[index].ConnectionId;
-            if (values.Take(index).Any(previous => previous.ConnectionId == connectionId))
-            {
-                errors[$"connections[{index}].connectionId"] = ["Wartości tego połączenia zostały podane więcej niż raz."];
-            }
-        }
-
-        return errors;
     }
 
     private TileFieldPreview PreviewField(TileField field, ExternalApiResult response)

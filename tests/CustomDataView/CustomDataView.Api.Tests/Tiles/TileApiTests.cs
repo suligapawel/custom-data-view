@@ -60,18 +60,9 @@ public abstract class TileApiTests : ConnectionApiTests
 
     protected Task<JsonObject> GetTile(Guid id) => Client.GetFromJsonAsync<JsonObject>($"{TilesUrl}/{id}");
 
-    protected object CustomerAndRateValues()
-        => new
-        {
-            connections = new object[]
-            {
-                new { connectionId = CustomerConnectionId, path = new { customer_id = "42" } },
-                new { connectionId = RateConnectionId, query = new { currency = "EUR" } }
-            }
-        };
+    protected static object CustomerAndRateValues() => new { parameters = new { customer_id = "42", currency = "EUR" } };
 
-    protected object CustomerValues()
-        => new { connections = new[] { new { connectionId = CustomerConnectionId, path = new { customer_id = "42" } } } };
+    protected static object CustomerValues() => new { parameters = new { customer_id = "42" } };
 
     protected static HttpResponseMessage Json(string body)
         => new(HttpStatusCode.OK) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
