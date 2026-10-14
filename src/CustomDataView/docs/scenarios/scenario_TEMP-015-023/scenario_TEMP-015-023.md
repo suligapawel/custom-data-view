@@ -35,7 +35,7 @@ Folder `CustomDataView.Core/Tiles/`:
   transformacji).
 - `Persistence/` — `ITileRepository`, `PostgresTileRepository`, `TileReference`.
 - `Management/` — `ITileService`, `TileService`, `TileSummaryDto`, `TileDto`, `TileFieldDto`, `TransformationStepDto`.
-- `Preview/` — `ITilePreviewService`, `TilePreviewService`, `ConnectionValuesInput`, `TilePreview`,
+- `Preview/` — `ITilePreviewService`, `TilePreviewService`, `TileParameterValues`, `TilePreview`,
   `TileFieldPreview`, `TileFieldError`, `TileFieldErrorCodes`.
 
 Wspólne wyjątki w `CustomDataView.Core/Exceptions/`: istniejące `NotFoundException(id)`, `ValidationException(errors)`
@@ -185,8 +185,6 @@ public interface ITileRepository
 ### Zadanie 8 — Podgląd kafelka (TEMP-021 … TEMP-023)
 
 ```csharp
-public sealed record ConnectionValuesInput(Guid? ConnectionId, ParameterValuesInput Parameters);
-
 public sealed record TileFieldError(string Code, string Transformation = null, string Reason = null, int? Status = null);
 
 public sealed record TileFieldPreview(string Label, JsonNode Value, TileFieldError Error);
@@ -197,19 +195,20 @@ public sealed record TilePreview(Guid? Id, string Name, IReadOnlyList<TileFieldP
 `TilePreviewService` (singleton) przyjmuje `ITileRepository`, `IConnectionRepository`, `IConnectionFactory`,
 `ITransformationService`, `TileReferencesValidator`:
 
-- `Preview(id, connections, ct)`: brak kafelka → `NotFoundException(id)`; dalej jak niżej z `Id = id`.
-- `Preview(definition, connections, ct)`: definicja zwalidowana lokalnie przez endpoint; `TileReferencesValidator`
+- `Preview(id, parameters, ct)`: brak kafelka → `NotFoundException(id)`; dalej jak niżej z `Id = id`.
+- `Preview(definition, parameters, ct)`: definicja zwalidowana lokalnie przez endpoint; `TileReferencesValidator`
   (błędy z prefiksem `tile.` → `ValidationException`); dalej jak niżej z `Id = null`.
 
 Sekwencja wspólna:
 
-1. Wartości parametrów połączeń (lista z frontu):
-   - brak `connectionId` → błąd `connections[k].connectionId`,
-   - to samo połączenie dwa razy → błąd `connections[k].connectionId`,
-   - wpis dla połączenia nieużywanego w kafelku jest ignorowany,
-   - połączenie użyte w kafelku i pominięte na liście dostaje puste wartości (wartości domyślne z definicji).
+1. Wartości parametrów (płaska mapa `nazwa → wartość JSON` z frontu, bez identyfikatorów połączeń) są rozdzielane
+   przez `TileParameterValues.For(definition, parameters)` na każde różne połączenie użyte w polach: parametr trafia do
+   każdej sekcji (`path`, `query`, `body`) każdego połączenia, które deklaruje go pod tą nazwą; parametry
+   niezadeklarowane przez żadne połączenie kafelka są pomijane; pominięte parametry dostają wartości domyślne
+   z definicji. Dla `path` i `query` liczba JSON jest zamieniana na tekst w kulturze niezmiennej (także elementy
+   listy w `query`); `body` dostaje wartość bez zmian.
 2. Dla każdego różnego połączenia użytego w polach `ParameterValuesValidator.Validate(definition, values)`; błędy
-   z kluczami `connections[<connectionId>].parameters.<sekcja>.<nazwa>` (np. brak wymaganego) → `ValidationException`
+   z kluczami `parameters.<nazwa>` (np. brak wymaganego, obiekt jako wartość parametru adresu) → `ValidationException`
    → 400; żadne połączenie nie zostaje wywołane.
 3. Każde użyte połączenie jest wywoływane **dokładnie raz**, wszystkie równolegle (`Task.WhenAll`):
    `factory.Create(definition).Get(values.ToValues(), ct)`. Czas podglądu ≈ najwolniejsze źródło.
@@ -295,11 +294,12 @@ Podgląd zapisanego kafelka (TEMP-021):
 - [ ] Ścieżki `$['unit-name']`, `$.items[-1]` i `$.*` wskazują odpowiednie wartości.
 - [ ] Jawne `null` w odpowiedzi daje wartość `null`, nie błąd.
 - [ ] Połączenie używane przez kilka pól jest wywoływane dokładnie raz; dwa różne połączenia — po jednym razie.
-- [ ] Wartości parametrów połączeń z żądania trafiają do właściwych połączeń (np. `path.customerId` do A,
-  `query.currency` do B).
-- [ ] Brak wartości wymaganego parametru połączenia → 400 (`connections[<id>].parameters.path.<nazwa>`) i żadne
-  połączenie nie jest wywoływane.
-- [ ] To samo połączenie dwa razy na liście wartości → 400; wpis dla połączenia nieużywanego w kafelku jest ignorowany.
+- [ ] Podgląd przyjmuje tylko płaską mapę `parameters`; wartość trafia do każdego połączenia kafelka, które deklaruje
+  parametr o tej nazwie (np. `customerId` do A, `currency` do B i C).
+- [ ] Brak wartości wymaganego parametru połączenia → 400 (`parameters.<nazwa>`) i żadne połączenie nie jest wywoływane.
+- [ ] Parametr niezadeklarowany przez żadne połączenie kafelka jest pomijany.
+- [ ] Liczba jako wartość parametru adresu lub zapytania jest zamieniana na tekst; niepoprawna wartość (np. obiekt)
+  → 400 (`parameters.<nazwa>`).
 - [ ] Podgląd nie zmienia kafelka, a jego wynik nie jest zapisywany.
 - [ ] Podgląd nieistniejącego kafelka → 404.
 
@@ -356,8 +356,8 @@ Brak `transformations` = pusta lista; brak `parameters` = brak parametrów.
 | `GET /{id:guid}`           | —                          | 200 pełna definicja z `id`                      | 404      |
 | `PUT /{id:guid}`           | `TileRequest`              | 204                                             | 400, 404 |
 | `DELETE /{id:guid}`        | —                          | 204                                             | 404      |
-| `POST /{id:guid}/preview`  | `{ "connections": [ … ] }` | 200 podgląd                                     | 400, 404 |
-| `POST /preview`            | `{ "tile": …, "connections": [ … ] }` | 200 podgląd                          | 400      |
+| `POST /{id:guid}/preview`  | `{ "parameters": { … } }`  | 200 podgląd                                     | 400, 404 |
+| `POST /preview`            | `{ "tile": …, "parameters": { … } }` | 200 podgląd                           | 400      |
 
 Zmiana w połączeniach: `DELETE /api/custom-data-view/connections/{id:guid}` zwraca dodatkowo 409:
 
@@ -365,15 +365,11 @@ Zmiana w połączeniach: `DELETE /api/custom-data-view/connections/{id:guid}` zw
 { "code": "connection_in_use", "tiles": [ { "id": "…", "name": "Klient" } ] }
 ```
 
-Wartości parametrów połączeń w podglądzie (całe pole `connections` i każda sekcja opcjonalne; format sekcji jak
-w teście połączenia):
+Wartości parametrów w podglądzie — płaska mapa bez identyfikatorów połączeń (pole `parameters` opcjonalne):
 
 ```json
 {
-  "connections": [
-    { "connectionId": "3f2a…", "path": { "customerId": "42" } },
-    { "connectionId": "9b1c…", "query": { "currency": "EUR", "tag": [ "a", "b" ] }, "body": { "limit": 5 } }
-  ]
+  "parameters": { "customerId": 42, "currency": "EUR", "tag": [ "a", "b" ], "limit": 5 }
 }
 ```
 
@@ -408,9 +404,9 @@ definicja z prefiksem `tile.`). `NotFoundException` → 404, `ValidationExceptio
 - `fields[i].label`: wymagana, niepusta po obcięciu spacji, 1-100 znaków, bez unikalności.
 - `fields[i].transformations[j].key`: wymagany, z katalogu transformacji.
 - `fields[i].transformations[j].parameters.<nazwa>`: tekst lub liczba JSON; nazwy i zakres nie są sprawdzane.
-- `connections[k].connectionId` (podgląd): wymagany, bez powtórzeń; połączenia spoza kafelka ignorowane.
-- `connections[k].path|query|body` (podgląd): reguły `ParameterValuesValidator` z TEMP-013 dla każdego użytego
-  połączenia.
+- `parameters.<nazwa>` (podgląd): reguły `ParameterValuesValidator` z TEMP-013 dla każdej sekcji każdego użytego
+  połączenia, które deklaruje parametr (liczby w `path`/`query` zamieniane na tekst); nazwy niezadeklarowane
+  pomijane.
 - `id` w ścieżce: Guid (ograniczenie trasy; niepoprawny → 404).
 
 ## Handler i sekwencja wykonania

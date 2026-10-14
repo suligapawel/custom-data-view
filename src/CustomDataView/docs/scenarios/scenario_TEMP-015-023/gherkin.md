@@ -458,11 +458,11 @@ And   wszystkie cztery pola mają wartości
 
 #### Scenario #36
 
-Wartości parametrów trafiają do właściwych połączeń
+Wartości parametrów trafiają do połączeń, które je deklarują
 
 ```
 Given kafelek ma pole "Nazwa" ze źródła "Klient" i pole "Kurs EUR" ze źródła "Kurs walut"
-When  użytkownik ogląda podgląd kafelka, podając klienta "42" dla połączenia "Klient" i walutę "EUR" dla połączenia "Kurs walut"
+When  użytkownik ogląda podgląd kafelka, podając tylko wartości parametrów: klienta "42" i walutę "EUR"
 Then  źródło "Klient" zostaje odpytane o klienta "42"
 And   źródło "Kurs walut" zostaje odpytane o walutę "EUR"
 ```
@@ -473,30 +473,32 @@ Brak wymaganego parametru połączenia
 
 ```
 Given kafelek ma pola ze źródeł "Klient" i "Kurs walut"
-When  użytkownik ogląda podgląd kafelka, nie podając klienta dla połączenia "Klient"
-Then  podgląd zostaje odrzucony z informacją o brakującym parametrze "customerId" połączenia "Klient"
+When  użytkownik ogląda podgląd kafelka, podając tylko walutę "EUR"
+Then  podgląd zostaje odrzucony z informacją o brakującym parametrze "customerId"
 And   żadne źródło nie zostaje odpytane
 ```
 
 #### Scenario #38
 
-To samo połączenie podane dwa razy
+Parametr o tej samej nazwie trafia do każdego połączenia, które go deklaruje
 
 ```
-Given kafelek ma pole ze źródła "Klient"
-When  użytkownik ogląda podgląd kafelka, podając wartości parametrów połączenia "Klient" dwa razy
-Then  podgląd zostaje odrzucony z informacją o powtórzonym połączeniu
-And   żadne źródło nie zostaje odpytane
+Given istnieje też połączenie "Kurs archiwalny" z opcjonalnym parametrem zapytania "currency"
+And   kafelek ma pole "Kurs EUR" ze źródła "Kurs walut" i pole "Kurs archiwalny" ze źródła "Kurs archiwalny"
+When  użytkownik ogląda podgląd kafelka, podając walutę "EUR"
+Then  źródło "Kurs walut" zostaje odpytane o walutę "EUR"
+And   źródło "Kurs archiwalny" zostaje odpytane o walutę "EUR"
 ```
 
 #### Scenario #39
 
-Wartości dla połączenia spoza kafelka są pomijane
+Parametr niezadeklarowany przez żadne połączenie kafelka jest pomijany
 
 ```
 Given kafelek ma tylko pole ze źródła "Klient"
-When  użytkownik ogląda podgląd kafelka dla klienta "42", podając też walutę "EUR" dla połączenia "Kurs walut"
+When  użytkownik ogląda podgląd kafelka dla klienta "42", podając też walutę "EUR"
 Then  podgląd zawiera wartość pola ze źródła "Klient"
+And   źródło "Klient" zostaje odpytane bez waluty
 And   źródło "Kurs walut" nie zostaje odpytane
 ```
 
@@ -612,4 +614,26 @@ And   źródło "Kurs walut" nie odpowiada
 When  użytkownik ogląda podgląd kafelka dla waluty "EUR"
 Then  podgląd zostaje zwrócony poprawnie
 And   każde pole ma błąd source_unavailable
+```
+
+#### Scenario #50
+
+Liczba jako wartość parametru adresu lub zapytania
+
+```
+Given kafelek ma pole "Nazwa" ze źródła "Klient"
+When  użytkownik ogląda podgląd kafelka, podając klienta jako liczbę 42
+Then  źródło "Klient" zostaje odpytane o klienta "42"
+And   pole "Nazwa" ma wartość "acme"
+```
+
+#### Scenario #51
+
+Niepoprawna wartość parametru połączenia
+
+```
+Given kafelek ma pole "Nazwa" ze źródła "Klient"
+When  użytkownik ogląda podgląd kafelka, podając klienta jako obiekt
+Then  podgląd zostaje odrzucony z informacją o niepoprawnej wartości parametru "customerId"
+And   żadne źródło nie zostaje odpytane
 ```
