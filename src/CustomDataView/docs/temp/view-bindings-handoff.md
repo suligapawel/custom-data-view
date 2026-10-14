@@ -63,6 +63,57 @@ docelowego. Różnią się tylko węzłami:
   - propagację błędu `dependency_failed`.
 - **Osobne:** zapis (`view_bindings` i `tile_bindings`, bo klucze obce wskazują inne tabele) i walidacja specyficzna
   dla kontekstu.
+
+### Mechanizm dwupoziomowy
+
+Mechanizm działa na abstrakcyjnych węzłach. Każdy poziom (widok i kafelek) dostarcza adapter, który mówi, jak wykonać
+węzeł i jak zamienić błąd zależności na odpowiedź. Szkic:
+
+```
+Engine(nodes, edges, externalParameters, executeNode)
+  edges: (sourceNode, fieldLabel) → (targetNode, parameter)
+  1. sprawdź cykle
+  2. podziel węzły na fale według zależności
+  3. dla każdego węzła w fali (węzły jednej fali równolegle):
+     - jeśli któreś pole źródłowe ma błąd → wynik węzła = dependency_failed
+     - inaczej: mapa = parametry z zewnątrz + wartości z wiązań (wiązanie wygrywa),
+       zamiana na tekst dla path i query
+     - executeNode(węzeł, mapa) → pola (etykieta → wartość albo błąd)
+```
+
+- **Dwa poziomy działają jednocześnie.** Widok wykonuje graf kafelków, a każdy kafelek przy wykonaniu uruchamia
+  własny graf połączeń.
+- **Adapter widoku:**
+  - węzeł to kafelek;
+  - `executeNode` woła podgląd kafelka, czyli mechanizm drugi raz, dla połączeń;
+  - parametr celu jest nazwą; kafelek sam rozdziela go na połączenia, w których jest wejściem;
+  - `dependency_failed` to błąd całego kafelka (`ViewTileError`).
+- **Adapter kafelka:**
+  - węzeł to połączenie;
+  - `executeNode` waliduje parametry tego połączenia, wywołuje je i wylicza jego pola (JSONPath i transformacje);
+  - cel wskazuje konkretne połączenie;
+  - `dependency_failed` to błąd każdego pola tego połączenia (`TileFieldError`).
+- **Sprawdzane jest konkretne pole źródłowe, a nie cały węzeł.** Jeśli kafelek A ma błąd w polu „Temperatura”, ale
+  „ID miasta” jest poprawne, wiązanie z „ID miasta” działa. Ta sama reguła obowiązuje na obu poziomach.
+
+### Walidacja parametrów per połączenie (decyzja użytkownika: zmiana obecnego zachowania)
+
+- **Dziś:** parametry wszystkich połączeń kafelka są walidowane razem, przed wywołaniem czegokolwiek
+  (`TilePreviewService.ValidateValues`). Brak lub zły parametr któregokolwiek połączenia odrzuca podgląd kafelka
+  (błąd walidacji), a w podglądzie widoku daje błąd całego kafelka `invalid_parameters`.
+- **Docelowo:** każde połączenie jest walidowane osobno, tuż przed swoim wywołaniem, z mapą zawierającą także wartości
+  z wiązań. Brak wymaganego parametru albo zły typ daje błąd pól tego połączenia, np. nowy kod `invalid_parameters`
+  w `TileFieldErrorCodes` ze szczegółami (nazwa parametru i komunikat). Pozostałe pola kafelka zwracają dane.
+- **Skutki do wprowadzenia:**
+  - podgląd kafelka (zapisanego i niezapisanego, GET i POST) z brakującym lub złym parametrem zwraca 200 z błędami
+    pól zamiast odrzucenia żądania. Walidacja samego kształtu żądania (np. brak treści) zostaje bez zmian;
+  - w podglądzie widoku znika błąd całego kafelka `invalid_parameters` i obsługa `ValidationException`
+    w `ViewPreviewService`. Kafelek z brakującym parametrem zwraca pola z błędami. `ViewTileError` zostaje tylko dla
+    `dependency_failed`;
+  - zmienić istniejące scenariusze, testy, PRD (3.5) i README, które opisują obecne zachowanie (odrzucenie podglądu
+    kafelka i błąd kafelka `invalid_parameters` w widoku);
+  - niepoprawny typ wartości z wiązania to zwykły błąd `invalid_parameters` pól połączenia docelowego, ze wskazaniem,
+    że wartość pochodzi z wiązania.
 - **Wiązanie nie jest samodzielnym zasobem.** Nie ma własnego CRUD ani identyfikatora i nie jest współdzielone między
   widokami czy kafelkami. Zawsze jest częścią definicji widoku albo kafelka.
 
@@ -171,12 +222,12 @@ Wiązania są pogrupowane po parze kafelków (`from` → `to`), a każda para ma
 - **Do poprawienia:** `TileParameterValues.AsText` zamienia dziś tylko liczbę na najwyższym poziomie. Lista liczb dla
   path i query ma też być zamieniana na listę tekstów, żeby pole z wildcardem zwracające liczby działało w query.
 - **Błędy:**
-  - gdy kafelek źródłowy zakończy się błędem (np. `invalid_parameters`) albo pole źródłowe ma błąd
-    (`source_unavailable`, `path_not_found`, `transformation_failed`), kafelek docelowy dostaje błąd
-    `dependency_failed` (nowa stała w `ViewTileErrorCodes`) z przyczyną: kafelek źródłowy, pole i kod błędu. Kafelek
-    docelowy nie jest wtedy wywoływany;
-  - niepoprawny typ wartości z wiązania daje dzisiejszy `invalid_parameters` kafelka docelowego, z informacją, że
-    wartość pochodzi z wiązania;
+  - gdy pole źródłowe ma błąd (`invalid_parameters`, `source_unavailable`, `path_not_found`,
+    `transformation_failed`, `dependency_failed`), kafelek docelowy dostaje błąd `dependency_failed` (nowa stała
+    w `ViewTileErrorCodes`) z przyczyną: kafelek źródłowy, pole i kod błędu. Kafelek docelowy nie jest wtedy
+    wywoływany;
+  - niepoprawny typ wartości z wiązania daje błąd `invalid_parameters` pól połączeń kafelka docelowego, które
+    dostały tę wartość, ze wskazaniem, że wartość pochodzi z wiązania (patrz „Walidacja parametrów per połączenie”);
   - pozostałe kafelki zwracają dane, a status HTTP to zawsze 200 (zasada częściowych wyników).
 - Podgląd widoku pomija pola `hidden` w odpowiedzi, ale używa ich jako źródeł wiązań.
 - `TilePreviewService` nie musi znać wiązań. `ViewPreviewService` buduje mapę parametrów dla każdego kafelka i woła
@@ -235,10 +286,9 @@ mapowań `map` (pole → parametr). Połączenie źródłowe nie jest podawane: 
     `dependency_failed` (nowa stała w `TileFieldErrorCodes`) z przyczyną (pole źródłowe i kod błędu). Połączenie
     docelowe nie jest wtedy wywoływane;
   - pozostałe pola zwracają dane, a status to 200 (zasada częściowych wyników).
-- Walidacja parametrów (brak wymaganego, zły typ) uwzględnia wartości z wiązań. Wartość z wiązania jest znana dopiero
-  po wykonaniu źródła, więc parametry połączenia zależnego są walidowane dopiero przed jego wywołaniem. Błąd takiej
-  walidacji trafia do pól połączenia zależnego, a nie przerywa całego podglądu kafelka. Parametry połączeń bez
-  zależności walidujemy jak dziś.
+- Walidacja parametrów (brak wymaganego, zły typ) odbywa się per połączenie, tuż przed jego wywołaniem, i uwzględnia
+  wartości z wiązań. Błąd trafia do pól tego połączenia i nie przerywa podglądu kafelka. Dotyczy to wszystkich
+  połączeń, także tych bez zależności (patrz „Walidacja parametrów per połączenie”).
 - Ten sam mechanizm działa w podglądzie widoku: widok przekazuje kafelkowi swoją mapę parametrów, a kafelek wykonuje
   wewnątrz własne wiązania.
 
@@ -296,7 +346,10 @@ mapowań `map` (pole → parametr). Połączenie źródłowe nie jest podawane: 
   - kolejność wykonania według wiązań (kafelki w widoku, połączenia w kafelku);
   - mapę parametrów dla każdego węzła i pierwszeństwo wiązania;
   - `dependency_failed` dla kafelka w widoku i dla pola w kafelku;
-  - pomijanie pól ukrytych w podglądzie widoku.
+  - pomijanie pól ukrytych w podglądzie widoku;
+  - walidację parametrów per połączenie: brak lub zły parametr daje błąd `invalid_parameters` pól tego połączenia
+    i status 200. Zastępuje to obecne odrzucenie podglądu kafelka oraz zdanie „Błąd parametrów (np. brak
+    wymaganego) dotyczy tylko kafelka, którego połączenia go wymagają”.
 - **4 Granice produktu:** dopisać elementy z sekcji „Poza zakresem (MVP)”.
 - **6 Metryki (opcjonalnie):** 100% prób usunięcia kafelka będącego źródłem wiązania jest blokowanych z listą widoków.
 - **Historyjki użytkownika:** dopisać nowe historyjki dla etapów z „Planu realizacji”, z kryteriami akceptacji
@@ -351,9 +404,16 @@ mapowań `map` (pole → parametr). Połączenie źródłowe nie jest podawane: 
    - `hidden` w zapisie, odczycie i podglądzie kafelka;
    - migracja (`ALTER TABLE tile_fields` plus indeks unikalny);
    - sprawdzenie duplikatów przed migracją.
-3. **Etap „Wiązania kafelków w widoku”:**
-   - ogólny model wiązania i mechanizm grafu zależności (cykle, fale, mapa parametrów dla węzła, pierwszeństwo,
-     zamiana na tekst, `dependency_failed`), od razu zaprojektowany do użycia także w kafelku;
+3. **Etap „Walidacja parametrów per połączenie”** (bez wiązań; upraszcza dalsze etapy):
+   - walidacja każdego połączenia osobno, tuż przed wywołaniem;
+   - nowy błąd pola `invalid_parameters`;
+   - podgląd kafelka z brakującym lub złym parametrem zwraca 200 z błędami pól;
+   - usunięcie błędu kafelka `invalid_parameters` z podglądu widoku;
+   - aktualizacja istniejących scenariuszy, testów i README.
+4. **Etap „Wiązania kafelków w widoku”:**
+   - ogólny model wiązania i dwupoziomowy mechanizm grafu zależności (cykle, fale, mapa parametrów dla węzła,
+     pierwszeństwo, zamiana na tekst, `dependency_failed`, adaptery), od razu zaprojektowany do użycia także
+     w kafelku;
    - zapis, odczyt i edycja wiązań z walidacją;
    - migracja `view_bindings`;
    - podgląd widoku z wiązaniami: kolejność, mapa dla każdego kafelka, pierwszeństwo wiązania, `dependency_failed`,
@@ -362,22 +422,27 @@ mapowań `map` (pole → parametr). Połączenie źródłowe nie jest podawane: 
    - blokada edycji kafelka, która usuwa albo zmienia etykietę pola będącego źródłem.
 
    Jeśli etap wyjdzie zbyt duży, zaproponuj użytkownikowi podział, np. zapis wiązań / podgląd z wiązaniami / blokady.
-4. **Etap „Wiązania połączeń w kafelku”:**
+5. **Etap „Wiązania połączeń w kafelku”:**
    - zapis, odczyt i edycja wiązań kafelka z walidacją;
    - migracja `tile_bindings`;
-   - podgląd kafelka z wiązaniami na wspólnym mechanizmie z etapu 3 (fale połączeń, walidacja parametrów połączenia
-     zależnego dopiero przed jego wywołaniem, `dependency_failed` na polach);
+   - podgląd kafelka z wiązaniami na wspólnym mechanizmie z etapu 4 (adapter kafelka, fale połączeń,
+     `dependency_failed` na polach);
    - wejścia kafelka i ich uwzględnienie w walidacji oraz podglądzie widoku.
 
    Przed tym etapem rozstrzygnij z użytkownikiem „Otwarte kwestie”.
-5. **README:** na koniec zaktualizuj README o przykłady widoku z wiązaniem, kafelka z wiązaniem i flagi `hidden`.
+6. **README:** na koniec zaktualizuj README o przykłady widoku z wiązaniem, kafelka z wiązaniem i flagi `hidden`.
 
 ## Punkty w kodzie
 
 - `ViewPreviewService`: dziś wykonuje wszystkie kafelki równolegle z tą samą mapą parametrów.
 - `ViewTileErrorCodes`, `ViewTileError`, `ViewTilePreview`, `TileFieldErrorCodes`, `TileFieldError`.
 - `TilePreviewService.Call` i `ValidateValues`: dziś wywołuje wszystkie połączenia kafelka równolegle i waliduje
-  parametry wszystkich połączeń przed wywołaniem; to trzeba zmienić dla połączeń zależnych.
+  parametry wszystkich połączeń razem przed wywołaniem, rzucając `ValidationException`. Do zmiany na walidację per
+  połączenie (etap 3) i wykonanie falami (etap 5).
+- `ViewPreviewService`: dziś łapie `ValidationException` z podglądu kafelka i zamienia go na błąd kafelka
+  `invalid_parameters`; do usunięcia w etapie 3.
+- Endpointy podglądu kafelka w `TileEndpoints`: dziś brak parametru odrzuca podgląd; po etapie 3 zwracają 200
+  z błędami pól.
 - `TileReferencesValidator`: walidacja odwołań kafelka do połączeń (miejsce na walidację parametrów celu wiązań
   kafelka).
 - `TilePreviewService`, `TileParameterValues` (`AsText`), `TileFieldPreview` i `TileFieldPreviewJsonConverter`
