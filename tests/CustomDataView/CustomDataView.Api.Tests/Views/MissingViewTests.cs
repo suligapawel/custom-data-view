@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 
 namespace CustomDataView.Api.Tests.Views;
 
@@ -10,6 +11,14 @@ public class MissingViewTests : ViewApiTests
     public async Task Given_ViewDoesNotExist_When_UserViewsDetails_Then_ViewIsNotFound(string id)
     {
         var response = await Client.GetAsync($"{ViewsUrl}/{id}");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test(Description = "scenario_TEMP-024-028 - #23")]
+    public async Task Given_ViewDoesNotExist_When_UserEditsIt_Then_ViewIsNotFound()
+    {
+        var response = await Client.PutAsJsonAsync($"{ViewsUrl}/{Guid.NewGuid()}", new { name = "Pulpit", tiles = new[] { ViewTile(Guid.NewGuid(), 0) } });
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }

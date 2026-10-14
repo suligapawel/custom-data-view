@@ -38,8 +38,9 @@ public sealed class ViewService(
 
     public void Update(Guid id, ViewDefinition definition)
     {
+        var view = repository.Get(id) ?? throw new NotFoundException(id);
         ValidateReferences(definition);
-        repository.Update(new View(id, definition));
+        repository.Update(view with { Definition = definition });
     }
 
     private void ValidateReferences(ViewDefinition definition)
