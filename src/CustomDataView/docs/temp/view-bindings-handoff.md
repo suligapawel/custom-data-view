@@ -1,6 +1,6 @@
 # Przekazanie: wiązania w widoku i w kafelku
 
-Pracujesz w projekcie CustomDataView (PostgreSQL przez Dapper). Poniżej są wszystkie ustalenia z sesji analitycznej
+Pracujesz w projekcie CustomDataView (PostgreSQL przez EF Core). Poniżej są wszystkie ustalenia z sesji analitycznej
 z użytkownikiem. Twoje zadanie:
 
 1. Zaktualizować PRD modułu i plan bazy danych modułu zgodnie z ustaleniami (sekcja „Zmiany w dokumentacji”).
@@ -17,8 +17,11 @@ Nie zmieniaj ustaleń bez pytania użytkownika. Jeśli coś jest niejasne albo s
   `refactor: ...`).
 - Przed implementacją ustal z użytkownikiem gałąź i poziom testów. Potem pracuj bez pauz po każdym kroku, a na końcu
   zdaj raport.
-- Nowe migracje SQL nazywaj `YYYYMMDDHHMMSS_description.sql`, obok istniejących migracji modułu. Tworzyć je można,
-  ale uruchamianie migracji i skryptów na bazie wymaga zgody użytkownika. Nie dodawaj pakietów NuGet bez zgody.
+- Persystencja to EF Core. Zmiany schematu rób migracjami EF Core zgodnie z konwencją projektu (konfiguracja encji,
+  nazwy migracji i ich lokalizacja jak w istniejących migracjach). Tworzyć migracje można, ale ich uruchamianie
+  (`database update`, skrypty na bazie) wymaga zgody użytkownika. Nie dodawaj pakietów NuGet bez zgody.
+- Tabele, kolumny, klucze i indeksy opisane w „Planie bazy danych” to model docelowy. Odwzoruj je w konfiguracji
+  encji EF Core (nazwy, klucze złożone, `OnDelete`, indeksy unikalne, CHECK przez `HasCheckConstraint`).
 - Styl kodu:
   - NRT wyłączone;
   - klamry zawsze;
@@ -63,6 +66,8 @@ docelowego. Różnią się tylko węzłami:
   - propagację błędu `dependency_failed`.
 - **Osobne:** zapis (`view_bindings` i `tile_bindings`, bo klucze obce wskazują inne tabele) i walidacja specyficzna
   dla kontekstu.
+- **Wiązanie nie jest samodzielnym zasobem.** Nie ma własnego CRUD ani identyfikatora i nie jest współdzielone między
+  widokami czy kafelkami. Zawsze jest częścią definicji widoku albo kafelka.
 
 ### Mechanizm dwupoziomowy
 
@@ -114,8 +119,6 @@ Engine(nodes, edges, externalParameters, executeNode)
     kafelka i błąd kafelka `invalid_parameters` w widoku);
   - niepoprawny typ wartości z wiązania to zwykły błąd `invalid_parameters` pól połączenia docelowego, ze wskazaniem,
     że wartość pochodzi z wiązania.
-- **Wiązanie nie jest samodzielnym zasobem.** Nie ma własnego CRUD ani identyfikatora i nie jest współdzielone między
-  widokami czy kafelkami. Zawsze jest częścią definicji widoku albo kafelka.
 
 ## Ustalenia (zatwierdzone przez użytkownika)
 
@@ -134,7 +137,7 @@ Engine(nodes, edges, externalParameters, executeNode)
   wielkości liter i po przycięciu białych znaków. Walidacja w `TileDefinitionValidator` (błąd pod kluczem pola,
   komunikat po polsku) oraz ograniczenie w bazie.
 - **Flaga `hidden`.** Nowa flaga pola, typ bool, domyślnie `false` (brak w żądaniu oznacza `false`). Dodać do
-  `TileFieldRequest`, `TileFieldInput`, `TileField`, `TileFieldDto`, repozytorium Postgres i fake'ów testowych.
+  `TileFieldRequest`, `TileFieldInput`, `TileField`, `TileFieldDto`, konfiguracji encji EF Core i fake'ów testowych.
 - **Zachowanie `hidden`:**
   - podgląd kafelka zwraca pola ukryte z `"hidden": true`, bo ten podgląd służy sprawdzaniu konfiguracji;
   - podgląd widoku pomija pola ukryte w `fields` kafelka;
@@ -395,8 +398,12 @@ poziomów). Wpisy są pogrupowane po parze połączeń (`from` → `to`), a każ
 
 - **`tile_fields`:**
   - kolumna `hidden boolean NOT NULL DEFAULT false`;
-  - unikalność etykiety w kafelku, bez wielkości liter i po przycięciu, np. unikalny indeks
-    `ux_tile_fields_tile_id_label` na `(tile_id, lower(btrim(label)))`;
+  - unikalność etykiety w kafelku, bez wielkości liter i po przycięciu. EF Core nie konfiguruje wygodnie indeksu na
+    wyrażeniu, dlatego proponowane rozwiązanie to kolumna `normalized_label varchar(100) NOT NULL` (etykieta po
+    przycięciu i zamianie na małe litery, ustawiana przez aplikację przy zapisie albo jako kolumna generowana
+    `HasComputedColumnSql(..., stored: true)`) z unikalnym indeksem `ux_tile_fields_tile_id_normalized_label` na
+    `(tile_id, normalized_label)`. Tej samej znormalizowanej postaci używa wyszukiwanie pola w wiązaniach. Jeśli
+    projekt ma już inny sposób na takie indeksy, użyj go;
   - w opisie kolumny `label` zmienić „bez wymogu unikalności” na „unikalna w kafelku”.
 - **Nowa tabela `custom_data_view.view_bindings`:**
 
@@ -415,7 +422,8 @@ poziomów). Wpisy są pogrupowane po parze połączeń (`from` → `to`), a każ
   - CHECK `source_tile_id <> target_tile_id`.
   - Indeks na `source_tile_id` (sprawdzanie blokady usunięcia kafelka i edycji etykiety).
   - Grupowanie `from`/`to`/`map` w API jest odtwarzane przy odczycie; w bazie jest jeden wiersz na mapowanie.
-  - Repozytorium widoków zapisuje `views`, `view_tiles` i `view_bindings` w jednej transakcji (PUT zastępuje całość).
+  - Zapis widoku obejmuje `views`, `view_tiles` i `view_bindings` w jednym `SaveChanges` (jedna transakcja; PUT
+    zastępuje całość).
 - **Nowa tabela `custom_data_view.tile_bindings`:**
 
   | Column               | Type         | Constraints                                           |
@@ -428,11 +436,11 @@ poziomów). Wpisy są pogrupowane po parze połączeń (`from` → `to`), a każ
 
   - PK `(tile_id, target_connection_id, target_parameter)`: jeden parametr połączenia ma jedno źródło w kafelku.
   - CHECK `source_connection_id <> target_connection_id`.
-  - Etykiety nie da się objąć kluczem obcym (unikalność jest na wyrażeniu), dlatego istnienie pola i jego zgodność
-    z `source_connection_id` sprawdza aplikacja przy zapisie kafelka.
+  - Etykieta nie jest objęta kluczem obcym (pole kafelka ma klucz `(tile_id, position)`), dlatego istnienie pola
+    i jego zgodność z `source_connection_id` sprawdza aplikacja przy zapisie kafelka.
   - Grupowanie `from`/`to`/`map` w API jest odtwarzane przy odczycie; w bazie jest jeden wiersz na mapowanie.
-  - Repozytorium kafelków zapisuje `tiles`, pola, transformacje i `tile_bindings` w jednej transakcji (PUT zastępuje
-    całość).
+  - Zapis kafelka obejmuje `tiles`, pola, transformacje i `tile_bindings` w jednym `SaveChanges` (jedna transakcja;
+    PUT zastępuje całość).
 - Zaktualizować sekcje Relationships i Indexes oraz opis w Overview.
 
 ## Plan realizacji
@@ -441,7 +449,7 @@ poziomów). Wpisy są pogrupowane po parze połączeń (`from` → `to`), a każ
 2. **Etap „Unikalna etykieta i ukryte pole kafelka”:**
    - walidacja unikalności etykiety;
    - `hidden` w zapisie, odczycie i podglądzie kafelka;
-   - migracja (`ALTER TABLE tile_fields` plus indeks unikalny);
+   - migracja EF Core (kolumny `hidden` i `normalized_label` plus indeks unikalny);
    - sprawdzenie duplikatów przed migracją.
 3. **Etap „Walidacja parametrów per połączenie”** (bez wiązań; upraszcza dalsze etapy):
    - walidacja każdego połączenia osobno, tuż przed wywołaniem;
@@ -454,7 +462,7 @@ poziomów). Wpisy są pogrupowane po parze połączeń (`from` → `to`), a każ
      pierwszeństwo, zamiana na tekst, `dependency_failed`, adaptery), od razu zaprojektowany do użycia także
      w kafelku;
    - zapis, odczyt i edycja wiązań z walidacją;
-   - migracja `view_bindings`;
+   - migracja EF Core dla `view_bindings`;
    - podgląd widoku z wiązaniami: kolejność, mapa dla każdego kafelka, pierwszeństwo wiązania, `dependency_failed`,
      pomijanie pól ukrytych, zamiana listy liczb na listę tekstów;
    - blokada usunięcia kafelka będącego źródłem;
@@ -463,7 +471,7 @@ poziomów). Wpisy są pogrupowane po parze połączeń (`from` → `to`), a każ
    Jeśli etap wyjdzie zbyt duży, zaproponuj użytkownikowi podział, np. zapis wiązań / podgląd z wiązaniami / blokady.
 5. **Etap „Wiązania połączeń w kafelku”:**
    - zapis, odczyt i edycja wiązań kafelka z walidacją;
-   - migracja `tile_bindings`;
+   - migracja EF Core dla `tile_bindings`;
    - podgląd kafelka z wiązaniami na wspólnym mechanizmie z etapu 4 (adapter kafelka, fale połączeń,
      `dependency_failed` na polach);
    - wejścia kafelka i ich uwzględnienie w walidacji oraz podglądzie widoku.
@@ -490,12 +498,12 @@ jej odpowiedzialność jest rozdzielona, znajdź odpowiednik i umieść zmianę 
   (serializacja `hidden`).
 - `ParameterValuesValidator`: reguły typów path, query i body.
 - Definicje kafelka (`TileDefinition`, `TileField`, `TileFieldInput`, `TileInput`), `TileDefinitionValidator`,
-  `TileService` (`Update`, `Delete`), `PostgresTileRepository`.
+  `TileService` (`Update`, `Delete`), repozytorium kafelków i konfiguracja encji EF Core.
 - Definicje widoku (`ViewDefinition`, `ViewTile`, `ViewInput`, `ViewTileInput`), `ViewDefinitionValidator`,
-  `ViewReferencesValidator`, `ViewService`, DTO widoku, `PostgresViewRepository`.
+  `ViewReferencesValidator`, `ViewService`, DTO widoku, repozytorium widoków i konfiguracja encji EF Core.
 - `TileRequest`, `ViewRequest`, `TileEndpoints`, `ViewEndpoints`, `CustomDataViewExceptionHandler`,
   `ConnectionInUseResponse` (wzorzec odpowiedzi 409).
-- Migracje modułu: ostatnia to `20261014120000_create_views.sql`.
+- Migracje EF Core modułu: nowe dodawaj po ostatniej istniejącej.
 - Testy:
   - testy API z fake'ami repozytoriów i `FakeExternalApi`;
   - testy jednostkowe logiki (walidacja, transformacje, podgląd);
