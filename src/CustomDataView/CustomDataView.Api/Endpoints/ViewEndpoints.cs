@@ -10,13 +10,15 @@ namespace CustomDataView.Api.Endpoints;
 public static class ViewEndpoints
 {
     private const string ViewsUrl = "/api/custom-data-view/views";
+    private const string ViewUrl = $"{ViewsUrl}/{{id:guid}}";
 
     extension(IEndpointRouteBuilder endpoints)
     {
         public IEndpointRouteBuilder MapViewEndpoints()
         {
             return endpoints
-                .AddView();
+                .AddView()
+                .GetView();
         }
 
         private IEndpointRouteBuilder AddView()
@@ -26,6 +28,12 @@ public static class ViewEndpoints
                 var id = service.Add(request.ToDefinition());
                 return Results.Created($"{ViewsUrl}/{id}", new ViewCreatedResponse(id));
             });
+            return endpoints;
+        }
+
+        private IEndpointRouteBuilder GetView()
+        {
+            endpoints.MapGet(ViewUrl, (Guid id, IViewService service) => Results.Ok(service.Get(id)));
             return endpoints;
         }
     }

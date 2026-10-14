@@ -10,4 +10,5 @@ public interface ITileRepository
     void Update(Tile tile);
     void Delete(Guid id);
     IReadOnlyList<TileReference> GetUsingConnection(Guid connectionId);
+    IReadOnlyList<TileReference> GetReferences(IReadOnlyCollection<Guid> ids);
 }

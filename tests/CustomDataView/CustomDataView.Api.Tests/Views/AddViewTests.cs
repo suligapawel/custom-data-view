@@ -17,6 +17,13 @@ public class AddViewTests : ViewApiTests
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
         var created = await response.Content.ReadFromJsonAsync<JsonObject>();
-        Assert.That(Guid.TryParse(created?["id"]?.GetValue<string>(), out _), Is.True);
+        Assert.That(Guid.TryParse(created?["id"]?.GetValue<string>(), out var id), Is.True);
+        var view = await GetView(id);
+        Assert.That(view["name"]?.GetValue<string>(), Is.EqualTo("Pulpit klienta"));
+        Assert.That(Tiles(view), Is.EqualTo(new (Guid?, string, int?, string)[]
+        {
+            (CustomerTileId, "Klient", 0, "col-6 highlight"),
+            (RateTileId, "Kurs walut", 1, "col-6")
+        }));
     }
 }

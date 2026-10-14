@@ -5,4 +5,5 @@ namespace CustomDataView.Core.Views.Management;
 public interface IViewService
 {
     Guid Add(ViewDefinition definition);
+    ViewDto Get(Guid id);
 }

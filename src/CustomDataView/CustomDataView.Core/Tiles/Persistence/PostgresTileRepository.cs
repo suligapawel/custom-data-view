@@ -95,6 +95,19 @@ public sealed class PostgresTileRepository(NpgsqlDataSource dataSource, IEnumera
             .ToList();
     }
 
+    public IReadOnlyList<TileReference> GetReferences(IReadOnlyCollection<Guid> ids)
+    {
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        using var db = dataSource.OpenConnection();
+        return db.Query<TileRow>($"{SelectTiles} WHERE id = ANY(@Ids)", new { Ids = ids.ToArray() })
+            .Select(tile => new TileReference(tile.Id, tile.Name))
+            .ToList();
+    }
+
     private static void InsertFields(IDbConnection db, IDbTransaction transaction, Tile tile)
     {
         var fields = tile.Definition.Fields;

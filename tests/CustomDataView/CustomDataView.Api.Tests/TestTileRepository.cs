@@ -32,4 +32,10 @@ public sealed class TestTileRepository : ITileRepository
             .Where(tile => tile.Definition.Fields.Any(field => field.ConnectionId == connectionId))
             .Select(tile => new TileReference(tile.Id, tile.Definition.Name))
             .ToList();
+
+    public IReadOnlyList<TileReference> GetReferences(IReadOnlyCollection<Guid> ids)
+        => tiles
+            .Where(tile => ids.Contains(tile.Id))
+            .Select(tile => new TileReference(tile.Id, tile.Definition.Name))
+            .ToList();
 }
