@@ -14,11 +14,17 @@ public static class ViewDefinitionValidator
             errors["name"] = [$"Nazwa widoku jest wymagana i może mieć najwyżej {MaxNameLength} znaków."];
         }
 
+        var tileIds = new HashSet<Guid>();
         for (var index = 0; index < input.Tiles.Count; index++)
         {
-            if (input.Tiles[index].TileId is null)
+            var tileId = input.Tiles[index].TileId;
+            if (tileId is null)
             {
                 errors[$"tiles[{index}].tileId"] = ["Kafelek jest wymagany."];
+            }
+            else if (!tileIds.Add(tileId.Value))
+            {
+                errors[$"tiles[{index}].tileId"] = [$"Kafelek '{tileId}' występuje w widoku więcej niż raz."];
             }
         }
 

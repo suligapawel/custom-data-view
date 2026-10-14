@@ -44,6 +44,19 @@ public class ViewValidationTests : ViewApiTests
         Assert.That(errors.Select(error => error.Key), Does.Not.Contain("tiles[0].tileId"));
     }
 
+    [Test(Description = "scenario_TEMP-024-028 - #12")]
+    public async Task Given_CustomerTileThreeTimes_When_UserSavesView_Then_SaveIsRejectedForEachRepetition()
+    {
+        var response = await Client.PostAsJsonAsync(ViewsUrl, new
+        {
+            name = "Pulpit",
+            tiles = new[] { ViewTile(CustomerTileId, 0), ViewTile(CustomerTileId, 1), ViewTile(CustomerTileId, 2) }
+        });
+
+        var errors = await AssertRejected(response, "tiles[1].tileId");
+        Assert.That(errors.Select(error => error.Key), Is.EquivalentTo(new[] { "tiles[1].tileId", "tiles[2].tileId" }));
+    }
+
     private JsonObject ValidView()
         => new()
         {
