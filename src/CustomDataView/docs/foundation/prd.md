@@ -79,6 +79,11 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
 - Błąd źródła, brak wartości pod ścieżką lub błąd transformacji nie przerywa podglądu: zwracany jest częściowy wynik z
   błędem per pole (source_unavailable, path_not_found, transformation_failed) i status HTTP 200.
 - Każde połączenie użyte w podglądzie kafelka jest wywoływane najwyżej raz.
+- Podgląd widoku zwraca układ widoku (kafelki w kolejności pozycji z klasą CSS) oraz podgląd każdego kafelka.
+  Wartości parametrów połączeń są przekazywane w żądaniu podglądu jako jedna płaska mapa (POST w treści, GET w adresie)
+  i trafiają do wszystkich kafelków. Błąd parametrów (np. brak wymaganego) dotyczy tylko kafelka, którego połączenia
+  go wymagają; pozostałe kafelki zwracają dane, a status HTTP to 200. Każdy kafelek wykonuje własny podgląd, więc
+  połączenie wspólne dla kilku kafelków może zostać wywołane kilka razy.
 - Wyniki testów i podglądów nie są nigdzie zapisywane.
 - Żądania do zewnętrznych API mają globalny timeout i limit rozmiaru odpowiedzi.
 
@@ -93,9 +98,9 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
   definicje są wspólne. W przyszłości użytkownicy będą przypisywani wyłącznie do pełnych widoków, nie do kafelków,
   transformacji ani połączeń.
 - Uwierzytelnianie do zewnętrznych API (klucze API, tokeny, Basic auth).
-- Docelowe pobieranie danych na potrzeby wyświetlania (należy do innych modułów).
+- Docelowe pobieranie danych na potrzeby wyświetlania (należy do innych modułów); podgląd widoku służy sprawdzeniu
+  konfiguracji.
 - Frontend renderujący widoki.
-- Podgląd całego widoku z danymi.
 - Źródła danych inne niż REST (SQL, GraphQL, pliki).
 - Harmonogramy pobierania, cache i historia wyników testów.
 - Definiowanie, edycja i usuwanie transformacji przez użytkownika; nowe transformacje dodaje się wyłącznie w kodzie.
