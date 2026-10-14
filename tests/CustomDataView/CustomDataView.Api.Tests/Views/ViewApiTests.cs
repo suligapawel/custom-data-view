@@ -16,7 +16,7 @@ public abstract class ViewApiTests : TileApiTests
     public async Task CreateTiles()
     {
         CustomerTileId = await CreateTile(new { name = "Klient", fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa") } });
-        RateTileId = await CreateTile(new { name = "Kurs walut", fields = new[] { Field(RateConnectionId, "$.rate", "Kurs") } });
+        RateTileId = await CreateTile(new { name = "Kurs walut", fields = new[] { Field(RateConnectionId, "$.rate", "Kurs", Transformation("round", new { decimals = 2 })) } });
         OrdersTileId = await CreateTile(new { name = "Zamówienia", fields = new[] { Field(CustomerConnectionId, "$.orders", "Zamówienia") } });
     }
 

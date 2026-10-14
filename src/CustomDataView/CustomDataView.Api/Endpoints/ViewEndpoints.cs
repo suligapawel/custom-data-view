@@ -1,6 +1,7 @@
 using CustomDataView.Api.Requests;
 using CustomDataView.Api.Responses;
 using CustomDataView.Core.Views.Management;
+using CustomDataView.Core.Views.Preview;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -21,7 +22,8 @@ public static class ViewEndpoints
                 .GetViews()
                 .GetView()
                 .UpdateView()
-                .DeleteView();
+                .DeleteView()
+                .PreviewView();
         }
 
         private IEndpointRouteBuilder AddView()
@@ -75,6 +77,15 @@ public static class ViewEndpoints
                 service.Delete(id);
                 return Results.NoContent();
             });
+            return endpoints;
+        }
+
+        private IEndpointRouteBuilder PreviewView()
+        {
+            endpoints.MapPost(
+                $"{ViewUrl}/preview",
+                async (Guid id, TilePreviewRequest request, IViewPreviewService service, CancellationToken cancellationToken)
+                    => Results.Ok(await service.Preview(id, request.ToInput(), cancellationToken)));
             return endpoints;
         }
     }

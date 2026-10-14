@@ -13,6 +13,7 @@ using CustomDataView.Core.Transformations.Execution;
 using CustomDataView.Core.Transformations.Implementations;
 using CustomDataView.Core.Views.Management;
 using CustomDataView.Core.Views.Persistence;
+using CustomDataView.Core.Views.Preview;
 using CustomDataView.Core.Views.Validation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -68,6 +69,7 @@ public static class DependencyInjection
         services.AddSingleton<IViewRepository, PostgresViewRepository>();
         services.AddSingleton<ViewReferencesValidator>();
         services.AddSingleton<IViewService, ViewService>();
+        services.AddSingleton<IViewPreviewService, ViewPreviewService>();
         return services;
     }
 }
