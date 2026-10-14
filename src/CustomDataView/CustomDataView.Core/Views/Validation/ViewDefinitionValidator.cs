@@ -26,6 +26,11 @@ public static class ViewDefinitionValidator
             {
                 errors[$"tiles[{index}].tileId"] = [$"Kafelek '{tileId}' występuje w widoku więcej niż raz."];
             }
+
+            if (input.Tiles[index].Position is null or < 0)
+            {
+                errors[$"tiles[{index}].position"] = ["Pozycja kafelka jest wymagana i nie może być mniejsza niż 0."];
+            }
         }
 
         return errors;

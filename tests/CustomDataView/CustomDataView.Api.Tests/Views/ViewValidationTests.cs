@@ -57,6 +57,19 @@ public class ViewValidationTests : ViewApiTests
         Assert.That(errors.Select(error => error.Key), Is.EquivalentTo(new[] { "tiles[1].tileId", "tiles[2].tileId" }));
     }
 
+    [TestCase(null)]
+    [TestCase(-1)]
+    [Test(Description = "scenario_TEMP-024-028 - #13")]
+    public async Task Given_TileWithMissingOrNegativePosition_When_UserSavesView_Then_SaveIsRejectedWithFirstPositionError(int? position)
+    {
+        var view = ValidView();
+        view["tiles"]![0]!["position"] = position;
+
+        var response = await Client.PostAsJsonAsync(ViewsUrl, view);
+
+        await AssertRejected(response, "tiles[0].position");
+    }
+
     private JsonObject ValidView()
         => new()
         {
