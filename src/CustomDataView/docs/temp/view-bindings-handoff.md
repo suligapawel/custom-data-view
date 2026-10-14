@@ -1,4 +1,4 @@
-# Przekazanie: wiązania kafelków w widoku
+# Przekazanie: wiązania w widoku i w kafelku
 
 Pracujesz w projekcie CustomDataView (moduł CRUD z warstwami `Api` i `Core`, PostgreSQL przez Dapper). Poniżej są
 wszystkie ustalenia z sesji analitycznej z użytkownikiem. Twoje zadanie:
@@ -39,6 +39,33 @@ Przykład:
 - w widoku z A i B użytkownik podaje tylko `name`, a `cityId` dla B pochodzi z A;
 - w widoku z samym B użytkownik podaje `cityId` ręcznie, jak każdy inny parametr.
 
+Ten sam mechanizm działa wewnątrz kafelka, między jego połączeniami: pole kafelka pochodzące z połączenia A zasila
+parametr połączenia B tego samego kafelka.
+
+## Wiązanie jako ogólne pojęcie
+
+Wiązanie w widoku i wiązanie w kafelku to to samo pojęcie: wartość pola (wskazanego etykietą) zasila parametr węzła
+docelowego. Różnią się tylko węzłami:
+
+| | W widoku | W kafelku |
+|---|---|---|
+| Węzeł | kafelek | połączenie |
+| Źródło | pole kafelka źródłowego (etykieta) | pole tego kafelka (etykieta); jego połączenie jest węzłem źródłowym |
+| Cel | parametr kafelka docelowego | parametr konkretnego połączenia tego kafelka |
+| Gdzie zapisane | definicja widoku | definicja kafelka |
+
+- **Wspólne w kodzie:** jeden model wiązania oraz jeden mechanizm grafu zależności używany przez podgląd widoku
+  i podgląd kafelka. Mechanizm odpowiada za:
+  - wykrywanie cykli (używane też w walidatorach);
+  - wykonanie falami: niezależne węzły równolegle, zależne po swoich źródłach;
+  - budowanie mapy parametrów dla każdego węzła, z pierwszeństwem wiązania nad ręcznym parametrem;
+  - zamianę wartości na tekst dla path i query;
+  - propagację błędu `dependency_failed`.
+- **Osobne:** zapis (`view_bindings` i `tile_bindings`, bo klucze obce wskazują inne tabele) i walidacja specyficzna
+  dla kontekstu.
+- **Wiązanie nie jest samodzielnym zasobem.** Nie ma własnego CRUD ani identyfikatora i nie jest współdzielone między
+  widokami czy kafelkami. Zawsze jest częścią definicji widoku albo kafelka.
+
 ## Ustalenia (zatwierdzone przez użytkownika)
 
 ### Niezależność kafelków
@@ -47,7 +74,8 @@ Przykład:
 - Wiązania definiuje wyłącznie widok, w osobnej sekcji `bindings`. Nie są zagnieżdżone we wpisie kafelka w `tiles`.
 - Wartości przechodzą między kafelkami tylko przez jawne wiązanie. Nie ma automatycznego dopasowania, np. po nazwie
   pola i parametru. Bez wiązania nic nie jest przekazywane.
-- Podgląd pojedynczego kafelka (`/tiles/{id}/preview`, `/tiles/preview`) nie zna wiązań i działa jak dotąd.
+- Podgląd pojedynczego kafelka (`/tiles/{id}/preview`, `/tiles/preview`) nie zna wiązań widoku. Wykonuje tylko
+  wiązania zdefiniowane w samym kafelku (patrz „Wiązania w kafelku”).
 
 ### Zmiany w kafelku: unikalna etykieta i flaga `hidden`
 
@@ -99,8 +127,9 @@ Wiązania są pogrupowane po parze kafelków (`from` → `to`), a każda para ma
 ```
 
 - `field` to etykieta pola kafelka źródłowego (unikalna w kafelku).
-- `parameter` to nazwa parametru zadeklarowanego w którymkolwiek połączeniu kafelka docelowego, dowolnego rodzaju
-  (path, query, body). Rodzaj nie jest częścią wiązania.
+- `parameter` to nazwa wejścia kafelka docelowego: parametru zadeklarowanego w którymkolwiek jego połączeniu,
+  dowolnego rodzaju (path, query, body), z pominięciem parametrów związanych wewnątrz kafelka (patrz „Wejścia
+  kafelka”). Rodzaj nie jest częścią wiązania.
 - `bindings` jest opcjonalne; brak oznacza pustą listę.
 - Szczegóły widoku (`GET /views/{id}`) zwracają `bindings` w tym samym kształcie.
 - PUT widoku zastępuje całość, łącznie z wiązaniami.
@@ -111,7 +140,8 @@ Wiązania są pogrupowane po parze kafelków (`from` → `to`), a każda para ma
 - Para `from` → `to` występuje najwyżej raz.
 - `map` ma co najmniej jedno mapowanie.
 - `field` istnieje w kafelku `from` (szukane po etykiecie).
-- `parameter` jest zadeklarowany w którymś połączeniu kafelka `to`.
+- `parameter` jest wejściem kafelka `to` (zadeklarowany w którymś połączeniu i nie wszędzie związany wewnątrz
+  kafelka).
 - Parametr kafelka docelowego ma najwyżej jedno źródło łącznie we wszystkich wpisach. Na przykład `days` nie może
   przyjść jednocześnie z A i z C.
 - Wiązania nie tworzą cyklu (A → B → A, także dłuższe).
@@ -152,6 +182,77 @@ Wiązania są pogrupowane po parze kafelków (`from` → `to`), a każda para ma
 - `TilePreviewService` nie musi znać wiązań. `ViewPreviewService` buduje mapę parametrów dla każdego kafelka i woła
   istniejące `Preview(id, parameters, ct)`.
 
+### Wiązania w kafelku: kształt API
+
+Kafelek dostaje opcjonalną sekcję `bindings`. Wpisy są pogrupowane po połączeniu docelowym (`to`), a każdy ma tablicę
+mapowań `map` (pole → parametr). Połączenie źródłowe nie jest podawane: wynika z pola, które wskazuje etykieta.
+
+```json
+{
+  "name": "Pogoda",
+  "fields": [
+    { "connectionId": "<ID_WYSZUKIWANIE_MIASTA>", "path": "$.cityId", "label": "ID miasta", "hidden": true },
+    { "connectionId": "<ID_PROGNOZA>", "path": "$.temperature", "label": "Temperatura" }
+  ],
+  "bindings": [
+    {
+      "to": "<ID_PROGNOZA>",
+      "map": [ { "field": "ID miasta", "parameter": "cityId" } ]
+    }
+  ]
+}
+```
+
+- `field` to etykieta pola tego kafelka (tak samo jak w widoku).
+- `to` to połączenie używane przez kafelek (przez któreś z jego pól).
+- `parameter` to parametr zadeklarowany w połączeniu `to` (path, query albo body).
+- Wiązanie dotyczy tylko połączenia `to`. Inne połączenia kafelka deklarujące parametr o tej nazwie dalej dostają
+  wartość z zewnątrz.
+- `bindings` jest opcjonalne; brak oznacza pustą listę. Szczegóły kafelka (`GET /tiles/{id}`) zwracają `bindings`
+  w tym samym kształcie. PUT kafelka zastępuje całość, łącznie z wiązaniami.
+
+### Walidacja zapisu kafelka (`TileDefinitionValidator` / `TileReferencesValidator`)
+
+- `to` jest połączeniem używanym przez któreś pole kafelka i występuje w `bindings` najwyżej raz.
+- `map` ma co najmniej jedno mapowanie.
+- `field` istnieje w kafelku (szukane po etykiecie).
+- Połączenie pola źródłowego jest różne od `to`.
+- `parameter` jest zadeklarowany w połączeniu `to` i ma w nim najwyżej jedno źródło.
+- Wiązania między połączeniami nie tworzą cyklu (A → B → A, także dłuższe).
+- Pole z wildcardem jest dozwolone jako źródło, tak jak w widoku.
+- Usunięcie z kafelka pola albo połączenia użytego w jego własnym wiązaniu to zwykły błąd walidacji tego kafelka,
+  bo PUT zastępuje całość.
+
+### Podgląd kafelka z wiązaniami (`TilePreviewService`)
+
+- Połączenia wykonują się falami według zależności: niezależne równolegle, zależne po swoich źródłach. Reguła „każde
+  połączenie użyte w podglądzie kafelka jest wywoływane najwyżej raz” nadal obowiązuje.
+- Mapa parametrów połączenia docelowego to wartości z zewnątrz (żądanie albo widok) plus wartości z wiązań kafelka.
+  Wiązanie wygrywa z wartością z zewnątrz dla tego połączenia.
+- Przekazywana wartość to wartość pola po transformacjach, jak w widoku.
+- Błędy dotyczą pól, a nie całego kafelka:
+  - gdy pole źródłowe ma błąd albo jego połączenie zawiedzie, pola z połączenia docelowego dostają nowy błąd pola
+    `dependency_failed` (nowa stała w `TileFieldErrorCodes`) z przyczyną (pole źródłowe i kod błędu). Połączenie
+    docelowe nie jest wtedy wywoływane;
+  - pozostałe pola zwracają dane, a status to 200 (zasada częściowych wyników).
+- Walidacja parametrów (brak wymaganego, zły typ) uwzględnia wartości z wiązań. Wartość z wiązania jest znana dopiero
+  po wykonaniu źródła, więc parametry połączenia zależnego są walidowane dopiero przed jego wywołaniem. Błąd takiej
+  walidacji trafia do pól połączenia zależnego, a nie przerywa całego podglądu kafelka. Parametry połączeń bez
+  zależności walidujemy jak dziś.
+- Ten sam mechanizm działa w podglądzie widoku: widok przekazuje kafelkowi swoją mapę parametrów, a kafelek wykonuje
+  wewnątrz własne wiązania.
+
+### Wejścia kafelka
+
+- Wejściem kafelka jest parametr zadeklarowany w którymś z jego połączeń, o ile w tym połączeniu nie jest związany
+  wiązaniem kafelka.
+- Parametr związany w jednym połączeniu, a niezwiązany w innym, nadal jest wejściem, ale tylko dla tego drugiego
+  połączenia.
+- Wiązanie w widoku może wskazywać tylko wejście kafelka (walidacja zapisu widoku). Wartość z wiązania widoku trafia
+  tylko do połączeń, w których parametr jest wejściem.
+- Wartość z zewnątrz dla parametru związanego wewnątrz kafelka jest ignorowana w połączeniu, którego dotyczy to
+  wiązanie.
+
 ### Usuwanie kafelka
 
 - `DELETE /tiles/{id}` kafelka, który jest źródłem (`from`) wiązania w jakimkolwiek widoku, jest blokowane:
@@ -164,7 +265,18 @@ Wiązania są pogrupowane po parze kafelków (`from` → `to`), a każda para ma
 - Różne wartości dla parametrów o tej samej nazwie w różnych połączeniach lub rodzajach jednego kafelka.
 - Składanie jednego parametru z kilku pól (szablon, np. `"{lat},{lon}"`).
 - Wielokrotne wywołanie kafelka docelowego dla każdego elementu tablicy (fan-out).
-- Wiązania w podglądzie pojedynczego kafelka.
+- Wiązania widoku w podglądzie pojedynczego kafelka.
+- Wiązanie jako samodzielny, współdzielony zasób.
+
+### Otwarte kwestie (zapytaj użytkownika przed implementacją)
+
+- **Edycja połączenia.** Co z edycją połączenia, która usuwa albo zmienia nazwę parametru będącego celem wiązania
+  (w kafelku albo w widoku)? Dziś wartości parametrów niezadeklarowanych są po cichu pomijane, więc wiązanie
+  przestałoby działać bez żadnego błędu. Propozycja do potwierdzenia: blokada edycji połączenia (409 z listą kafelków
+  i widoków), spójnie z pozostałymi blokadami.
+- **Wiązanie w kafelku a wiązanie w widoku.** Co, jeśli kafelek doda wewnętrzne wiązanie parametru, który jest już
+  celem wiązania w jakimś widoku? Wiązanie widoku wskazywałoby wtedy coś, co nie jest już wejściem kafelka.
+  Propozycja do potwierdzenia: blokada edycji kafelka (409 z listą widoków).
 
 ## Zmiany w dokumentacji
 
@@ -174,13 +286,17 @@ Wiązania są pogrupowane po parze kafelków (`from` → `to`), a każda para ma
   - etykieta pola unikalna w kafelku (bez rozróżniania wielkości liter, po przycięciu);
   - flaga `hidden` (domyślnie `false`); pola ukryte są pomijane w podglądzie widoku, a widoczne w podglądzie kafelka;
   - edycja kafelka, która usuwa lub zmienia etykietę pola użytego w wiązaniu, jest blokowana z listą widoków;
-  - usunięcie kafelka będącego źródłem wiązania jest blokowane z listą widoków.
+  - usunięcie kafelka będącego źródłem wiązania jest blokowane z listą widoków;
+  - wiązania w kafelku (pole → parametr konkretnego połączenia), ich walidacja i pojęcie wejść kafelka.
 - **3.4 Definicje widoków:** sekcja wiązań (para kafelków plus mapowania pole → parametr) i reguły walidacji z tego
   dokumentu. Dodać zasadę: „Wartości przechodzą między kafelkami wyłącznie przez jawne wiązanie w widoku; kafelki nie
   znają się nawzajem”.
 - **3.5 Test i podgląd:** zmienić zdania „Każdy kafelek wykonuje własny podgląd…” i „trafiają do wszystkich
-  kafelków”. Dopisać kolejność wykonania według wiązań, mapę parametrów dla każdego kafelka, pierwszeństwo wiązania,
-  `dependency_failed` i pomijanie pól ukrytych.
+  kafelków”. Dopisać:
+  - kolejność wykonania według wiązań (kafelki w widoku, połączenia w kafelku);
+  - mapę parametrów dla każdego węzła i pierwszeństwo wiązania;
+  - `dependency_failed` dla kafelka w widoku i dla pola w kafelku;
+  - pomijanie pól ukrytych w podglądzie widoku.
 - **4 Granice produktu:** dopisać elementy z sekcji „Poza zakresem (MVP)”.
 - **6 Metryki (opcjonalnie):** 100% prób usunięcia kafelka będącego źródłem wiązania jest blokowanych z listą widoków.
 - **Historyjki użytkownika:** dopisać nowe historyjki dla etapów z „Planu realizacji”, z kryteriami akceptacji
@@ -211,6 +327,20 @@ Wiązania są pogrupowane po parze kafelków (`from` → `to`), a każda para ma
   - Indeks na `source_tile_id` (sprawdzanie blokady usunięcia kafelka i edycji etykiety).
   - Grupowanie `from`/`to`/`map` w API jest odtwarzane przy odczycie; w bazie jest jeden wiersz na mapowanie.
   - Repozytorium widoków zapisuje `views`, `view_tiles` i `view_bindings` w jednej transakcji (PUT zastępuje całość).
+- **Nowa tabela `custom_data_view.tile_bindings`:**
+
+  | Column               | Type         | Constraints                                           |
+  |----------------------|--------------|-------------------------------------------------------|
+  | tile_id              | uuid         | PK, NOT NULL, FK → tiles.id ON DELETE CASCADE         |
+  | target_connection_id | uuid         | PK, NOT NULL, FK → connections.id ON DELETE RESTRICT  |
+  | target_parameter     | varchar(50)  | PK, NOT NULL; jak `name` w `connection_*_parameters`  |
+  | source_field         | varchar(100) | NOT NULL; etykieta pola tego kafelka                  |
+
+  - PK `(tile_id, target_connection_id, target_parameter)`: jeden parametr połączenia ma jedno źródło w kafelku.
+  - Etykiety nie da się objąć kluczem obcym (unikalność jest na wyrażeniu), dlatego istnienie pola i to, że jego
+    połączenie jest różne od docelowego, sprawdza aplikacja przy zapisie kafelka.
+  - Repozytorium kafelków zapisuje `tiles`, pola, transformacje i `tile_bindings` w jednej transakcji (PUT zastępuje
+    całość).
 - Zaktualizować sekcje Relationships i Indexes oraz opis w Overview.
 
 ## Plan realizacji
@@ -222,6 +352,8 @@ Wiązania są pogrupowane po parze kafelków (`from` → `to`), a każda para ma
    - migracja (`ALTER TABLE tile_fields` plus indeks unikalny);
    - sprawdzenie duplikatów przed migracją.
 3. **Etap „Wiązania kafelków w widoku”:**
+   - ogólny model wiązania i mechanizm grafu zależności (cykle, fale, mapa parametrów dla węzła, pierwszeństwo,
+     zamiana na tekst, `dependency_failed`), od razu zaprojektowany do użycia także w kafelku;
    - zapis, odczyt i edycja wiązań z walidacją;
    - migracja `view_bindings`;
    - podgląd widoku z wiązaniami: kolejność, mapa dla każdego kafelka, pierwszeństwo wiązania, `dependency_failed`,
@@ -230,12 +362,24 @@ Wiązania są pogrupowane po parze kafelków (`from` → `to`), a każda para ma
    - blokada edycji kafelka, która usuwa albo zmienia etykietę pola będącego źródłem.
 
    Jeśli etap wyjdzie zbyt duży, zaproponuj użytkownikowi podział, np. zapis wiązań / podgląd z wiązaniami / blokady.
-4. **README:** na koniec zaktualizuj README o przykład widoku z wiązaniem i flagą `hidden`.
+4. **Etap „Wiązania połączeń w kafelku”:**
+   - zapis, odczyt i edycja wiązań kafelka z walidacją;
+   - migracja `tile_bindings`;
+   - podgląd kafelka z wiązaniami na wspólnym mechanizmie z etapu 3 (fale połączeń, walidacja parametrów połączenia
+     zależnego dopiero przed jego wywołaniem, `dependency_failed` na polach);
+   - wejścia kafelka i ich uwzględnienie w walidacji oraz podglądzie widoku.
+
+   Przed tym etapem rozstrzygnij z użytkownikiem „Otwarte kwestie”.
+5. **README:** na koniec zaktualizuj README o przykłady widoku z wiązaniem, kafelka z wiązaniem i flagi `hidden`.
 
 ## Punkty w kodzie
 
 - `ViewPreviewService`: dziś wykonuje wszystkie kafelki równolegle z tą samą mapą parametrów.
-- `ViewTileErrorCodes`, `ViewTileError`, `ViewTilePreview`.
+- `ViewTileErrorCodes`, `ViewTileError`, `ViewTilePreview`, `TileFieldErrorCodes`, `TileFieldError`.
+- `TilePreviewService.Call` i `ValidateValues`: dziś wywołuje wszystkie połączenia kafelka równolegle i waliduje
+  parametry wszystkich połączeń przed wywołaniem; to trzeba zmienić dla połączeń zależnych.
+- `TileReferencesValidator`: walidacja odwołań kafelka do połączeń (miejsce na walidację parametrów celu wiązań
+  kafelka).
 - `TilePreviewService`, `TileParameterValues` (`AsText`), `TileFieldPreview` i `TileFieldPreviewJsonConverter`
   (serializacja `hidden`).
 - `ParameterValuesValidator`: reguły typów path, query i body.
