@@ -85,6 +85,42 @@ public class ViewPreviewTests : ViewApiTests
         Assert.That(Fields(preview, 1), Is.EqualTo(new[] { ("Saldo", "1234.567") }));
     }
 
+    [Test(Description = "scenario_TEMP-029 - #6")]
+    public async Task Given_EmptyView_When_UserPreviewsIt_Then_PreviewHasNoTiles()
+    {
+        var id = await CreateView("Pusty");
+
+        var response = await Client.PostAsJsonAsync($"{ViewsUrl}/{id}/preview", new { });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var preview = await response.Content.ReadFromJsonAsync<JsonObject>();
+        Assert.That(preview["name"]?.GetValue<string>(), Is.EqualTo("Pusty"));
+        Assert.That(preview["tiles"]!.AsArray(), Is.Empty);
+    }
+
+    [TestCase("POST")]
+    [TestCase("GET")]
+    [Test(Description = "scenario_TEMP-029 - #7")]
+    public async Task Given_ViewDoesNotExist_When_UserPreviewsIt_Then_ViewIsNotFound(string method)
+    {
+        var url = $"{ViewsUrl}/{Guid.NewGuid()}/preview";
+
+        var response = method == "POST" ? await Client.PostAsJsonAsync(url, CustomerValues()) : await Client.GetAsync(url);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test(Description = "scenario_TEMP-029 - #8")]
+    public async Task Given_ViewWithCustomerTile_When_UserPreviewsIt_Then_ViewDetailsAreUnchanged()
+    {
+        var id = await CreateView("Pulpit klienta", ViewTile(CustomerTileId, 0));
+        var details = await Client.GetStringAsync($"{ViewsUrl}/{id}");
+
+        await Client.PostAsJsonAsync($"{ViewsUrl}/{id}/preview", CustomerValues());
+
+        Assert.That(await Client.GetStringAsync($"{ViewsUrl}/{id}"), Is.EqualTo(details));
+    }
+
     private static IEnumerable<(string, string)> Fields(JsonObject preview, int tile)
         => preview["tiles"]![tile]!["fields"]!.AsArray()
             .Select(field => (field["label"]?.GetValue<string>(), field["value"]?.ToJsonString()));

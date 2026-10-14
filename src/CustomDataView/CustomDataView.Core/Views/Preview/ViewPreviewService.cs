@@ -15,7 +15,7 @@ public sealed class ViewPreviewService(IViewRepository views, ITileRepository ti
         IReadOnlyDictionary<string, JsonElement> parameters,
         CancellationToken cancellationToken)
     {
-        var view = views.Get(id);
+        var view = views.Get(id) ?? throw new NotFoundException(id);
         var names = tiles.GetReferences(view.Definition.Tiles.Select(tile => tile.TileId).ToList())
             .ToDictionary(tile => tile.Id, tile => tile.Name);
         var previews = await Task.WhenAll(view.Definition.Tiles
