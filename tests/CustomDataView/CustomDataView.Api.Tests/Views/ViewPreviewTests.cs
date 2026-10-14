@@ -48,6 +48,7 @@ public class ViewPreviewTests : ViewApiTests
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         var preview = await response.Content.ReadFromJsonAsync<JsonObject>();
         var customer = preview["tiles"]![0]!.AsObject();
+        Assert.That(customer["tileName"]?.GetValue<string>(), Is.EqualTo("Klient"));
         Assert.That(customer["error"]?["code"]?.GetValue<string>(), Is.EqualTo("invalid_parameters"));
         Assert.That(customer["error"]!["errors"]!.AsObject().Select(error => error.Key), Is.EqualTo(new[] { "parameters.customer_id" }));
         Assert.That(customer.ContainsKey("fields"), Is.False);
