@@ -1,5 +1,34 @@
 # CustomDataView
 
+## Baza danych PostgreSQL w kontenerze
+
+Uruchomienie kontenera (port `55432`, baza `custom_data_view_test`, użytkownik `postgres`, hasło `test`):
+
+```bash
+docker run -d --name custom-data-view-db \
+  -p 55432:5432 \
+  -e POSTGRES_DB=custom_data_view_test \
+  -e POSTGRES_PASSWORD=test \
+  postgres:17-alpine
+```
+
+Migracje nie są wykonywane przez aplikację — uruchom je ręcznie, w kolejności nazw plików:
+
+```bash
+for migration in src/CustomDataView/CustomDataView.Core/Persistence/Migrations/*.sql; do
+  docker exec -i custom-data-view-db psql -U postgres -d custom_data_view_test -v ON_ERROR_STOP=1 < "$migration"
+done
+```
+
+Testy repozytoriów PostgreSQL (`CustomDataView.Core.Persistence.Tests`) korzystają z bazy wskazanej zmienną
+`CUSTOM_DATA_VIEW_TEST_DATABASE`; nazwa bazy musi kończyć się na `_test`. Testy usuwają schemat `custom_data_view`
+i same wykonują migracje:
+
+```bash
+CUSTOM_DATA_VIEW_TEST_DATABASE="Host=localhost;Port=55432;Database=custom_data_view_test;Username=postgres;Password=test" \
+  dotnet test tests/CustomDataView/CustomDataView.Core.Persistence.Tests
+```
+
 ## Przykład: kafelek „Pogoda” na fałszywym API pogody
 
 Przykład korzysta z endpointów deweloperskich `FakeWeatherEndpoints` (`/api/fake/weather/...`) i zakłada, że aplikacja
@@ -176,6 +205,54 @@ curl "http://localhost:5080/api/custom-data-view/tiles/<ID_KAFELKA>/preview?city
   "parameters": { "city": "Warszawa", "days": 5, "cities": ["Wrocław", "Poznań"] }
 }
 ```
+
+### 6. Widok „Pulpit pogodowy”
+
+`POST /api/custom-data-view/views` — w `tileId` wstaw identyfikator kafelka z kroku 3. Kafelek może wystąpić w widoku
+najwyżej raz, a pozycje muszą być unikalne i nieujemne (luki są dozwolone). Klasa CSS jest opcjonalna (do 200 znaków)
+i opisuje frontendowi sposób wyświetlenia kafelka:
+
+```json
+{
+  "name": "Pulpit pogodowy",
+  "tiles": [
+    { "tileId": "<ID_KAFELKA>", "position": 0, "cssClass": "col-6 highlight" }
+  ]
+}
+```
+
+Odpowiedź zwraca `id` widoku. Pozostałe operacje:
+
+| Operacja                   | Żądanie                                       | Wynik                                           |
+|----------------------------|-----------------------------------------------|-------------------------------------------------|
+| Lista widoków              | `GET /api/custom-data-view/views`             | `[ { "id", "name", "tileCount" } ]`             |
+| Szczegóły widoku           | `GET /api/custom-data-view/views/{id}`        | nazwa i kafelki w kolejności pozycji            |
+| Edycja (zastępuje całość)  | `PUT /api/custom-data-view/views/{id}`        | 204; treść jak przy dodaniu                     |
+| Usunięcie                  | `DELETE /api/custom-data-view/views/{id}`     | 204; kafelki i połączenia pozostają             |
+
+Szczegóły widoku:
+
+```json
+{
+  "id": "<ID_WIDOKU>",
+  "name": "Pulpit pogodowy",
+  "tiles": [
+    { "tileId": "<ID_KAFELKA>", "tileName": "Pogoda", "position": 0, "cssClass": "col-6 highlight" }
+  ]
+}
+```
+
+Przez curl:
+
+```bash
+curl -X POST "http://localhost:5080/api/custom-data-view/views" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Pulpit pogodowy", "tiles": [{"tileId": "<ID_KAFELKA>", "position": 0, "cssClass": "col-6 highlight"}]}'
+
+curl "http://localhost:5080/api/custom-data-view/views/<ID_WIDOKU>"
+```
+
+Usunięcie kafelka zdejmuje go ze wszystkich widoków, które go zawierały; widoki pozostają.
 
 ### Uwagi
 
