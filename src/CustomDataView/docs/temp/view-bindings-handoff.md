@@ -1,7 +1,7 @@
 # Przekazanie: wiązania w widoku i w kafelku
 
-Pracujesz w projekcie CustomDataView (moduł CRUD z warstwami `Api` i `Core`, PostgreSQL przez Dapper). Poniżej są
-wszystkie ustalenia z sesji analitycznej z użytkownikiem. Twoje zadanie:
+Pracujesz w projekcie CustomDataView (PostgreSQL przez Dapper). Poniżej są wszystkie ustalenia z sesji analitycznej
+z użytkownikiem. Twoje zadanie:
 
 1. Zaktualizować PRD modułu i plan bazy danych modułu zgodnie z ustaleniami (sekcja „Zmiany w dokumentacji”).
 2. Zaimplementować funkcję etapami z sekcji „Plan realizacji”, metodą TDD: małe kroki Red → Green → Refactor → Commit.
@@ -472,6 +472,9 @@ poziomów). Wpisy są pogrupowane po parze połączeń (`from` → `to`), a każ
 
 ## Punkty w kodzie
 
+Nazwy klas poniżej pochodzą z wcześniejszego układu projektu. Jeśli po podziale na warstwy klasa ma inną nazwę albo
+jej odpowiedzialność jest rozdzielona, znajdź odpowiednik i umieść zmianę we właściwej warstwie.
+
 - `ViewPreviewService`: dziś wykonuje wszystkie kafelki równolegle z tą samą mapą parametrów.
 - `ViewTileErrorCodes`, `ViewTileError`, `ViewTilePreview`, `TileFieldErrorCodes`, `TileFieldError`.
 - `TilePreviewService.Call` i `ValidateValues`: dziś wywołuje wszystkie połączenia kafelka równolegle i waliduje
@@ -495,5 +498,5 @@ poziomów). Wpisy są pogrupowane po parze połączeń (`from` → `to`), a każ
 - Migracje modułu: ostatnia to `20261014120000_create_views.sql`.
 - Testy:
   - testy API z fake'ami repozytoriów i `FakeExternalApi`;
-  - testy `Core`;
+  - testy jednostkowe logiki (walidacja, transformacje, podgląd);
   - testy persystencji na Postgresie w kontenerze (instrukcja w README).
