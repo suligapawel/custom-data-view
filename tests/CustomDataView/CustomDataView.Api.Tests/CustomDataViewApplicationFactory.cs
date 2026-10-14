@@ -19,7 +19,8 @@ public class CustomDataViewApplicationFactory : WebApplicationFactory<Program>
         {
             services.AddSingleton<IConnectionRepository, TestConnectionRepository>();
             services.AddSingleton<ITileRepository, TestTileRepository>();
-            services.AddSingleton<IViewRepository, TestViewRepository>();
+            services.AddSingleton<TestViewRepository>();
+            services.AddSingleton<IViewRepository>(provider => provider.GetRequiredService<TestViewRepository>());
             services.AddHttpClient(ExternalApiClient.HttpClientName).ConfigurePrimaryHttpMessageHandler(() => ExternalApi);
         });
     }

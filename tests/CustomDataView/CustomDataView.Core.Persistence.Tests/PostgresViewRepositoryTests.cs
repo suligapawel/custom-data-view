@@ -83,6 +83,21 @@ public class PostgresViewRepositoryTests
     }
 
     [Test]
+    public void Given_TwoViewsWithTile_When_TileIsDeleted_Then_ItIsRemovedFromBothViewsWhichRemain()
+    {
+        var sales = new View(Guid.NewGuid(), new ViewDefinition("Sprzedaż",
+            [new ViewTile(customerTileId, 0, null), new ViewTile(rateTileId, 1, null)]));
+        var service = new View(Guid.NewGuid(), new ViewDefinition("Obsługa", [new ViewTile(customerTileId, 0, null)]));
+        repository.Add(sales);
+        repository.Add(service);
+
+        tiles.Delete(customerTileId);
+
+        Assert.That(repository.Get(sales.Id).Definition.Tiles.Select(tile => tile.TileId), Is.EqualTo(new[] { rateTileId }));
+        Assert.That(repository.Get(service.Id).Definition.Tiles, Is.Empty);
+    }
+
+    [Test]
     public void Given_ViewDoesNotExist_When_ItIsLoaded_Then_NothingIsReturned()
     {
         Assert.That(repository.Get(Guid.NewGuid()), Is.Null);

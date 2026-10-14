@@ -3,7 +3,7 @@ using CustomDataView.Core.Tiles.Persistence;
 
 namespace CustomDataView.Api.Tests;
 
-public sealed class TestTileRepository : ITileRepository
+public sealed class TestTileRepository(TestViewRepository views) : ITileRepository
 {
     private readonly List<Tile> tiles = [];
 
@@ -25,6 +25,7 @@ public sealed class TestTileRepository : ITileRepository
     public void Delete(Guid id)
     {
         tiles.RemoveAll(tile => tile.Id == id);
+        views.RemoveTile(id);
     }
 
     public IReadOnlyList<TileReference> GetUsingConnection(Guid connectionId)

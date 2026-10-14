@@ -21,4 +21,17 @@ public class TileChangesInViewsTests : ViewApiTests
             Tiles(await GetView(viewId)),
             Is.EqualTo(new (Guid?, string, int?, string)[] { (CustomerTileId, "Klient VIP", 3, "col-6") }));
     }
+
+    [Test(Description = "scenario_TEMP-024-028 - #8")]
+    public async Task Given_TwoViewsWithCustomerTile_When_UserDeletesThatTile_Then_ItDisappearsFromBothViews()
+    {
+        var salesId = await CreateView("Sprzedaż", ViewTile(CustomerTileId, 0), ViewTile(RateTileId, 1));
+        var serviceId = await CreateView("Obsługa", ViewTile(CustomerTileId, 0), ViewTile(OrdersTileId, 1));
+
+        var response = await Client.DeleteAsync($"{TilesUrl}/{CustomerTileId}");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+        Assert.That(Tiles(await GetView(salesId)).Select(tile => tile.Item1), Is.EqualTo(new Guid?[] { RateTileId }));
+        Assert.That(Tiles(await GetView(serviceId)).Select(tile => tile.Item1), Is.EqualTo(new Guid?[] { OrdersTileId }));
+    }
 }
