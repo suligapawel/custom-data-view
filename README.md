@@ -237,6 +237,52 @@ curl "http://localhost:5080/api/custom-data-view/views/<ID_WIDOKU>"
 
 Usunięcie kafelka zdejmuje go ze wszystkich widoków, które go zawierały; widoki pozostają.
 
+### 7. Podgląd widoku z danymi
+
+`POST /api/custom-data-view/views/{id}/preview` — parametry jak w podglądzie kafelka (jedna płaska mapa); trafiają do
+wszystkich kafelków widoku:
+
+```json
+{
+  "parameters": { "city": "Warszawa", "days": 5, "cities": ["Wrocław", "Poznań"] }
+}
+```
+
+To samo metodą GET:
+
+```bash
+curl -G "http://localhost:5080/api/custom-data-view/views/<ID_WIDOKU>/preview" \
+  --data-urlencode "city=Warszawa" \
+  --data-urlencode "days=5" \
+  --data-urlencode "cities=Wrocław" \
+  --data-urlencode "cities=Poznań"
+```
+
+Wynik zawiera układ widoku i podgląd każdego kafelka w kolejności pozycji:
+
+```json
+{
+  "id": "<ID_WIDOKU>",
+  "name": "Pulpit pogodowy",
+  "tiles": [
+    {
+      "tileId": "<ID_KAFELKA>", "tileName": "Pogoda", "position": 0, "cssClass": "col-6 highlight",
+      "fields": [ { "label": "Miasto", "value": "WARSZAWA" } ]
+    }
+  ]
+}
+```
+
+Brak wymaganego parametru daje błąd tylko w kafelku, którego połączenia go wymagają (pozostałe kafelki zwracają
+dane, status 200):
+
+```json
+{ "tileId": "…", "tileName": "Pogoda", "position": 0, "cssClass": null,
+  "error": { "code": "invalid_parameters", "errors": { "parameters.city": ["…"] } } }
+```
+
+Każdy kafelek pobiera dane osobno, więc połączenie wspólne dla kilku kafelków jest wywoływane kilka razy.
+
 ### Uwagi
 
 - Podgląd przyjmuje wyłącznie płaską mapę parametrów, bez identyfikatorów połączeń. Wartość trafia do każdego
