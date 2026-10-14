@@ -1,9 +1,12 @@
 using CustomDataView.Core.Views.Definitions;
+using CustomDataView.Core.Views.Validation;
 
 namespace CustomDataView.Api.Requests;
 
 public sealed record ViewRequest(string Name, IReadOnlyList<ViewTileRequest> Tiles)
 {
+    public IDictionary<string, string[]> Validate() => ViewDefinitionValidator.Validate(ToInput());
+
     public ViewDefinition ToDefinition() => ToInput().ToDefinition();
 
     public ViewInput ToInput()

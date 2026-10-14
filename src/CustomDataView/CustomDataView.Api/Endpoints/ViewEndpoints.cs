@@ -26,6 +26,12 @@ public static class ViewEndpoints
         {
             endpoints.MapPost(ViewsUrl, (ViewRequest request, IViewService service) =>
             {
+                var errors = request.Validate();
+                if (errors.Count > 0)
+                {
+                    return Results.ValidationProblem(errors);
+                }
+
                 var id = service.Add(request.ToDefinition());
                 return Results.Created($"{ViewsUrl}/{id}", new ViewCreatedResponse(id));
             });
