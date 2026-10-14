@@ -109,7 +109,7 @@ Engine(nodes, edges, externalParameters, executeNode)
     pól zamiast odrzucenia żądania. Walidacja samego kształtu żądania (np. brak treści) zostaje bez zmian;
   - w podglądzie widoku znika błąd całego kafelka `invalid_parameters` i obsługa `ValidationException`
     w `ViewPreviewService`. Kafelek z brakującym parametrem zwraca pola z błędami. `ViewTileError` zostaje tylko dla
-    `dependency_failed`;
+    `dependency_failed` i `invalid_binding`;
   - zmienić istniejące scenariusze, testy, PRD (3.5) i README, które opisują obecne zachowanie (odrzucenie podglądu
     kafelka i błąd kafelka `invalid_parameters` w widoku);
   - niepoprawny typ wartości z wiązania to zwykły błąd `invalid_parameters` pól połączenia docelowego, ze wskazaniem,
@@ -304,7 +304,8 @@ poziomów). Wpisy są pogrupowane po parze połączeń (`from` → `to`), a każ
 - Parametr związany w jednym połączeniu, a niezwiązany w innym, nadal jest wejściem, ale tylko dla tego drugiego
   połączenia.
 - Wiązanie w widoku może wskazywać tylko wejście kafelka (walidacja zapisu widoku). Wartość z wiązania widoku trafia
-  tylko do połączeń, w których parametr jest wejściem.
+  tylko do połączeń, w których parametr jest wejściem. Jeśli parametr przestanie być wejściem po późniejszej edycji
+  kafelka, wiązanie widoku jest ignorowane (patrz „Doprecyzowania”, punkt 3).
 - Wartość z zewnątrz dla parametru związanego wewnątrz kafelka jest ignorowana w połączeniu, którego dotyczy to
   wiązanie.
 
@@ -323,15 +324,40 @@ poziomów). Wpisy są pogrupowane po parze połączeń (`from` → `to`), a każ
 - Wiązania widoku w podglądzie pojedynczego kafelka.
 - Wiązanie jako samodzielny, współdzielony zasób.
 
-### Otwarte kwestie (zapytaj użytkownika przed implementacją)
+### Doprecyzowania (decyzje użytkownika)
 
-- **Edycja połączenia.** Co z edycją połączenia, która usuwa albo zmienia nazwę parametru będącego celem wiązania
-  (w kafelku albo w widoku)? Dziś wartości parametrów niezadeklarowanych są po cichu pomijane, więc wiązanie
-  przestałoby działać bez żadnego błędu. Propozycja do potwierdzenia: blokada edycji połączenia (409 z listą kafelków
-  i widoków), spójnie z pozostałymi blokadami.
-- **Wiązanie w kafelku a wiązanie w widoku.** Co, jeśli kafelek doda wewnętrzne wiązanie parametru, który jest już
-  celem wiązania w jakimś widoku? Wiązanie widoku wskazywałoby wtedy coś, co nie jest już wejściem kafelka.
-  Propozycja do potwierdzenia: blokada edycji kafelka (409 z listą widoków).
+1. **Podgląd kafelka zawsze zwraca 200** (wariant spójny). Brak lub zły parametr, także w podglądzie pojedynczego
+   kafelka i także parametr podawany z zewnątrz, daje błędy pól `invalid_parameters`, a nie odrzucenie żądania.
+   Wyjątków nie ma.
+2. **Edycja połączenia, która usuwa albo zmienia nazwę parametru będącego celem wiązania, nie jest blokowana.**
+   Wiązanie zostaje zapisane, a w podglądzie zwracany jest czytelny komunikat zamiast cichego pominięcia wartości:
+   - wiązanie w kafelku: pola połączenia `to` dostają błąd `invalid_binding` z informacją „wiązanie wskazuje
+     parametr `<nazwa>`, którego połączenie nie deklaruje”. Połączenie `to` nie jest wywoływane;
+   - wiązanie w widoku, którego parametr nie jest zadeklarowany w żadnym połączeniu kafelka docelowego: kafelek
+     docelowy dostaje błąd `invalid_binding` (`ViewTileError`) z tą samą informacją i nie jest wywoływany;
+   - walidacja przy zapisie kafelka i widoku nadal sprawdza, że parametr celu istnieje. Ten błąd dotyczy tylko
+     wiązań, które zepsuły się później, przez edycję połączenia.
+3. **Wewnętrzne wiązanie kafelka, które zabiera parametr wiązaniu w widoku, nie jest blokowane.** Gdy kafelek doda
+   wewnętrzne wiązanie parametru, który jakiś widok już zasila, wiązanie widoku po prostu przestaje działać
+   (wewnętrzne wiązanie wygrywa, wartość z widoku jest ignorowana). Bez błędu i bez komunikatu. Walidacja przy
+   zapisie widoku nadal pozwala wiązać tylko wejścia kafelka, więc dotyczy to tylko wiązań, które zostały „zabrane”
+   później.
+4. **`null` z pola źródłowego oznacza brak wartości.** Wiązanie zachowuje się wtedy, jakby nic nie przekazało:
+   działa wartość domyślna parametru, a dla wymaganego parametru bez wartości domyślnej pojawia się zwykły błąd
+   brakującego parametru. Dotyczy obu poziomów. Wartość z zewnątrz dla tego parametru i tak nie jest używana, bo
+   wiązanie wygrywa.
+5. **Wyszukiwanie pola po etykiecie w wiązaniu** używa tej samej normalizacji co unikalność (bez rozróżniania
+   wielkości liter, po przycięciu białych znaków). `"field": "id miasta"` znajduje pole „ID miasta”. Dotyczy wiązań
+   w widoku i w kafelku oraz blokady edycji etykiety.
+6. **Bez limitu długości łańcucha.** Kolejne fale sumują czas wywołań; limit czasu dotyczy pojedynczego wywołania.
+   W PRD dopisać adnotację, że czas podglądu rośnie z długością łańcucha wiązań i że metryka „poniżej 2 s” dotyczy
+   kafelków bez łańcuchów.
+7. **Zmiana pola źródłowego bez zmiany etykiety nie jest blokowana.** Zmiana ścieżki, połączenia (w widoku) albo
+   transformacji pola użytego w wiązaniu jest dozwolona, a wiązanie przekazuje nową wartość. Blokowane jest tylko
+   usunięcie pola albo zmiana jego etykiety, gdy pole jest źródłem wiązania w widoku (patrz „Blokada edycji
+   kafelka”). W wiązaniu kafelka zmiana połączenia pola na inne niż `from` to zwykły błąd walidacji kafelka.
+8. **Przekazywana jest wartość po transformacjach.** Do surowej wartości służy pole techniczne bez transformacji
+   z `hidden: true`.
 
 ## Zmiany w dokumentacji
 
@@ -355,7 +381,12 @@ poziomów). Wpisy są pogrupowane po parze połączeń (`from` → `to`), a każ
   - walidację parametrów per połączenie: brak lub zły parametr daje błąd `invalid_parameters` pól tego połączenia
     i status 200. Zastępuje to obecne odrzucenie podglądu kafelka oraz zdanie „Błąd parametrów (np. brak
     wymaganego) dotyczy tylko kafelka, którego połączenia go wymagają”.
-- **4 Granice produktu:** dopisać elementy z sekcji „Poza zakresem (MVP)”.
+- **4 Granice produktu:** dopisać elementy z sekcji „Poza zakresem (MVP)”, w tym brak limitu długości łańcucha
+  wiązań.
+- **Doprecyzowania:** wpisać do odpowiednich sekcji PRD wszystkie punkty z „Doprecyzowań” (200 w podglądzie kafelka,
+  `invalid_binding`, ignorowanie „zabranego” wiązania widoku, `null` jako brak wartości, normalizacja etykiet,
+  adnotacja o czasie, brak blokady zmiany pola, wartość po transformacjach).
+- **6 Metryki:** przy metryce „poniżej 2 s” dopisać, że dotyczy kafelków bez łańcuchów wiązań.
 - **6 Metryki (opcjonalnie):** 100% prób usunięcia kafelka będącego źródłem wiązania jest blokowanych z listą widoków.
 - **Historyjki użytkownika:** dopisać nowe historyjki dla etapów z „Planu realizacji”, z kryteriami akceptacji
   i scenariuszami Gherkin, zgodnie z konwencją istniejących historyjek i scenariuszy.
@@ -437,7 +468,6 @@ poziomów). Wpisy są pogrupowane po parze połączeń (`from` → `to`), a każ
      `dependency_failed` na polach);
    - wejścia kafelka i ich uwzględnienie w walidacji oraz podglądzie widoku.
 
-   Przed tym etapem rozstrzygnij z użytkownikiem „Otwarte kwestie”.
 6. **README:** na koniec zaktualizuj README o przykłady widoku z wiązaniem, kafelka z wiązaniem i flagi `hidden`.
 
 ## Punkty w kodzie
