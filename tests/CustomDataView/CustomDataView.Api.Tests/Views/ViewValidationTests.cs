@@ -84,6 +84,24 @@ public class ViewValidationTests : ViewApiTests
         Assert.That(errors["tiles[2].position"]![0]!.GetValue<string>(), Does.Contain("2"));
     }
 
+    [TestCase(200, HttpStatusCode.Created)]
+    [TestCase(201, HttpStatusCode.BadRequest)]
+    [Test(Description = "scenario_TEMP-024-028 - #15")]
+    public async Task Given_CssClassOfGivenLength_When_UserSavesView_Then_OnlyClassUpTo200CharactersIsAccepted(
+        int length, HttpStatusCode expected)
+    {
+        var view = ValidView();
+        view["tiles"]![0]!["cssClass"] = $"  {new string('c', length)}  ";
+
+        var response = await Client.PostAsJsonAsync(ViewsUrl, view);
+
+        Assert.That(response.StatusCode, Is.EqualTo(expected));
+        if (expected == HttpStatusCode.BadRequest)
+        {
+            await AssertRejected(response, "tiles[0].cssClass");
+        }
+    }
+
     private JsonObject ValidView()
         => new()
         {

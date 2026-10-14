@@ -5,6 +5,7 @@ namespace CustomDataView.Core.Views.Validation;
 public static class ViewDefinitionValidator
 {
     private const int MaxNameLength = 100;
+    private const int MaxCssClassLength = 200;
 
     public static IDictionary<string, string[]> Validate(ViewInput input)
     {
@@ -36,6 +37,11 @@ public static class ViewDefinitionValidator
             else if (!positions.Add(position.Value))
             {
                 errors[$"tiles[{index}].position"] = [$"Pozycja {position} występuje w widoku więcej niż raz."];
+            }
+
+            if (input.Tiles[index].CssClass?.Trim().Length > MaxCssClassLength)
+            {
+                errors[$"tiles[{index}].cssClass"] = [$"Klasa CSS może mieć najwyżej {MaxCssClassLength} znaków."];
             }
         }
 
