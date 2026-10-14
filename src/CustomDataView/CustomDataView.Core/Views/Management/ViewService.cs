@@ -38,6 +38,7 @@ public sealed class ViewService(
 
     public void Update(Guid id, ViewDefinition definition)
     {
+        ValidateReferences(definition);
         repository.Update(new View(id, definition));
     }
 

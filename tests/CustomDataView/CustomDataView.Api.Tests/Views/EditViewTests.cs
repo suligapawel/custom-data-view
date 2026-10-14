@@ -48,4 +48,15 @@ public class EditViewTests : ViewApiTests
         Assert.That(view["name"]?.GetValue<string>(), Is.EqualTo("Pulpit"));
         Assert.That(Tiles(view), Is.EqualTo(new (Guid?, string, int?, string)[] { (CustomerTileId, "Klient", 0, null) }));
     }
+
+    [Test(Description = "scenario_TEMP-024-028 - #22")]
+    public async Task Given_DashboardWithCustomerTile_When_UserEditsItToUseMissingTile_Then_EditIsRejectedAndViewIsUnchanged()
+    {
+        var id = await CreateView("Pulpit", ViewTile(CustomerTileId, 0));
+
+        var response = await Client.PutAsJsonAsync($"{ViewsUrl}/{id}", new { name = "Pulpit", tiles = new[] { ViewTile(Guid.NewGuid(), 0) } });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        Assert.That(Tiles(await GetView(id)), Is.EqualTo(new (Guid?, string, int?, string)[] { (CustomerTileId, "Klient", 0, null) }));
+    }
 }
