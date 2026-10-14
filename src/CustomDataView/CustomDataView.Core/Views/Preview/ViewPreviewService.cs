@@ -1,4 +1,5 @@
 using System.Text.Json;
+using CustomDataView.Core.Exceptions;
 using CustomDataView.Core.Tiles.Preview;
 using CustomDataView.Core.Views.Definitions;
 using CustomDataView.Core.Views.Persistence;
@@ -24,7 +25,20 @@ public sealed class ViewPreviewService(IViewRepository views, ITilePreviewServic
         IReadOnlyDictionary<string, JsonElement> parameters,
         CancellationToken cancellationToken)
     {
-        var preview = await tiles.Preview(tile.TileId, parameters, cancellationToken);
-        return new ViewTilePreview(tile.TileId, preview.Name, tile.Position, tile.CssClass, preview.Fields);
+        try
+        {
+            var preview = await tiles.Preview(tile.TileId, parameters, cancellationToken);
+            return new ViewTilePreview(tile.TileId, preview.Name, tile.Position, tile.CssClass, preview.Fields);
+        }
+        catch (ValidationException exception)
+        {
+            return new ViewTilePreview(
+                tile.TileId,
+                null,
+                tile.Position,
+                tile.CssClass,
+                null,
+                new ViewTileError(ViewTileErrorCodes.InvalidParameters, exception.Errors));
+        }
     }
 }
