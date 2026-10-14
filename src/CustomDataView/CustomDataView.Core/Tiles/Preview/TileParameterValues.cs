@@ -10,14 +10,18 @@ public static class TileParameterValues
         ConnectionDefinition definition,
         IReadOnlyDictionary<string, JsonElement> parameters)
         => new ParameterValuesInput(
-            Declared(definition.PathParameters, parameters),
-            Declared(definition.QueryParameters, parameters),
-            Declared((definition as PostConnectionDefinition)?.BodyParameters ?? [], parameters));
+            Declared(definition.PathParameters, parameters, AsText),
+            Declared(definition.QueryParameters, parameters, AsText),
+            Declared((definition as PostConnectionDefinition)?.BodyParameters ?? [], parameters, value => value));
 
     private static Dictionary<string, JsonElement> Declared(
         IReadOnlyList<ParameterDeclaration> declarations,
-        IReadOnlyDictionary<string, JsonElement> parameters)
+        IReadOnlyDictionary<string, JsonElement> parameters,
+        Func<JsonElement, JsonElement> convert)
         => declarations
             .Where(declaration => parameters.ContainsKey(declaration.Name))
-            .ToDictionary(declaration => declaration.Name, declaration => parameters[declaration.Name]);
+            .ToDictionary(declaration => declaration.Name, declaration => convert(parameters[declaration.Name]));
+
+    private static JsonElement AsText(JsonElement value)
+        => value.ValueKind == JsonValueKind.Number ? JsonSerializer.SerializeToElement(value.GetRawText()) : value;
 }

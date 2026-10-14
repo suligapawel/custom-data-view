@@ -70,6 +70,19 @@ public class TilePreviewValuesTests : TileApiTests
         Assert.That(await Client.GetStringAsync(TilesUrl), Is.EqualTo(list));
     }
 
+    [Test(Description = "scenario_TEMP-015-023 - #50")]
+    public async Task Given_CustomerField_When_UserPreviewsWithCustomerAsNumber_Then_SourceGetsCustomerAsText()
+    {
+        var id = await CreateTile(new { name = "Klient", fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa") } });
+
+        var response = await Client.PostAsJsonAsync($"{TilesUrl}/{id}/preview", new { parameters = new { customer_id = 42 } });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(Factory.ExternalApi.Requests.Select(request => request.Url), Is.EqualTo(new[] { CustomerUrl }));
+        var preview = await response.Content.ReadFromJsonAsync<JsonObject>();
+        Assert.That(preview["fields"]![0]!["value"]?.GetValue<string>(), Is.EqualTo("acme"));
+    }
+
     private Task<Guid> CustomerAndRateTile()
         => CreateTile(new
         {
