@@ -89,3 +89,70 @@
     więc znaczniki czasu wynikają z `connections`.
 12. Brak tabeli nagłówków — nagłówki są stałe i predefiniowane w kodzie (treść POST zawsze jako
     `Content-Type: application/json`).
+
+---
+
+# Podsumowanie analizy bazy danych — CustomDataView (widoki)
+
+## Zakres
+
+- Definicje widoków (PRD 3.4, historyjki TEMP-024 … TEMP-028). Rozszerzenie istniejącego planu połączeń i kafelków.
+- Silnik: PostgreSQL, Dapper, schemat `custom_data_view`.
+- Zmiana wymagań: układ kafelka w widoku wyznacza kolejność (`position`) i opcjonalna klasa CSS (`css_class`),
+  a nie wiersz, kolumna, szerokość i wysokość. PRD (3.4, TEMP-024, TEMP-025) zostaje zaktualizowane.
+
+## Tabele
+
+### views
+
+| Kolumna    | Typ          | Ograniczenia                            |
+|------------|--------------|-----------------------------------------|
+| id         | uuid         | PK, NOT NULL (nadawany przez aplikację) |
+| name       | varchar(100) | NOT NULL, bez unikalności               |
+| created_at | timestamptz  | NOT NULL, DEFAULT now()                 |
+| updated_at | timestamptz  | NOT NULL, DEFAULT now()                 |
+
+### view_tiles
+
+| Kolumna   | Typ          | Ograniczenia                                     |
+|-----------|--------------|--------------------------------------------------|
+| view_id   | uuid         | PK (1/2), FK → views.id ON DELETE CASCADE        |
+| tile_id   | uuid         | PK (2/2), FK → tiles.id ON DELETE CASCADE        |
+| position  | integer      | NOT NULL, CHECK (position >= 0), UNIQUE (view_id, position) |
+| css_class | varchar(200) | NULL                                             |
+
+## Relacje
+
+- `view_tiles` → `views`: wiele-do-jednego, `ON DELETE CASCADE`.
+- `view_tiles` → `tiles`: wiele-do-jednego, `ON DELETE CASCADE`.
+- `views` ↔ `tiles`: wiele-do-wielu przez `view_tiles`.
+
+## Indeksy
+
+- PK `views(id)` — szczegóły, edycja, usunięcie po id.
+- `ix_views_created_at_id` na `views(created_at, id)` — lista w kolejności dodania.
+- PK `view_tiles(view_id, tile_id)` — kafelek najwyżej raz w widoku, wczytanie siatki, kaskada z `views`.
+- `uq_view_tiles_view_id_position` na `view_tiles(view_id, position)` — unikalna pozycja, wczytanie siatki
+  `ORDER BY position`.
+- `ix_view_tiles_tile_id` na `view_tiles(tile_id)` — kaskadowe usunięcie kafelka z widoków bez pełnego skanu.
+
+## RLS
+
+- Brak. W MVP wszystkie definicje są wspólne.
+
+## Decyzje
+
+1. Jedna baza zapisu i odczytu; jedno repozytorium `IViewRepository` (dodanie, edycja, usunięcie, szczegóły, lista).
+2. Siatka w osobnej tabeli `view_tiles`, bez kolumn JSON — spójnie z kafelkami.
+3. Brak kolumn row/column/width/height (decyzja dewelopera). Układ = kolejność `position` + `css_class`.
+4. `position` integer >= 0, unikalna w widoku; szczegóły zwracają kafelki `ORDER BY position`.
+5. `css_class` varchar(200) NULL; walidacja tylko długości (bez formatu).
+6. PK `(view_id, tile_id)` gwarantuje, że kafelek występuje w widoku najwyżej raz.
+7. Usunięcie kafelka zdejmuje go ze wszystkich widoków przez FK `ON DELETE CASCADE`; widoki pozostają. Edycja kafelka
+   (`UPDATE tiles`) nie dotyka `view_tiles`, więc kafelek zachowuje miejsce w widokach.
+8. Usunięcie widoku kaskadowo usuwa `view_tiles`; kafelki i połączenia pozostają.
+9. Edycja widoku: `UPDATE views` + `DELETE` / `INSERT` `view_tiles` w jednej transakcji.
+10. Istnienie kafelka sprawdza walidator (czytelny błąd); FK jest zabezpieczeniem w bazie.
+11. Lista `ORDER BY created_at, id`; liczba kafelków przez `COUNT` w zapytaniu, bez denormalizacji.
+12. W bazie proste ograniczenia (NOT NULL, PK, FK, UNIQUE, CHECK `position >= 0`, długości); reszta w kodzie.
+13. Brak outboxa i RLS.

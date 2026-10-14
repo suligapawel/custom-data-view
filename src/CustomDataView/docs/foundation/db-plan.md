@@ -2,8 +2,8 @@
 
 ## Overview
 
-Plan obejmuje definicje połączeń do zewnętrznych REST API (PRD 3.2, TEMP-007 … TEMP-014) oraz definicje kafelków
-(PRD 3.3, TEMP-015 … TEMP-023). Tabela
+Plan obejmuje definicje połączeń do zewnętrznych REST API (PRD 3.2, TEMP-007 … TEMP-014), definicje kafelków
+(PRD 3.3, TEMP-015 … TEMP-023) oraz definicje widoków (PRD 3.4, TEMP-024 … TEMP-028). Tabela
 `connections` przechowuje szablon żądania GET lub POST, a każdy typ parametru — deklaracje parametrów ścieżki, query
 i treści — ma własną tabelę podrzędną powiązaną z połączeniem relacją wiele-do-jednego. Nagłówki nie są
 przechowywane: są stałe i predefiniowane w kodzie.
@@ -12,7 +12,10 @@ etykietę oraz uporządkowany łańcuch transformacji (`tile_field_transformatio
 (`tile_field_transformation_parameters`). Kafelki nie przechowują wartości parametrów połączeń — przychodzą one z frontu
 przy każdym wywołaniu.
 Wszystkie tabele leżą w schemacie `custom_data_view`; dostęp przez Dapper, bez Entity Framework i bez kolumn JSON
-w tabelach kafelków. Widoki zostaną dodane w kolejnej wersji planu.
+w tabelach kafelków i widoków.
+Widok (`views`) ma uporządkowaną listę kafelków (`view_tiles`): każdy wpis wskazuje kafelek, jego pozycję w widoku
+i opcjonalną klasę CSS, która opisuje sposób wyświetlenia. Kafelek występuje w widoku najwyżej raz, a jego usunięcie
+kaskadowo zdejmuje go ze wszystkich widoków.
 
 ## Tables
 
@@ -107,6 +110,26 @@ PK: `(tile_id, field_position, position)`. FK: `(tile_id, field_position)` → `
 PK: `(tile_id, field_position, transformation_position, name)`. FK: `(tile_id, field_position,
 transformation_position)` → `tile_field_transformations (tile_id, field_position, position)` `ON DELETE CASCADE`.
 
+### custom_data_view.views
+
+| Column     | Type         | Constraints             | Description                                                     |
+|------------|--------------|-------------------------|-----------------------------------------------------------------|
+| id         | uuid         | PK, NOT NULL            | Identyfikator widoku nadawany przez aplikację (`Guid.NewGuid()`) |
+| name       | varchar(100) | NOT NULL                | Nazwa widoku; bez wymogu unikalności                            |
+| created_at | timestamptz  | NOT NULL, DEFAULT now() | Moment dodania; wyznacza kolejność listy; nie zmienia się przy edycji |
+| updated_at | timestamptz  | NOT NULL, DEFAULT now() | Moment ostatniej edycji; ustawiany przez repozytorium           |
+
+### custom_data_view.view_tiles
+
+| Column    | Type         | Constraints                                   | Description                                         |
+|-----------|--------------|-----------------------------------------------|-----------------------------------------------------|
+| view_id   | uuid         | PK, NOT NULL, FK → views.id ON DELETE CASCADE | Widok                                               |
+| tile_id   | uuid         | PK, NOT NULL, FK → tiles.id ON DELETE CASCADE | Kafelek umieszczony w widoku                        |
+| position  | integer      | NOT NULL, CHECK (position >= 0)               | Pozycja kafelka w widoku (od 0); unikalna w widoku  |
+| css_class | varchar(200) | NULL                                          | Klasa CSS (jedna lub kilka) opisująca wyświetlenie kafelka; NULL = brak |
+
+PK: `(view_id, tile_id)`. UNIQUE: `(view_id, position)`.
+
 ## Relationships
 
 | From table                  | To table    | Type        | Foreign key column                                        |
@@ -118,6 +141,8 @@ transformation_position)` → `tile_field_transformations (tile_id, field_positi
 | tile_fields                 | connections | many-to-one | tile_fields.connection_id → connections.id                 |
 | tile_field_transformations  | tile_fields | many-to-one | (tile_id, field_position) → tile_fields (tile_id, position) |
 | tile_field_transformation_parameters | tile_field_transformations | many-to-one | (tile_id, field_position, transformation_position) → tile_field_transformations (tile_id, field_position, position) |
+| view_tiles                  | views       | many-to-one | view_tiles.view_id → views.id                              |
+| view_tiles                  | tiles       | many-to-one | view_tiles.tile_id → tiles.id                              |
 
 Wszystkie klucze obce: `ON DELETE CASCADE`, z wyjątkiem `tile_fields.connection_id → connections.id`
 (`ON DELETE RESTRICT`).
@@ -140,6 +165,14 @@ Wszystkie klucze obce: `ON DELETE CASCADE`, z wyjątkiem `tile_fields.connection
   ORDER BY …position`) i kaskadowe usuwanie; wiodąca kolumna `tile_id` obsługuje FK.
 - `ix_tile_fields_connection_id` (`tile_fields(connection_id)`) — wyszukanie kafelków korzystających z połączenia
   przy blokadzie jego usunięcia (TEMP-020) i obsługa FK `RESTRICT`.
+- `pk_views` (`views(id)`) — szczegóły, edycja i usunięcie widoku po identyfikatorze (TEMP-026 … TEMP-028).
+- `ix_views_created_at_id` (`views(created_at, id)`) — lista widoków w kolejności dodania (TEMP-026).
+- `pk_view_tiles` (`(view_id, tile_id)`) — kafelek najwyżej raz w widoku (TEMP-025), kaskadowe usuwanie z `views`;
+  wiodąca kolumna `view_id` obsługuje FK i `COUNT` kafelków na liście widoków (TEMP-026).
+- `uq_view_tiles_view_id_position` (`(view_id, position)`) — unikalna pozycja w widoku i wczytanie kafelków widoku
+  w kolejności (`WHERE view_id = @id ORDER BY position`).
+- `ix_view_tiles_tile_id` (`view_tiles(tile_id)`) — kaskadowe zdjęcie usuwanego kafelka ze wszystkich widoków
+  (TEMP-024) bez pełnego skanu `view_tiles`.
 
 ## Design decisions
 
@@ -194,3 +227,19 @@ Wszystkie klucze obce: `ON DELETE CASCADE`, z wyjątkiem `tile_fields.connection
 20. **Kolejność listy kafelków po `created_at, id`** — jak w połączeniach (decyzja 7).
 21. **Wartości parametrów połączeń nie są przechowywane.** Przychodzą z frontu przy każdym podglądzie lub pobraniu
     danych, więc jeden kafelek obsługuje wielu klientów. Wyniki podglądu nie są zapisywane.
+22. **Siatka widoku w tabeli `view_tiles`, bez kolumn JSON** (decyzja dewelopera) — spójnie z kafelkami (decyzja 15).
+    Jedno repozytorium `IViewRepository` obsługuje zapis i odczyt widoków (jak decyzja 1).
+23. **Układ jako kolejność i klasa CSS zamiast wiersza, kolumny, szerokości i wysokości** (decyzja dewelopera).
+    `position` zachowuje kolejność kafelków; `css_class` (`varchar(200)`, opcjonalna) przekazuje frontendowi sposób
+    wyświetlenia. Aplikacja sprawdza tylko długość klasy, bez formatu. Reguły 12 kolumn i nachodzenia kafelków nie
+    występują.
+24. **PK `(view_id, tile_id)`** gwarantuje, że kafelek występuje w widoku najwyżej raz; `UNIQUE (view_id, position)`
+    pilnuje jednoznacznej kolejności. Walidator zwraca czytelne błędy (duplikat, nieistniejący kafelek), a ograniczenia
+    bazy są zabezpieczeniem.
+25. **`ON DELETE CASCADE` z `view_tiles` do `tiles` i `views`.** Usunięcie kafelka zdejmuje go ze wszystkich widoków,
+    które pozostają; usunięcie widoku nie zmienia kafelków ani połączeń. Edycja kafelka (`UPDATE tiles`) nie dotyka
+    `view_tiles`, więc kafelek zachowuje swoje miejsce w widokach.
+26. **Edycja widoku zastępuje całą definicję:** `UPDATE views` + `DELETE` i ponowny `INSERT` wierszy `view_tiles`
+    w jednej transakcji.
+27. **Lista widoków po `created_at, id`** (jak decyzja 7) z liczbą kafelków liczoną `COUNT` w zapytaniu — bez
+    denormalizacji, więc licznik jest aktualny także po kaskadowym usunięciu kafelka.

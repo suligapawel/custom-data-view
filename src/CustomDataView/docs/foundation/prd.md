@@ -63,9 +63,9 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
 3.4. Definicje widoków
 
 - Dodawanie, odczyt listy, odczyt szczegółów, edycja i usuwanie definicji widoku.
-- Widok zawiera nazwę oraz siatkę: dla każdego kafelka wiersz, kolumnę, szerokość i wysokość.
-- Walidacja siatki: wszystkie wartości >= 1, kafelek mieści się w 12 kolumnach, kafelki nie nachodzą na siebie, dany
-  kafelek występuje w widoku najwyżej raz.
+- Widok zawiera nazwę oraz uporządkowaną listę kafelków: dla każdego kafelka jego pozycję w widoku i opcjonalną klasę
+  CSS (do 200 znaków), która opisuje sposób wyświetlenia kafelka przez frontend.
+- Walidacja: dany kafelek występuje w widoku najwyżej raz, pozycje są unikalne, kafelek musi istnieć.
 
 3.5. Test i podgląd
 
@@ -112,23 +112,22 @@ połączenia, kafelki, widoki. Każda grupa korzysta wyłącznie z grup wcześni
 przez kafelki należy do grupy kafelków.
 
 - ID: TEMP-024  
-  Tytuł: Dodanie widoku z siatką kafelków  
-  Opis: Jako użytkownik chcę ułożyć kafelki w siatce widoku, aby zapisać docelowy układ prezentacji danych.  
+  Tytuł: Dodanie widoku z kafelkami  
+  Opis: Jako użytkownik chcę ułożyć kafelki w widoku, aby zapisać docelowy układ prezentacji danych.  
   Kryteria akceptacji:
-    - Można zapisać widok z nazwą i listą pozycji kafelków (kafelek, wiersz, kolumna, szerokość, wysokość).
+    - Można zapisać widok z nazwą i uporządkowaną listą kafelków (kafelek, pozycja, opcjonalna klasa CSS).
     - Widok bez kafelków jest dozwolony.
-    - Edycja kafelka zachowuje jego pozycję w siatce widoków, które go zawierają.
-    - Usunięcie kafelka usuwa go z siatki wszystkich widoków, które go zawierały; same widoki pozostają.
+    - Edycja kafelka zachowuje jego pozycję i klasę CSS w widokach, które go zawierają.
+    - Usunięcie kafelka usuwa go ze wszystkich widoków, które go zawierały; same widoki pozostają.
     - Odpowiedź zawiera identyfikator nowego widoku.
 
 - ID: TEMP-025  
-  Tytuł: Walidacja siatki widoku  
+  Tytuł: Walidacja układu widoku  
   Opis: Jako użytkownik chcę, aby układ widoku był spójny, aby frontend mógł go wyrenderować bez konfliktów.  
   Kryteria akceptacji:
     - Brak nazwy lub nazwa dłuższa niż 100 znaków zwraca błąd walidacji.
-    - Wiersz, kolumna, szerokość lub wysokość mniejsze niż 1 zwracają błąd walidacji.
-    - Kafelek wychodzący poza 12 kolumn (kolumna + szerokość - 1 > 12) zwraca błąd walidacji.
-    - Nachodzące na siebie kafelki zwracają błąd walidacji wskazujący kolidujące kafelki.
+    - Pozycja mniejsza niż 0 lub powtórzona w widoku zwraca błąd walidacji.
+    - Klasa CSS dłuższa niż 200 znaków zwraca błąd walidacji.
     - Ten sam kafelek użyty w widoku więcej niż raz zwraca błąd walidacji.
     - Odwołanie do nieistniejącego kafelka zwraca błąd walidacji.
     - Przy błędzie walidacji nic nie zostaje zapisane.
@@ -138,14 +137,14 @@ przez kafelki należy do grupy kafelków.
   Opis: Jako użytkownik chcę zobaczyć listę i szczegóły widoków, aby wiedzieć, jakie układy mam skonfigurowane.  
   Kryteria akceptacji:
     - Lista zwraca identyfikator, nazwę i liczbę kafelków każdego widoku.
-    - Szczegóły zwracają nazwę i siatkę z identyfikatorem i nazwą każdego kafelka.
+    - Szczegóły zwracają nazwę i kafelki w kolejności pozycji z identyfikatorem, nazwą i klasą CSS każdego kafelka.
     - Szczegóły nieistniejącego widoku zwracają 404.
 
 - ID: TEMP-027  
   Tytuł: Edycja widoku  
   Opis: Jako użytkownik chcę zmienić nazwę i układ widoku, aby dopasować go do potrzeb.  
   Kryteria akceptacji:
-    - Edycja zastępuje nazwę i całą siatkę.
+    - Edycja zastępuje nazwę i całą listę kafelków.
     - Edycja podlega tym samym regułom walidacji co dodanie.
     - Edycja nieistniejącego widoku zwraca 404.
 
