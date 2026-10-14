@@ -60,11 +60,11 @@ public sealed class PostgresViewRepository(NpgsqlDataSource dataSource) : IViewR
         using var db = dataSource.OpenConnection();
         return db.Query<ViewSummaryRow>(
                 """
-                SELECT view.id, view.name, count(tile.tile_id)::int AS tile_count
-                FROM custom_data_view.views view
-                LEFT JOIN custom_data_view.view_tiles tile ON tile.view_id = view.id
-                GROUP BY view.id
-                ORDER BY view.created_at, view.id
+                SELECT stored.id, stored.name, count(placed.tile_id)::int AS tile_count
+                FROM custom_data_view.views stored
+                LEFT JOIN custom_data_view.view_tiles placed ON placed.view_id = stored.id
+                GROUP BY stored.id
+                ORDER BY stored.created_at, stored.id
                 """)
             .Select(view => new ViewSummary(view.Id, view.Name, view.TileCount))
             .ToList();
