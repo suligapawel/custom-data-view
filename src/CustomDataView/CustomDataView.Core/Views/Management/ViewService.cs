@@ -43,6 +43,11 @@ public sealed class ViewService(
         repository.Update(view with { Definition = definition });
     }
 
+    public void Delete(Guid id)
+    {
+        repository.Delete(id);
+    }
+
     private void ValidateReferences(ViewDefinition definition)
     {
         var errors = referencesValidator.Validate(definition);

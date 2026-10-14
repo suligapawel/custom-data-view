@@ -115,6 +115,19 @@ public class PostgresViewRepositoryTests
     }
 
     [Test]
+    public void Given_SavedViewWithTile_When_ItIsDeleted_Then_ItIsGoneAndTileRemains()
+    {
+        var view = new View(Guid.NewGuid(), new ViewDefinition("Pulpit", [new ViewTile(customerTileId, 0, null)]));
+        repository.Add(view);
+
+        repository.Delete(view.Id);
+
+        Assert.That(repository.Get(view.Id), Is.Null);
+        Assert.That(repository.GetAll(), Is.Empty);
+        Assert.That(tiles.Get(customerTileId), Is.Not.Null);
+    }
+
+    [Test]
     public void Given_ViewDoesNotExist_When_ItIsLoaded_Then_NothingIsReturned()
     {
         Assert.That(repository.Get(Guid.NewGuid()), Is.Null);

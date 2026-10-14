@@ -18,6 +18,11 @@ public sealed class TestViewRepository : IViewRepository
         views[index] = view;
     }
 
+    public void Delete(Guid id)
+    {
+        views.RemoveAll(view => view.Id == id);
+    }
+
     public void RemoveTile(Guid tileId)
     {
         for (var index = 0; index < views.Count; index++)

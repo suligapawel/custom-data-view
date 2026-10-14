@@ -72,6 +72,12 @@ public sealed class PostgresViewRepository(NpgsqlDataSource dataSource) : IViewR
         transaction.Commit();
     }
 
+    public void Delete(Guid id)
+    {
+        using var db = dataSource.OpenConnection();
+        db.Execute("DELETE FROM custom_data_view.views WHERE id = @Id", new { Id = id });
+    }
+
     private static void InsertTiles(IDbConnection db, IDbTransaction transaction, View view)
     {
         db.Execute(

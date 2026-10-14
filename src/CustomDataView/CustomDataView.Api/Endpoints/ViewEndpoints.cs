@@ -20,7 +20,8 @@ public static class ViewEndpoints
                 .AddView()
                 .GetViews()
                 .GetView()
-                .UpdateView();
+                .UpdateView()
+                .DeleteView();
         }
 
         private IEndpointRouteBuilder AddView()
@@ -62,6 +63,16 @@ public static class ViewEndpoints
                 }
 
                 service.Update(id, request.ToDefinition());
+                return Results.NoContent();
+            });
+            return endpoints;
+        }
+
+        private IEndpointRouteBuilder DeleteView()
+        {
+            endpoints.MapDelete(ViewUrl, (Guid id, IViewService service) =>
+            {
+                service.Delete(id);
                 return Results.NoContent();
             });
             return endpoints;

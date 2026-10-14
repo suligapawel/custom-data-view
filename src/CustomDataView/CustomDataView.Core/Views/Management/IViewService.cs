@@ -8,4 +8,5 @@ public interface IViewService
     IReadOnlyList<ViewSummaryDto> GetAll();
     ViewDto Get(Guid id);
     void Update(Guid id, ViewDefinition definition);
+    void Delete(Guid id);
 }

@@ -8,4 +8,5 @@ public interface IViewRepository
     View Get(Guid id);
     IReadOnlyList<ViewSummary> GetAll();
     void Update(View view);
+    void Delete(Guid id);
 }
