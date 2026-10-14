@@ -111,51 +111,6 @@ Historyjki są uporządkowane w kolejności realizacji, od najmniejszych funkcjo
 połączenia, kafelki, widoki. Każda grupa korzysta wyłącznie z grup wcześniejszych; blokada usuwania połączeń używanych
 przez kafelki należy do grupy kafelków.
 
-- ID: TEMP-024  
-  Tytuł: Dodanie widoku z kafelkami  
-  Opis: Jako użytkownik chcę ułożyć kafelki w widoku, aby zapisać docelowy układ prezentacji danych.  
-  Kryteria akceptacji:
-    - Można zapisać widok z nazwą i uporządkowaną listą kafelków (kafelek, pozycja, opcjonalna klasa CSS).
-    - Widok bez kafelków jest dozwolony.
-    - Edycja kafelka zachowuje jego pozycję i klasę CSS w widokach, które go zawierają.
-    - Usunięcie kafelka usuwa go ze wszystkich widoków, które go zawierały; same widoki pozostają.
-    - Odpowiedź zawiera identyfikator nowego widoku.
-
-- ID: TEMP-025  
-  Tytuł: Walidacja układu widoku  
-  Opis: Jako użytkownik chcę, aby układ widoku był spójny, aby frontend mógł go wyrenderować bez konfliktów.  
-  Kryteria akceptacji:
-    - Brak nazwy lub nazwa dłuższa niż 100 znaków zwraca błąd walidacji.
-    - Pozycja mniejsza niż 0 lub powtórzona w widoku zwraca błąd walidacji.
-    - Klasa CSS dłuższa niż 200 znaków zwraca błąd walidacji.
-    - Ten sam kafelek użyty w widoku więcej niż raz zwraca błąd walidacji.
-    - Odwołanie do nieistniejącego kafelka zwraca błąd walidacji.
-    - Przy błędzie walidacji nic nie zostaje zapisane.
-
-- ID: TEMP-026  
-  Tytuł: Przeglądanie widoków  
-  Opis: Jako użytkownik chcę zobaczyć listę i szczegóły widoków, aby wiedzieć, jakie układy mam skonfigurowane.  
-  Kryteria akceptacji:
-    - Lista zwraca identyfikator, nazwę i liczbę kafelków każdego widoku.
-    - Szczegóły zwracają nazwę i kafelki w kolejności pozycji z identyfikatorem, nazwą i klasą CSS każdego kafelka.
-    - Szczegóły nieistniejącego widoku zwracają 404.
-
-- ID: TEMP-027  
-  Tytuł: Edycja widoku  
-  Opis: Jako użytkownik chcę zmienić nazwę i układ widoku, aby dopasować go do potrzeb.  
-  Kryteria akceptacji:
-    - Edycja zastępuje nazwę i całą listę kafelków.
-    - Edycja podlega tym samym regułom walidacji co dodanie.
-    - Edycja nieistniejącego widoku zwraca 404.
-
-- ID: TEMP-028  
-  Tytuł: Usunięcie widoku  
-  Opis: Jako użytkownik chcę usunąć niepotrzebny widok bez utraty kafelków, aby móc użyć ich w innych widokach.  
-  Kryteria akceptacji:
-    - Widok zostaje usunięty.
-    - Kafelki i połączenia użyte w widoku pozostają niezmienione.
-    - Usunięcie nieistniejącego widoku zwraca 404.
-
 ## 6. Metryki sukcesu
 
 - Użytkownik konfiguruje połączenie, kafelek z gotowymi transformacjami i widok bez zmian w kodzie aplikacji.

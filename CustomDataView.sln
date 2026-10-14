@@ -12,6 +12,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{29DFCA61-2
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scenarios", "scenarios", "{3308E347-F9BB-4C98-B663-16531A152797}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scenario_TEMP-024-028", "scenario_TEMP-024-028", "{3276609D-3B7D-4C7D-A804-C6CBF3800A9A}"
+	ProjectSection(SolutionItems) = preProject
+		src\CustomDataView\docs\scenarios\scenario_TEMP-024-028\scenario_TEMP-024-028.md = src\CustomDataView\docs\scenarios\scenario_TEMP-024-028\scenario_TEMP-024-028.md
+		src\CustomDataView\docs\scenarios\scenario_TEMP-024-028\gherkin.md = src\CustomDataView\docs\scenarios\scenario_TEMP-024-028\gherkin.md
+	EndProjectSection
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scenario_TEMP-015-023", "scenario_TEMP-015-023", "{14189985-FA2A-49B2-A7AF-AF97AA57B918}"
 	ProjectSection(SolutionItems) = preProject
 		src\CustomDataView\docs\scenarios\scenario_TEMP-015-023\scenario_TEMP-015-023.md = src\CustomDataView\docs\scenarios\scenario_TEMP-015-023\scenario_TEMP-015-023.md
@@ -129,6 +135,7 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{3276609D-3B7D-4C7D-A804-C6CBF3800A9A} = {3308E347-F9BB-4C98-B663-16531A152797}
 		{14189985-FA2A-49B2-A7AF-AF97AA57B918} = {3308E347-F9BB-4C98-B663-16531A152797}
 		{AABB0EE1-EDEA-C05D-74EB-A972A117E438} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{85E94785-9BEC-4FA2-AC6D-5A68EDA77C3A} = {AABB0EE1-EDEA-C05D-74EB-A972A117E438}
