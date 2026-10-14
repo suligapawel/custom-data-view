@@ -26,6 +26,18 @@ public class ViewPreviewTests : ViewApiTests
         Assert.That(Fields(preview, 1), Is.EqualTo(new[] { ("Kurs", "4.32") }));
     }
 
+    [Test(Description = "scenario_TEMP-029 - #2")]
+    public async Task Given_ViewWithTwoTiles_When_UserPreviewsItWithParametersInAddress_Then_ResultEqualsPostPreview()
+    {
+        var id = await CreateView("Pulpit klienta", ViewTile(CustomerTileId, 0), ViewTile(RateTileId, 1));
+        var posted = await (await Client.PostAsJsonAsync($"{ViewsUrl}/{id}/preview", CustomerAndRateValues())).Content.ReadAsStringAsync();
+
+        var response = await Client.GetAsync($"{ViewsUrl}/{id}/preview?customer_id=42&currency=EUR");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(await response.Content.ReadAsStringAsync(), Is.EqualTo(posted));
+    }
+
     private static IEnumerable<(string, string)> Fields(JsonObject preview, int tile)
         => preview["tiles"]![tile]!["fields"]!.AsArray()
             .Select(field => (field["label"]?.GetValue<string>(), field["value"]?.ToJsonString()));

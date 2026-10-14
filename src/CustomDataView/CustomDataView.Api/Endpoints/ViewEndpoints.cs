@@ -23,7 +23,8 @@ public static class ViewEndpoints
                 .GetView()
                 .UpdateView()
                 .DeleteView()
-                .PreviewView();
+                .PreviewView()
+                .PreviewViewWithQuery();
         }
 
         private IEndpointRouteBuilder AddView()
@@ -86,6 +87,18 @@ public static class ViewEndpoints
                 $"{ViewUrl}/preview",
                 async (Guid id, TilePreviewRequest request, IViewPreviewService service, CancellationToken cancellationToken)
                     => Results.Ok(await service.Preview(id, request.ToInput(), cancellationToken)));
+            return endpoints;
+        }
+
+        private IEndpointRouteBuilder PreviewViewWithQuery()
+        {
+            endpoints.MapGet(
+                $"{ViewUrl}/preview",
+                async (Guid id, HttpContext httpContext, IViewPreviewService service, CancellationToken cancellationToken)
+                    => Results.Ok(await service.Preview(
+                        id,
+                        TilePreviewRequest.ValuesOf(httpContext.Request.Query),
+                        cancellationToken)));
             return endpoints;
         }
     }
