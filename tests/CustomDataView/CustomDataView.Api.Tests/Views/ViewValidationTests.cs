@@ -102,6 +102,20 @@ public class ViewValidationTests : ViewApiTests
         }
     }
 
+    [Test(Description = "scenario_TEMP-024-028 - #16")]
+    public async Task Given_SalesView_When_UserSavesInvalidView_Then_NothingIsSaved()
+    {
+        var salesId = await CreateView("Sprzedaż");
+
+        var response = await Client.PostAsJsonAsync(ViewsUrl, new { name = "Pulpit", tiles = new[] { ViewTile(CustomerTileId, -1) } });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        var views = await Client.GetFromJsonAsync<JsonArray>(ViewsUrl);
+        Assert.That(
+            views.Select(view => (view["id"]?.GetValue<Guid>(), view["name"]?.GetValue<string>())),
+            Is.EqualTo(new (Guid?, string)[] { (salesId, "Sprzedaż") }));
+    }
+
     private JsonObject ValidView()
         => new()
         {
