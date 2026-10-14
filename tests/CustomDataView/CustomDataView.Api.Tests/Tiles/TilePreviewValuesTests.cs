@@ -20,6 +20,29 @@ public class TilePreviewValuesTests : TileApiTests
         Assert.That(Factory.ExternalApi.Requests, Is.Empty);
     }
 
+    [Test(Description = "scenario_TEMP-015-023 - #38")]
+    public async Task Given_RateAndArchiveRateFields_When_UserPreviewsWithCurrency_Then_BothSourcesGetCurrency()
+    {
+        var archiveConnectionId = await CreateConnection(new
+        {
+            name = "Kurs archiwalny",
+            method = "GET",
+            url = "https://api.example.com/archive-rates",
+            queryParameters = new[] { new { name = "currency", required = false } }
+        });
+        var id = await CreateTile(new
+        {
+            name = "Kursy",
+            fields = new[] { Field(RateConnectionId, "$.rate", "Kurs EUR"), Field(archiveConnectionId, "$.rate", "Kurs archiwalny") }
+        });
+
+        await Client.PostAsJsonAsync($"{TilesUrl}/{id}/preview", new { parameters = new { currency = "EUR" } });
+
+        Assert.That(
+            Factory.ExternalApi.Requests.Select(request => request.Url).Order(),
+            Is.EqualTo(new[] { "https://api.example.com/archive-rates?currency=EUR", RateUrl }));
+    }
+
     [Test(Description = "scenario_TEMP-015-023 - #39")]
     public async Task Given_OnlyCustomerField_When_UserPreviewsWithRateValuesToo_Then_RateValuesAreIgnored()
     {
