@@ -15,6 +15,7 @@ public static class ViewDefinitionValidator
         }
 
         var tileIds = new HashSet<Guid>();
+        var positions = new HashSet<int>();
         for (var index = 0; index < input.Tiles.Count; index++)
         {
             var tileId = input.Tiles[index].TileId;
@@ -27,9 +28,14 @@ public static class ViewDefinitionValidator
                 errors[$"tiles[{index}].tileId"] = [$"Kafelek '{tileId}' występuje w widoku więcej niż raz."];
             }
 
-            if (input.Tiles[index].Position is null or < 0)
+            var position = input.Tiles[index].Position;
+            if (position is null or < 0)
             {
                 errors[$"tiles[{index}].position"] = ["Pozycja kafelka jest wymagana i nie może być mniejsza niż 0."];
+            }
+            else if (!positions.Add(position.Value))
+            {
+                errors[$"tiles[{index}].position"] = [$"Pozycja {position} występuje w widoku więcej niż raz."];
             }
         }
 

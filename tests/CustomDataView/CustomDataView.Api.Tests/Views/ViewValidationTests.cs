@@ -70,6 +70,20 @@ public class ViewValidationTests : ViewApiTests
         await AssertRejected(response, "tiles[0].position");
     }
 
+    [Test(Description = "scenario_TEMP-024-028 - #14")]
+    public async Task Given_ThreeTilesAtSamePosition_When_UserSavesView_Then_SaveIsRejectedForEachRepeatedPosition()
+    {
+        var response = await Client.PostAsJsonAsync(ViewsUrl, new
+        {
+            name = "Pulpit",
+            tiles = new[] { ViewTile(CustomerTileId, 2), ViewTile(RateTileId, 2), ViewTile(OrdersTileId, 2) }
+        });
+
+        var errors = await AssertRejected(response, "tiles[1].position");
+        Assert.That(errors.Select(error => error.Key), Is.EquivalentTo(new[] { "tiles[1].position", "tiles[2].position" }));
+        Assert.That(errors["tiles[2].position"]![0]!.GetValue<string>(), Does.Contain("2"));
+    }
+
     private JsonObject ValidView()
         => new()
         {
