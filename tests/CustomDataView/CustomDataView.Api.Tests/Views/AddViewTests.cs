@@ -44,4 +44,18 @@ public class AddViewTests : ViewApiTests
         var created = await response.Content.ReadFromJsonAsync<CreatedView>();
         Assert.That(Tiles(await GetView(created.Id)), Is.Empty);
     }
+
+    [Test(Description = "scenario_TEMP-024-028 - #3")]
+    public async Task Given_TilesWithMissingBlankAndPaddedCssClasses_When_UserSavesView_Then_BlankClassesAreDroppedAndPaddingIsTrimmed()
+    {
+        var response = await Client.PostAsJsonAsync(ViewsUrl, new
+        {
+            name = "Pulpit",
+            tiles = new[] { ViewTile(CustomerTileId, 0), ViewTile(RateTileId, 1, "   "), ViewTile(OrdersTileId, 2, "  col-12  ") }
+        });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        var created = await response.Content.ReadFromJsonAsync<CreatedView>();
+        Assert.That(Tiles(await GetView(created.Id)).Select(tile => tile.Item4), Is.EqualTo(new[] { null, null, "col-12" }));
+    }
 }
