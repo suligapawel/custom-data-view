@@ -24,7 +24,7 @@ public sealed class ViewService(
 
     public ViewDto Get(Guid id)
     {
-        var view = repository.Get(id);
+        var view = repository.Get(id) ?? throw new NotFoundException(id);
         var names = tiles.GetReferences(view.Definition.Tiles.Select(tile => tile.TileId).ToList())
             .ToDictionary(tile => tile.Id, tile => tile.Name);
         return new ViewDto(
