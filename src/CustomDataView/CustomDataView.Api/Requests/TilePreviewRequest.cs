@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 
 namespace CustomDataView.Api.Requests;
 
@@ -8,4 +9,7 @@ public sealed record TilePreviewRequest(Dictionary<string, JsonElement> Paramete
 
     public static IReadOnlyDictionary<string, JsonElement> ValuesOf(Dictionary<string, JsonElement> parameters)
         => parameters ?? new Dictionary<string, JsonElement>();
+
+    public static IReadOnlyDictionary<string, JsonElement> ValuesOf(IQueryCollection query)
+        => query.ToDictionary(pair => pair.Key, pair => JsonSerializer.SerializeToElement(pair.Value.ToString()));
 }

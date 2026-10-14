@@ -25,7 +25,8 @@ public static class TileEndpoints
                 .UpdateTile()
                 .DeleteTile()
                 .PreviewUnsavedTile()
-                .PreviewSavedTile();
+                .PreviewSavedTile()
+                .PreviewSavedTileWithQuery();
         }
 
         private IEndpointRouteBuilder AddTile()
@@ -110,6 +111,19 @@ public static class TileEndpoints
                 async (Guid id, TilePreviewRequest request, ITilePreviewService service,
                         CancellationToken cancellationToken)
                     => Results.Ok(await service.Preview(id, request.ToInput(), cancellationToken)));
+            return endpoints;
+        }
+
+        private IEndpointRouteBuilder PreviewSavedTileWithQuery()
+        {
+            endpoints.MapGet(
+                $"{TileUrl}/preview",
+                async (Guid id, HttpContext httpContext, ITilePreviewService service,
+                        CancellationToken cancellationToken)
+                    => Results.Ok(await service.Preview(
+                        id,
+                        TilePreviewRequest.ValuesOf(httpContext.Request.Query),
+                        cancellationToken)));
             return endpoints;
         }
     }
