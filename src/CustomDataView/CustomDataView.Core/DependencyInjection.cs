@@ -11,6 +11,7 @@ using CustomDataView.Core.Transformations.Abstractions;
 using CustomDataView.Core.Transformations.Catalog;
 using CustomDataView.Core.Transformations.Execution;
 using CustomDataView.Core.Transformations.Implementations;
+using CustomDataView.Core.Views.Management;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
@@ -57,6 +58,12 @@ public static class DependencyInjection
         services.AddSingleton<TileReferencesValidator>();
         services.AddSingleton<ITileService, TileService>();
         services.AddSingleton<ITilePreviewService, TilePreviewService>();
+        return services;
+    }
+
+    public static IServiceCollection AddCustomDataViewViews(this IServiceCollection services)
+    {
+        services.AddSingleton<IViewService, ViewService>();
         return services;
     }
 }

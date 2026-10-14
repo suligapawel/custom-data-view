@@ -9,6 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddCustomDataViewTransformations();
 builder.Services.AddCustomDataViewConnections();
 builder.Services.AddCustomDataViewTiles();
+builder.Services.AddCustomDataViewViews();
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
 builder.Services.AddExceptionHandler<CustomDataViewExceptionHandler>();
@@ -27,6 +28,7 @@ if (app.Environment.IsDevelopment())
 app.MapTransformationEndpoints();
 app.MapConnectionEndpoints();
 app.MapTileEndpoints();
+app.MapViewEndpoints();
 
 app.Run();
 
