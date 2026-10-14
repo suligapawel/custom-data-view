@@ -28,6 +28,22 @@ public class ViewValidationTests : ViewApiTests
         await AssertRejected(response, "tiles[0].tileId");
     }
 
+    [Test(Description = "scenario_TEMP-024-028 - #11")]
+    public async Task Given_TileDoesNotExist_When_UserSavesViewWithIt_Then_SaveIsRejectedWithSecondTileErrorNamingIt()
+    {
+        var missingId = Guid.NewGuid();
+
+        var response = await Client.PostAsJsonAsync(ViewsUrl, new
+        {
+            name = "Pulpit",
+            tiles = new[] { ViewTile(CustomerTileId, 0), ViewTile(missingId, 1) }
+        });
+
+        var errors = await AssertRejected(response, "tiles[1].tileId");
+        Assert.That(errors["tiles[1].tileId"]![0]!.GetValue<string>(), Does.Contain(missingId.ToString()));
+        Assert.That(errors.Select(error => error.Key), Does.Not.Contain("tiles[0].tileId"));
+    }
+
     private JsonObject ValidView()
         => new()
         {

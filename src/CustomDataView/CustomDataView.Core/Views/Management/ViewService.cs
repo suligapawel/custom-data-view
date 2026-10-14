@@ -1,13 +1,19 @@
+using CustomDataView.Core.Exceptions;
 using CustomDataView.Core.Tiles.Persistence;
 using CustomDataView.Core.Views.Definitions;
 using CustomDataView.Core.Views.Persistence;
+using CustomDataView.Core.Views.Validation;
 
 namespace CustomDataView.Core.Views.Management;
 
-public sealed class ViewService(IViewRepository repository, ITileRepository tiles) : IViewService
+public sealed class ViewService(
+    IViewRepository repository,
+    ITileRepository tiles,
+    ViewReferencesValidator referencesValidator) : IViewService
 {
     public Guid Add(ViewDefinition definition)
     {
+        ValidateReferences(definition);
         var view = new View(Guid.NewGuid(), definition);
         repository.Add(view);
         return view.Id;
@@ -28,5 +34,14 @@ public sealed class ViewService(IViewRepository repository, ITileRepository tile
                 .OrderBy(tile => tile.Position)
                 .Select(tile => new ViewTileDto(tile.TileId, names[tile.TileId], tile.Position, tile.CssClass))
                 .ToList());
+    }
+
+    private void ValidateReferences(ViewDefinition definition)
+    {
+        var errors = referencesValidator.Validate(definition);
+        if (errors.Count > 0)
+        {
+            throw new ValidationException(errors);
+        }
     }
 }
