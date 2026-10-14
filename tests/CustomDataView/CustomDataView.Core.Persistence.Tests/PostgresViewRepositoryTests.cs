@@ -71,6 +71,18 @@ public class PostgresViewRepositoryTests
     }
 
     [Test]
+    public void Given_ViewWithTile_When_TileIsUpdated_Then_ViewKeepsItsPositionAndCssClass()
+    {
+        var view = new View(Guid.NewGuid(), new ViewDefinition("Pulpit", [new ViewTile(customerTileId, 3, "col-6")]));
+        repository.Add(view);
+        var tile = tiles.Get(customerTileId);
+
+        tiles.Update(tile with { Definition = tile.Definition with { Name = "Klient VIP" } });
+
+        Assert.That(Json(repository.Get(view.Id)), Is.EqualTo(Json(view)));
+    }
+
+    [Test]
     public void Given_ViewDoesNotExist_When_ItIsLoaded_Then_NothingIsReturned()
     {
         Assert.That(repository.Get(Guid.NewGuid()), Is.Null);
