@@ -637,3 +637,27 @@ When  użytkownik ogląda podgląd kafelka, podając klienta jako obiekt
 Then  podgląd zostaje odrzucony z informacją o niepoprawnej wartości parametru "customerId"
 And   żadne źródło nie zostaje odpytane
 ```
+
+#### Scenario #52
+
+Podgląd zapisanego kafelka z parametrami w adresie żądania
+
+```
+Given kafelek ma pole "Nazwa" ze źródła "Klient" i pole "Kurs EUR" ze źródła "Kurs walut"
+When  użytkownik ogląda podgląd kafelka metodą GET, podając klienta "42" i walutę "EUR" jako parametry zapytania
+Then  źródło "Klient" zostaje odpytane o klienta "42"
+And   źródło "Kurs walut" zostaje odpytane o walutę "EUR"
+And   podgląd jest taki sam jak podgląd metodą POST z tymi samymi wartościami parametrów
+```
+
+#### Scenario #53
+
+Parametr powtórzony w adresie żądania podglądu staje się listą wartości
+
+```
+Given istnieje połączenie "Kursy" z opcjonalnym parametrem zapytania "currency"
+And   kafelek ma pole "Kursy" ze źródła "Kursy"
+When  użytkownik ogląda podgląd kafelka metodą GET, podając walutę "EUR" i walutę "USD"
+Then  źródło "Kursy" zostaje odpytane o waluty "EUR" i "USD"
+```
+

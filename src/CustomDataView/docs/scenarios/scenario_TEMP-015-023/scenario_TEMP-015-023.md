@@ -357,6 +357,7 @@ Brak `transformations` = pusta lista; brak `parameters` = brak parametrów.
 | `PUT /{id:guid}`           | `TileRequest`              | 204                                             | 400, 404 |
 | `DELETE /{id:guid}`        | —                          | 204                                             | 404      |
 | `POST /{id:guid}/preview`  | `{ "parameters": { … } }`  | 200 podgląd                                     | 400, 404 |
+| `GET /{id:guid}/preview`   | `?nazwa=wartość&…`         | 200 podgląd (jak `POST`)                        | 400, 404 |
 | `POST /preview`            | `{ "tile": …, "parameters": { … } }` | 200 podgląd                           | 400      |
 
 Zmiana w połączeniach: `DELETE /api/custom-data-view/connections/{id:guid}` zwraca dodatkowo 409:
@@ -364,6 +365,9 @@ Zmiana w połączeniach: `DELETE /api/custom-data-view/connections/{id:guid}` zw
 ```json
 { "code": "connection_in_use", "tiles": [ { "id": "…", "name": "Klient" } ] }
 ```
+
+`GET /{id:guid}/preview` czyta parametry z `HttpContext.Request.Query` i mapuje je na tę samą płaską mapę: jedna
+wartość → tekst JSON, powtórzony parametr → lista tekstów; dalej logika jak w `POST`.
 
 Wartości parametrów w podglądzie — płaska mapa bez identyfikatorów połączeń (pole `parameters` opcjonalne):
 
