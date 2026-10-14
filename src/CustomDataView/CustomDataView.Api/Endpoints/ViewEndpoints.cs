@@ -19,7 +19,8 @@ public static class ViewEndpoints
             return endpoints
                 .AddView()
                 .GetViews()
-                .GetView();
+                .GetView()
+                .UpdateView();
         }
 
         private IEndpointRouteBuilder AddView()
@@ -47,6 +48,16 @@ public static class ViewEndpoints
         private IEndpointRouteBuilder GetView()
         {
             endpoints.MapGet(ViewUrl, (Guid id, IViewService service) => Results.Ok(service.Get(id)));
+            return endpoints;
+        }
+
+        private IEndpointRouteBuilder UpdateView()
+        {
+            endpoints.MapPut(ViewUrl, (Guid id, ViewRequest request, IViewService service) =>
+            {
+                service.Update(id, request.ToDefinition());
+                return Results.NoContent();
+            });
             return endpoints;
         }
     }

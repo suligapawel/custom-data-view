@@ -99,6 +99,22 @@ public class PostgresViewRepositoryTests
     }
 
     [Test]
+    public void Given_TwoSavedViews_When_FirstIsUpdated_Then_NameAndTilesAreReplacedAndOrderIsKept()
+    {
+        var first = new View(Guid.NewGuid(), new ViewDefinition("Pulpit",
+            [new ViewTile(customerTileId, 0, null), new ViewTile(rateTileId, 1, null)]));
+        var second = new View(Guid.NewGuid(), new ViewDefinition("Obsługa", []));
+        repository.Add(first);
+        repository.Add(second);
+        var updated = first with { Definition = new ViewDefinition("Pulpit klienta", [new ViewTile(rateTileId, 0, "col-12")]) };
+
+        repository.Update(updated);
+
+        Assert.That(Json(repository.Get(first.Id)), Is.EqualTo(Json(updated)));
+        Assert.That(repository.GetAll().Select(view => view.Id), Is.EqualTo(new[] { first.Id, second.Id }));
+    }
+
+    [Test]
     public void Given_ViewDoesNotExist_When_ItIsLoaded_Then_NothingIsReturned()
     {
         Assert.That(repository.Get(Guid.NewGuid()), Is.Null);

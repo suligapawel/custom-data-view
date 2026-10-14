@@ -1,3 +1,4 @@
+using System.Data;
 using CustomDataView.Core.Views.Definitions;
 using Dapper;
 using Npgsql;
@@ -19,19 +20,7 @@ public sealed class PostgresViewRepository(NpgsqlDataSource dataSource) : IViewR
             "INSERT INTO custom_data_view.views (id, name) VALUES (@Id, @Name)",
             new { view.Id, view.Definition.Name },
             transaction);
-        db.Execute(
-            """
-            INSERT INTO custom_data_view.view_tiles (view_id, tile_id, position, css_class)
-            VALUES (@ViewId, @TileId, @Position, @CssClass)
-            """,
-            view.Definition.Tiles.Select(tile => new ViewTileRow
-            {
-                ViewId = view.Id,
-                TileId = tile.TileId,
-                Position = tile.Position,
-                CssClass = tile.CssClass
-            }),
-            transaction);
+        InsertTiles(db, transaction, view);
         transaction.Commit();
     }
 
@@ -68,6 +57,36 @@ public sealed class PostgresViewRepository(NpgsqlDataSource dataSource) : IViewR
                 """)
             .Select(view => new ViewSummary(view.Id, view.Name, view.TileCount))
             .ToList();
+    }
+
+    public void Update(View view)
+    {
+        using var db = dataSource.OpenConnection();
+        using var transaction = db.BeginTransaction();
+        db.Execute(
+            "UPDATE custom_data_view.views SET name = @Name, updated_at = now() WHERE id = @Id",
+            new { view.Id, view.Definition.Name },
+            transaction);
+        db.Execute("DELETE FROM custom_data_view.view_tiles WHERE view_id = @Id", new { view.Id }, transaction);
+        InsertTiles(db, transaction, view);
+        transaction.Commit();
+    }
+
+    private static void InsertTiles(IDbConnection db, IDbTransaction transaction, View view)
+    {
+        db.Execute(
+            """
+            INSERT INTO custom_data_view.view_tiles (view_id, tile_id, position, css_class)
+            VALUES (@ViewId, @TileId, @Position, @CssClass)
+            """,
+            view.Definition.Tiles.Select(tile => new ViewTileRow
+            {
+                ViewId = view.Id,
+                TileId = tile.TileId,
+                Position = tile.Position,
+                CssClass = tile.CssClass
+            }),
+            transaction);
     }
 
     private sealed record ViewRow

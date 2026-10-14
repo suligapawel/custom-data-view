@@ -36,6 +36,11 @@ public sealed class ViewService(
                 .ToList());
     }
 
+    public void Update(Guid id, ViewDefinition definition)
+    {
+        repository.Update(new View(id, definition));
+    }
+
     private void ValidateReferences(ViewDefinition definition)
     {
         var errors = referencesValidator.Validate(definition);

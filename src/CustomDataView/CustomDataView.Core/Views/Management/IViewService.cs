@@ -7,4 +7,5 @@ public interface IViewService
     Guid Add(ViewDefinition definition);
     IReadOnlyList<ViewSummaryDto> GetAll();
     ViewDto Get(Guid id);
+    void Update(Guid id, ViewDefinition definition);
 }

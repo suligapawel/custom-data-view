@@ -12,6 +12,12 @@ public sealed class TestViewRepository : IViewRepository
         views.Add(view);
     }
 
+    public void Update(View view)
+    {
+        var index = views.FindIndex(stored => stored.Id == view.Id);
+        views[index] = view;
+    }
+
     public void RemoveTile(Guid tileId)
     {
         for (var index = 0; index < views.Count; index++)
