@@ -26,4 +26,22 @@ public class AddViewTests : ViewApiTests
             (RateTileId, "Kurs walut", 1, "col-6")
         }));
     }
+
+    [TestCase(true)]
+    [TestCase(false)]
+    [Test(Description = "scenario_TEMP-024-028 - #2")]
+    public async Task Given_NoTiles_When_UserSavesEmptyView_Then_ViewIsSavedWithEmptyTileList(bool emptyList)
+    {
+        var view = new JsonObject { ["name"] = "Pusty" };
+        if (emptyList)
+        {
+            view["tiles"] = new JsonArray();
+        }
+
+        var response = await Client.PostAsJsonAsync(ViewsUrl, view);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        var created = await response.Content.ReadFromJsonAsync<CreatedView>();
+        Assert.That(Tiles(await GetView(created.Id)), Is.Empty);
+    }
 }

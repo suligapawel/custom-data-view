@@ -9,7 +9,7 @@ public sealed record ViewRequest(string Name, IReadOnlyList<ViewTileRequest> Til
     public ViewInput ToInput()
         => new ViewInput(
             Name,
-            Tiles.Select(tile => new ViewTileInput(tile.TileId, tile.Position, tile.CssClass)).ToList());
+            (Tiles ?? []).Select(tile => new ViewTileInput(tile.TileId, tile.Position, tile.CssClass)).ToList());
 }
 
 public sealed record ViewTileRequest(Guid? TileId, int? Position, string CssClass);

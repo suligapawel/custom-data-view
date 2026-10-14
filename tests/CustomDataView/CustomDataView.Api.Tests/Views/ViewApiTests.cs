@@ -30,4 +30,6 @@ public abstract class ViewApiTests : TileApiTests
             tile["cssClass"]?.GetValue<string>()));
 
     protected static object ViewTile(Guid tileId, int position, string cssClass = null) => new { tileId, position, cssClass };
+
+    protected sealed record CreatedView(Guid Id);
 }
