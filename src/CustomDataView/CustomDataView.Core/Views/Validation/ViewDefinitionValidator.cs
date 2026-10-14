@@ -19,32 +19,40 @@ public static class ViewDefinitionValidator
         var positions = new HashSet<int>();
         for (var index = 0; index < input.Tiles.Count; index++)
         {
-            var tileId = input.Tiles[index].TileId;
-            if (tileId is null)
-            {
-                errors[$"tiles[{index}].tileId"] = ["Kafelek jest wymagany."];
-            }
-            else if (!tileIds.Add(tileId.Value))
-            {
-                errors[$"tiles[{index}].tileId"] = [$"Kafelek '{tileId}' występuje w widoku więcej niż raz."];
-            }
-
-            var position = input.Tiles[index].Position;
-            if (position is null or < 0)
-            {
-                errors[$"tiles[{index}].position"] = ["Pozycja kafelka jest wymagana i nie może być mniejsza niż 0."];
-            }
-            else if (!positions.Add(position.Value))
-            {
-                errors[$"tiles[{index}].position"] = [$"Pozycja {position} występuje w widoku więcej niż raz."];
-            }
-
-            if (input.Tiles[index].CssClass?.Trim().Length > MaxCssClassLength)
-            {
-                errors[$"tiles[{index}].cssClass"] = [$"Klasa CSS może mieć najwyżej {MaxCssClassLength} znaków."];
-            }
+            ValidateTile(input.Tiles[index], $"tiles[{index}]", tileIds, positions, errors);
         }
 
         return errors;
+    }
+
+    private static void ValidateTile(
+        ViewTileInput tile,
+        string key,
+        HashSet<Guid> tileIds,
+        HashSet<int> positions,
+        Dictionary<string, string[]> errors)
+    {
+        if (tile.TileId is null)
+        {
+            errors[$"{key}.tileId"] = ["Kafelek jest wymagany."];
+        }
+        else if (!tileIds.Add(tile.TileId.Value))
+        {
+            errors[$"{key}.tileId"] = [$"Kafelek '{tile.TileId}' występuje w widoku więcej niż raz."];
+        }
+
+        if (tile.Position is null or < 0)
+        {
+            errors[$"{key}.position"] = ["Pozycja kafelka jest wymagana i nie może być mniejsza niż 0."];
+        }
+        else if (!positions.Add(tile.Position.Value))
+        {
+            errors[$"{key}.position"] = [$"Pozycja {tile.Position} występuje w widoku więcej niż raz."];
+        }
+
+        if (tile.CssClass?.Trim().Length > MaxCssClassLength)
+        {
+            errors[$"{key}.cssClass"] = [$"Klasa CSS może mieć najwyżej {MaxCssClassLength} znaków."];
+        }
     }
 }
