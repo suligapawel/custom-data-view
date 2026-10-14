@@ -36,6 +36,6 @@ public static class TestDatabase
     public static void Clear(NpgsqlDataSource dataSource)
     {
         using var connection = dataSource.OpenConnection();
-        connection.Execute("TRUNCATE custom_data_view.tiles, custom_data_view.connections CASCADE");
+        connection.Execute("TRUNCATE custom_data_view.views, custom_data_view.tiles, custom_data_view.connections CASCADE");
     }
 }

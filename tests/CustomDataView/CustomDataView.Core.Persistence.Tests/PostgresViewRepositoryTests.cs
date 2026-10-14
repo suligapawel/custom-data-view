@@ -1,0 +1,84 @@
+using System.Text.Json;
+using CustomDataView.Core.Connections.Definitions;
+using CustomDataView.Core.Connections.Persistence;
+using CustomDataView.Core.Tiles.Definitions;
+using CustomDataView.Core.Tiles.Persistence;
+using CustomDataView.Core.Views.Definitions;
+using CustomDataView.Core.Views.Persistence;
+using Npgsql;
+
+namespace CustomDataView.Core.Persistence.Tests;
+
+public class PostgresViewRepositoryTests
+{
+    private NpgsqlDataSource dataSource;
+    private PostgresViewRepository repository;
+    private PostgresTileRepository tiles;
+    private Guid customerTileId;
+    private Guid rateTileId;
+
+    [OneTimeSetUp]
+    public void CreateDatabase()
+    {
+        dataSource = TestDatabase.Create();
+        repository = new PostgresViewRepository(dataSource);
+        tiles = new PostgresTileRepository(dataSource, []);
+    }
+
+    [OneTimeTearDown]
+    public void DisposeDatabase()
+    {
+        dataSource?.Dispose();
+    }
+
+    [SetUp]
+    public void ClearDatabase()
+    {
+        TestDatabase.Clear(dataSource);
+        var connection = new Connection(Guid.NewGuid(), new GetConnectionDefinition("Klient", "https://api.example.com", [], []));
+        new PostgresConnectionRepository(dataSource).Add(connection);
+        customerTileId = AddTile("Klient", connection.Id);
+        rateTileId = AddTile("Kurs walut", connection.Id);
+    }
+
+    [Test]
+    public void Given_SavedViewWithTiles_When_ItIsLoaded_Then_TilesAreInPositionOrderWithCssClasses()
+    {
+        var view = new View(Guid.NewGuid(), new ViewDefinition("Pulpit",
+        [
+            new ViewTile(rateTileId, 5, null),
+            new ViewTile(customerTileId, 0, "col-6 highlight")
+        ]));
+
+        repository.Add(view);
+
+        Assert.That(Json(repository.Get(view.Id)), Is.EqualTo(Json(view with
+        {
+            Definition = view.Definition with { Tiles = [view.Definition.Tiles[1], view.Definition.Tiles[0]] }
+        })));
+    }
+
+    [Test]
+    public void Given_ViewDoesNotExist_When_ItIsLoaded_Then_NothingIsReturned()
+    {
+        Assert.That(repository.Get(Guid.NewGuid()), Is.Null);
+    }
+
+    [Test]
+    public void Given_SavedTiles_When_ReferencesAreLoaded_Then_OnlyExistingTilesAreReturned()
+    {
+        Assert.That(
+            tiles.GetReferences([customerTileId, Guid.NewGuid()]),
+            Is.EqualTo(new[] { new TileReference(customerTileId, "Klient") }));
+        Assert.That(tiles.GetReferences([]), Is.Empty);
+    }
+
+    private static string Json(View view) => JsonSerializer.Serialize(view);
+
+    private Guid AddTile(string name, Guid connectionId)
+    {
+        var tile = new Tile(Guid.NewGuid(), new TileDefinition(name, [new TileField(connectionId, "$.name", "Nazwa", [])]));
+        tiles.Add(tile);
+        return tile.Id;
+    }
+}
