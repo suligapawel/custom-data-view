@@ -20,6 +20,14 @@ public class ViewValidationTests : ViewApiTests
         await AssertRejected(response, "name");
     }
 
+    [Test(Description = "scenario_TEMP-024-028 - #10")]
+    public async Task Given_EntryWithoutTile_When_UserSavesView_Then_SaveIsRejectedWithFirstTileError()
+    {
+        var response = await Client.PostAsJsonAsync(ViewsUrl, new { name = "Pulpit", tiles = new[] { new { position = 0 } } });
+
+        await AssertRejected(response, "tiles[0].tileId");
+    }
+
     private JsonObject ValidView()
         => new()
         {

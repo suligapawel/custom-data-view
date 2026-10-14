@@ -14,6 +14,14 @@ public static class ViewDefinitionValidator
             errors["name"] = [$"Nazwa widoku jest wymagana i może mieć najwyżej {MaxNameLength} znaków."];
         }
 
+        for (var index = 0; index < input.Tiles.Count; index++)
+        {
+            if (input.Tiles[index].TileId is null)
+            {
+                errors[$"tiles[{index}].tileId"] = ["Kafelek jest wymagany."];
+            }
+        }
+
         return errors;
     }
 }
