@@ -56,6 +56,35 @@ public class ViewPreviewTests : ViewApiTests
         Assert.That(Fields(preview, 1), Is.EqualTo(new[] { ("Kurs", "4.32") }));
     }
 
+    [Test(Description = "scenario_TEMP-029 - #4")]
+    public async Task Given_RateSourceUnavailable_When_UserPreviewsView_Then_OnlyRateTileFieldHasSourceError()
+    {
+        var id = await CreateView("Pulpit klienta", ViewTile(CustomerTileId, 0), ViewTile(RateTileId, 1));
+        Factory.ExternalApi.Respond = (request, _) => Task.FromResult(request.RequestUri!.AbsoluteUri == CustomerUrl
+            ? Json(CustomerResponse)
+            : new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
+
+        var response = await Client.PostAsJsonAsync($"{ViewsUrl}/{id}/preview", CustomerAndRateValues());
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var preview = await response.Content.ReadFromJsonAsync<JsonObject>();
+        Assert.That(Fields(preview, 0), Is.EqualTo(new[] { ("Nazwa", "\"acme\"") }));
+        Assert.That(preview["tiles"]![1]!["fields"]![0]!["error"]?["code"]?.GetValue<string>(), Is.EqualTo("source_unavailable"));
+    }
+
+    [Test(Description = "scenario_TEMP-029 - #5")]
+    public async Task Given_TwoTilesUsingCustomerConnection_When_UserPreviewsView_Then_CustomerSourceIsCalledForEachTile()
+    {
+        var balanceTileId = await CreateTile(new { name = "Saldo", fields = new[] { Field(CustomerConnectionId, "$.balance", "Saldo") } });
+        var id = await CreateView("Pulpit", ViewTile(CustomerTileId, 0), ViewTile(balanceTileId, 1));
+
+        var response = await Client.PostAsJsonAsync($"{ViewsUrl}/{id}/preview", CustomerValues());
+
+        var preview = await response.Content.ReadFromJsonAsync<JsonObject>();
+        Assert.That(Factory.ExternalApi.Requests.Select(request => request.Url), Is.EqualTo(new[] { CustomerUrl, CustomerUrl }));
+        Assert.That(Fields(preview, 1), Is.EqualTo(new[] { ("Saldo", "1234.567") }));
+    }
+
     private static IEnumerable<(string, string)> Fields(JsonObject preview, int tile)
         => preview["tiles"]![tile]!["fields"]!.AsArray()
             .Select(field => (field["label"]?.GetValue<string>(), field["value"]?.ToJsonString()));
