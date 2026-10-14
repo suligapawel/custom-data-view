@@ -58,4 +58,19 @@ public class AddViewTests : ViewApiTests
         var created = await response.Content.ReadFromJsonAsync<CreatedView>();
         Assert.That(Tiles(await GetView(created.Id)).Select(tile => tile.Item4), Is.EqualTo(new[] { null, null, "col-12" }));
     }
+
+    [Test(Description = "scenario_TEMP-024-028 - #4")]
+    public async Task Given_TilesSentOutOfOrderWithGaps_When_UserSavesView_Then_DetailsShowTilesInPositionOrderWithGapsKept()
+    {
+        var response = await Client.PostAsJsonAsync(ViewsUrl, new
+        {
+            name = "Pulpit",
+            tiles = new[] { ViewTile(OrdersTileId, 10), ViewTile(CustomerTileId, 0), ViewTile(RateTileId, 5) }
+        });
+
+        var created = await response.Content.ReadFromJsonAsync<CreatedView>();
+        Assert.That(
+            Tiles(await GetView(created.Id)).Select(tile => (tile.Item2, tile.Item3)),
+            Is.EqualTo(new (string, int?)[] { ("Klient", 0), ("Kurs walut", 5), ("Zamówienia", 10) }));
+    }
 }

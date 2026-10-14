@@ -22,6 +22,7 @@ public sealed class ViewService(IViewRepository repository, ITileRepository tile
             view.Id,
             view.Definition.Name,
             view.Definition.Tiles
+                .OrderBy(tile => tile.Position)
                 .Select(tile => new ViewTileDto(tile.TileId, names[tile.TileId], tile.Position, tile.CssClass))
                 .ToList());
     }
