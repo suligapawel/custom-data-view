@@ -20,6 +20,14 @@ public abstract class ViewApiTests : TileApiTests
         OrdersTileId = await CreateTile(new { name = "Zamówienia", fields = new[] { Field(CustomerConnectionId, "$.orders", "Zamówienia") } });
     }
 
+    protected async Task<Guid> CreateView(string name, params object[] tiles)
+    {
+        var response = await Client.PostAsJsonAsync(ViewsUrl, new { name, tiles });
+        response.EnsureSuccessStatusCode();
+        var created = await response.Content.ReadFromJsonAsync<CreatedView>();
+        return created.Id;
+    }
+
     protected Task<JsonObject> GetView(Guid id) => Client.GetFromJsonAsync<JsonObject>($"{ViewsUrl}/{id}");
 
     protected static IEnumerable<(Guid?, string, int?, string)> Tiles(JsonObject view)

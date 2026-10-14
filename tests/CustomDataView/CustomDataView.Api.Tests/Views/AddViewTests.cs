@@ -73,4 +73,17 @@ public class AddViewTests : ViewApiTests
             Tiles(await GetView(created.Id)).Select(tile => (tile.Item2, tile.Item3)),
             Is.EqualTo(new (string, int?)[] { ("Klient", 0), ("Kurs walut", 5), ("Zamówienia", 10) }));
     }
+
+    [Test(Description = "scenario_TEMP-024-028 - #5")]
+    public async Task Given_SalesViewWithCustomerTile_When_UserSavesServiceViewWithSameTile_Then_BothViewsContainIt()
+    {
+        var salesId = await CreateView("Sprzedaż", ViewTile(CustomerTileId, 0));
+
+        var response = await Client.PostAsJsonAsync(ViewsUrl, new { name = "Obsługa", tiles = new[] { ViewTile(CustomerTileId, 3) } });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        var serviceId = (await response.Content.ReadFromJsonAsync<CreatedView>()).Id;
+        Assert.That(Tiles(await GetView(salesId)).Select(tile => tile.Item1), Is.EqualTo(new Guid?[] { CustomerTileId }));
+        Assert.That(Tiles(await GetView(serviceId)).Select(tile => tile.Item1), Is.EqualTo(new Guid?[] { CustomerTileId }));
+    }
 }
