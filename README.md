@@ -12,23 +12,6 @@ docker run -d --name custom-data-view-db \
   postgres:17-alpine
 ```
 
-Migracje nie są wykonywane przez aplikację — uruchom je ręcznie, w kolejności nazw plików:
-
-```bash
-for migration in src/CustomDataView/CustomDataView.Core/Persistence/Migrations/*.sql; do
-  docker exec -i custom-data-view-db psql -U postgres -d custom_data_view_test -v ON_ERROR_STOP=1 < "$migration"
-done
-```
-
-Testy repozytoriów PostgreSQL (`CustomDataView.Core.Persistence.Tests`) korzystają z bazy wskazanej zmienną
-`CUSTOM_DATA_VIEW_TEST_DATABASE`; nazwa bazy musi kończyć się na `_test`. Testy usuwają schemat `custom_data_view`
-i same wykonują migracje:
-
-```bash
-CUSTOM_DATA_VIEW_TEST_DATABASE="Host=localhost;Port=55432;Database=custom_data_view_test;Username=postgres;Password=test" \
-  dotnet test tests/CustomDataView/CustomDataView.Core.Persistence.Tests
-```
-
 ## Przykład: kafelek „Pogoda” na fałszywym API pogody
 
 Przykład korzysta z endpointów deweloperskich `FakeWeatherEndpoints` (`/api/fake/weather/...`) i zakłada, że aplikacja
