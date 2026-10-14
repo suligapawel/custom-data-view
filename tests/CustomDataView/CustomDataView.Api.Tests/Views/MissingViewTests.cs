@@ -22,4 +22,12 @@ public class MissingViewTests : ViewApiTests
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
+
+    [Test(Description = "scenario_TEMP-024-028 - #26")]
+    public async Task Given_ViewDoesNotExist_When_UserDeletesIt_Then_ViewIsNotFound()
+    {
+        var response = await Client.DeleteAsync($"{ViewsUrl}/{Guid.NewGuid()}");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
 }
