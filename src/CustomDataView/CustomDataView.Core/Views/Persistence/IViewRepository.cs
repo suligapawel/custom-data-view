@@ -6,4 +6,5 @@ public interface IViewRepository
 {
     void Add(View view);
     View Get(Guid id);
+    IReadOnlyList<ViewSummary> GetAll();
 }

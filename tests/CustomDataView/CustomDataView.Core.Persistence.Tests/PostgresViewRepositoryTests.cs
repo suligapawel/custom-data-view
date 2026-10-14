@@ -59,6 +59,18 @@ public class PostgresViewRepositoryTests
     }
 
     [Test]
+    public void Given_TwoSavedViews_When_AllAreLoaded_Then_TheyAreInAddingOrder()
+    {
+        var first = new View(Guid.NewGuid(), new ViewDefinition("Pulpit", []));
+        var second = new View(Guid.NewGuid(), new ViewDefinition("Pulpit", []));
+
+        repository.Add(first);
+        repository.Add(second);
+
+        Assert.That(repository.GetAll(), Is.EqualTo(new[] { new ViewSummary(first.Id, "Pulpit"), new ViewSummary(second.Id, "Pulpit") }));
+    }
+
+    [Test]
     public void Given_ViewDoesNotExist_When_ItIsLoaded_Then_NothingIsReturned()
     {
         Assert.That(repository.Get(Guid.NewGuid()), Is.Null);

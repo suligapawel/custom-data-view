@@ -18,6 +18,7 @@ public static class ViewEndpoints
         {
             return endpoints
                 .AddView()
+                .GetViews()
                 .GetView();
         }
 
@@ -28,6 +29,12 @@ public static class ViewEndpoints
                 var id = service.Add(request.ToDefinition());
                 return Results.Created($"{ViewsUrl}/{id}", new ViewCreatedResponse(id));
             });
+            return endpoints;
+        }
+
+        private IEndpointRouteBuilder GetViews()
+        {
+            endpoints.MapGet(ViewsUrl, (IViewService service) => Results.Ok(service.GetAll()));
             return endpoints;
         }
 

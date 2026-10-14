@@ -55,6 +55,14 @@ public sealed class PostgresViewRepository(NpgsqlDataSource dataSource) : IViewR
             new ViewDefinition(view.Name, tiles.Select(tile => new ViewTile(tile.TileId, tile.Position, tile.CssClass)).ToList()));
     }
 
+    public IReadOnlyList<ViewSummary> GetAll()
+    {
+        using var db = dataSource.OpenConnection();
+        return db.Query<ViewRow>("SELECT id, name FROM custom_data_view.views ORDER BY created_at, id")
+            .Select(view => new ViewSummary(view.Id, view.Name))
+            .ToList();
+    }
+
     private sealed record ViewRow
     {
         public Guid Id { get; init; }

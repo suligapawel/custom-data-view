@@ -86,4 +86,19 @@ public class AddViewTests : ViewApiTests
         Assert.That(Tiles(await GetView(salesId)).Select(tile => tile.Item1), Is.EqualTo(new Guid?[] { CustomerTileId }));
         Assert.That(Tiles(await GetView(serviceId)).Select(tile => tile.Item1), Is.EqualTo(new Guid?[] { CustomerTileId }));
     }
+
+    [Test(Description = "scenario_TEMP-024-028 - #6")]
+    public async Task Given_ViewNamedDashboard_When_UserSavesAnotherDashboard_Then_BothAreListed()
+    {
+        var firstId = await CreateView("Pulpit");
+
+        var response = await Client.PostAsJsonAsync(ViewsUrl, new { name = "Pulpit" });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        var secondId = (await response.Content.ReadFromJsonAsync<CreatedView>()).Id;
+        var views = await Client.GetFromJsonAsync<JsonArray>(ViewsUrl);
+        Assert.That(
+            views.Select(view => (view["id"]?.GetValue<Guid>(), view["name"]?.GetValue<string>())),
+            Is.EqualTo(new (Guid?, string)[] { (firstId, "Pulpit"), (secondId, "Pulpit") }));
+    }
 }
