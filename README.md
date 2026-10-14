@@ -136,6 +136,24 @@ To samo metodą GET — parametry w adresie żądania, powtórzony parametr staj
 GET /api/custom-data-view/tiles/{id}/preview?city=Warszawa&days=5&units=metric&cities=Wrocław&cities=Poznań&cities=Gdańsk
 ```
 
+Przez curl (`-G` dokleja `--data-urlencode` do adresu i koduje polskie znaki):
+
+```bash
+curl -G "http://localhost:5080/api/custom-data-view/tiles/<ID_KAFELKA>/preview" \
+  --data-urlencode "city=Warszawa" \
+  --data-urlencode "days=5" \
+  --data-urlencode "units=metric" \
+  --data-urlencode "cities=Wrocław" \
+  --data-urlencode "cities=Poznań" \
+  --data-urlencode "cities=Gdańsk"
+```
+
+W jednej linii, z ręcznie zakodowanymi znakami:
+
+```bash
+curl "http://localhost:5080/api/custom-data-view/tiles/<ID_KAFELKA>/preview?city=Warszawa&days=5&units=metric&cities=Wroc%C5%82aw&cities=Pozna%C5%84&cities=Gda%C5%84sk"
+```
+
 ### 5. Podgląd niezapisanego kafelka (opcjonalnie)
 
 `POST /api/custom-data-view/tiles/preview` — w `tile` wstaw definicję z kroku 3:
