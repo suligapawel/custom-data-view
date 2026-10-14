@@ -55,6 +55,12 @@ public static class ViewEndpoints
         {
             endpoints.MapPut(ViewUrl, (Guid id, ViewRequest request, IViewService service) =>
             {
+                var errors = request.Validate();
+                if (errors.Count > 0)
+                {
+                    return Results.ValidationProblem(errors);
+                }
+
                 service.Update(id, request.ToDefinition());
                 return Results.NoContent();
             });
