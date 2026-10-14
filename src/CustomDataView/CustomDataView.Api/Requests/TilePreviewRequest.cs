@@ -11,5 +11,9 @@ public sealed record TilePreviewRequest(Dictionary<string, JsonElement> Paramete
         => parameters ?? new Dictionary<string, JsonElement>();
 
     public static IReadOnlyDictionary<string, JsonElement> ValuesOf(IQueryCollection query)
-        => query.ToDictionary(pair => pair.Key, pair => JsonSerializer.SerializeToElement(pair.Value.ToString()));
+        => query.ToDictionary(
+            pair => pair.Key,
+            pair => pair.Value.Count == 1
+                ? JsonSerializer.SerializeToElement(pair.Value.ToString())
+                : JsonSerializer.SerializeToElement(pair.Value.ToArray()));
 }

@@ -112,6 +112,25 @@ public class TilePreviewValuesTests : TileApiTests
         Assert.That(JsonNode.DeepEquals(await response.Content.ReadFromJsonAsync<JsonObject>(), posted), Is.True);
     }
 
+    [Test(Description = "scenario_TEMP-015-023 - #53")]
+    public async Task Given_RatesField_When_UserPreviewsWithGetAndRepeatedCurrency_Then_SourceGetsBothCurrencies()
+    {
+        var ratesConnectionId = await CreateConnection(new
+        {
+            name = "Kursy",
+            method = "GET",
+            url = "https://api.example.com/rates",
+            queryParameters = new[] { new { name = "currency", required = false } }
+        });
+        var id = await CreateTile(new { name = "Kursy", fields = new[] { Field(ratesConnectionId, "$.rate", "Kursy") } });
+
+        await Client.GetAsync($"{TilesUrl}/{id}/preview?currency=EUR&currency=USD");
+
+        Assert.That(
+            Factory.ExternalApi.Requests.Select(request => request.Url),
+            Is.EqualTo(new[] { "https://api.example.com/rates?currency=EUR&currency=USD" }));
+    }
+
     private Task<Guid> CustomerAndRateTile()
         => CreateTile(new
         {
