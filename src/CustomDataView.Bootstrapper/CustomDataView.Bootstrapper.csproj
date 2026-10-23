@@ -7,13 +7,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CustomDataView\CustomDataView.Api\CustomDataView.Api.csproj" />
-    <ProjectReference Include="..\CustomDataView\CustomDataView.Core\CustomDataView.Core.csproj" />
+    <ProjectReference Include="..\CustomDataView\CustomDataView.Application\CustomDataView.Application.csproj" />
+    <ProjectReference Include="..\CustomDataView\CustomDataView.Infrastructure\CustomDataView.Infrastructure.csproj" />
+    <ProjectReference Include="..\CustomDataView\CustomDataView.WebApi\CustomDataView.WebApi.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
     <PackageReference Include="Scalar.AspNetCore" Version="2.18.0" />
+    <PackageReference Include="WolverineFx.RuntimeCompilation" Version="6.51.3" />
   </ItemGroup>
 
 </Project>

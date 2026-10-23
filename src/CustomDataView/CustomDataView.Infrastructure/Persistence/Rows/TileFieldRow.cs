@@ -1,0 +1,16 @@
+namespace CustomDataView.Infrastructure.Persistence.Rows;
+
+public sealed class TileFieldRow
+{
+    public Guid TileId { get; set; }
+
+    public int Position { get; set; }
+
+    public Guid ConnectionId { get; set; }
+
+    public string Path { get; set; }
+
+    public string Label { get; set; }
+
+    public List<TileFieldTransformationRow> Transformations { get; set; } = [];
+}

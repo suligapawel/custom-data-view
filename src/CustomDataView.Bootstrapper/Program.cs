@@ -1,15 +1,17 @@
-using CustomDataView.Api.Endpoints;
-using CustomDataView.Api.Errors;
+using CustomDataView.Application;
 using CustomDataView.Bootstrapper.Development;
-using CustomDataView.Core;
+using CustomDataView.Infrastructure;
+using CustomDataView.WebApi.Endpoints;
+using CustomDataView.WebApi.Errors;
 using Scalar.AspNetCore;
+using Wolverine;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddCustomDataViewTransformations();
-builder.Services.AddCustomDataViewConnections();
-builder.Services.AddCustomDataViewTiles();
-builder.Services.AddCustomDataViewViews();
+builder.Host.UseWolverine(options => options.Discovery.IncludeAssembly(typeof(CustomDataView.Application.DependencyInjection).Assembly));
+
+builder.Services.AddCustomDataViewApplication();
+builder.Services.AddCustomDataViewInfrastructure();
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
 builder.Services.AddExceptionHandler<CustomDataViewExceptionHandler>();
