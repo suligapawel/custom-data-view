@@ -169,6 +169,11 @@ public sealed class TileReferencesValidator(
             return $"Pole '{label}' jest polem złożonym i nie może być wejściem kombinatora.";
         }
 
+        if (definition.Items is not null && input.Source != definition.Items.Source)
+        {
+            return $"Pole '{label}' nie pochodzi ze źródła elementów.";
+        }
+
         return !combination.AcceptsCollections && JsonPathParser.TryParse(input.Path, out var path) && path.IsCollection
             ? $"Pole '{label}' zwraca listę, której kombinator '{combination.Key}' nie przyjmuje."
             : null;

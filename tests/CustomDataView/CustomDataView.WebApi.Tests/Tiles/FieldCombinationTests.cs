@@ -304,6 +304,48 @@ public class FieldCombinationTests : TileApiTests
         Assert.That(problemDetails!["errors"]!.AsObject().Select(pair => pair.Key), Is.EqualTo(new[] { error }), problemDetails.ToJsonString());
     }
 
+    [TestCase("input-from-other-source", "fields[4].combine")]
+    [TestCase("combined-item-key", "items.key")]
+    [TestCase("source-binding", "bindings[0].map[0].field")]
+    [Test(Description = $"{Dir} - #12")]
+    public async Task Given_CombinedFieldBreakingItemRules_When_UserSavesTile_Then_SaveIsRejected(string problem, string error)
+    {
+        var detailsConnectionId = await CreateConnection(new
+        {
+            name = "Szczegóły miasta",
+            method = "GET",
+            url = "https://api.example.com/city",
+            queryParameters = new[] { new { name = "title", required = false } }
+        });
+        var list = Cities(
+            "list",
+            new JsonObject { ["source"] = "place", ["path"] = "$.street", ["label"] = "Ulica", ["hidden"] = true },
+            Combined("Tytuł", "template", problem == "input-from-other-source" ? "{Nazwa} {Ulica}" : "{Nazwa} ({Kraj})"));
+        list["fields"]!.AsArray().Last()!["role"] = "title";
+        list["sources"]!.AsArray().Add(new JsonObject { ["key"] = "place", ["kind"] = "connection", ["connectionId"] = placeConnectionId });
+        list["sources"]!.AsArray().Add(new JsonObject { ["key"] = "detail", ["kind"] = "connection", ["connectionId"] = detailsConnectionId });
+        if (problem == "combined-item-key")
+        {
+            list["items"]!["key"] = "Tytuł";
+        }
+
+        if (problem == "source-binding")
+        {
+            list["bindings"] = new JsonArray(new JsonObject
+            {
+                ["from"] = "cities",
+                ["to"] = "detail",
+                ["map"] = new JsonArray(new JsonObject { ["field"] = "Tytuł", ["parameter"] = "title" })
+            });
+        }
+
+        var response = await Client.PostAsJsonAsync(TilesUrl, list);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        var problemDetails = await response.Content.ReadFromJsonAsync<JsonObject>();
+        Assert.That(problemDetails!["errors"]!.AsObject().Select(pair => pair.Key), Is.EqualTo(new[] { error }), problemDetails.ToJsonString());
+    }
+
     private async Task<Guid> CreateWeatherTile()
     {
         var weatherConnectionId = await CreateConnection(new
