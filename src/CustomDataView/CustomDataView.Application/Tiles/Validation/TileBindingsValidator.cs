@@ -83,12 +83,20 @@ public static class TileBindingsValidator
             var binding = definition.Bindings[index];
             var key = $"bindings[{index}]";
             var segments = binding.To.Split(TileNodeKeys.PathSeparator);
+            var fromSegments = binding.From.Split(TileNodeKeys.PathSeparator);
             var fromParent = binding.From == TileNodeKeys.Parent;
-            var fromSource = sources.GetValueOrDefault(binding.From);
-            var fromChild = children.GetValueOrDefault(binding.From);
+            var fromSource = fromSegments.Length == 1 ? sources.GetValueOrDefault(binding.From) : null;
+            var fromChild = children.GetValueOrDefault(fromSegments[0]);
             if (!fromParent && fromSource is null && fromChild is null)
             {
                 errors[$"{key}.from"] = [$"Węzeł '{binding.From}' nie istnieje w kafelku."];
+                continue;
+            }
+
+            var fromTile = fromChild is null ? null : SourceTile(fromChild, fromSegments, tileOf);
+            if (fromChild is not null && fromTile is null)
+            {
+                errors[$"{key}.from"] = [$"Ścieżka osadzeń '{binding.From}' nie istnieje albo prowadzi przez osadzenie o zakresie 'item'."];
                 continue;
             }
 
@@ -113,7 +121,6 @@ public static class TileBindingsValidator
                 continue;
             }
 
-            var fromTile = fromChild is null ? null : tileOf(fromChild.TileId);
             for (var position = 0; position < binding.Map.Count; position++)
             {
                 var mapping = binding.Map[position];
@@ -152,7 +159,7 @@ public static class TileBindingsValidator
         => definition.Bindings.SelectMany(binding => binding.Map.Select(mapping => (
             From: binding.From == TileNodeKeys.Parent
                 ? definition.Fields.FirstOrDefault(field => TileLabels.AreEqual(field.Label, mapping.Field))?.Source ?? binding.From
-                : binding.From,
+                : binding.From.Split(TileNodeKeys.PathSeparator)[0],
             To: binding.To.Split(TileNodeKeys.PathSeparator)[0])));
 
     private static bool IsAllowedPair(
@@ -176,6 +183,28 @@ public static class TileBindingsValidator
         }
 
         return fromParent || fromChild is not null;
+    }
+
+    private static TileDefinition SourceTile(TileChild child, string[] segments, Func<Guid, TileDefinition> tileOf)
+    {
+        if (segments.Length > 1 && child.Scope != TileChildScopes.Tile)
+        {
+            return null;
+        }
+
+        var tile = tileOf(child.TileId);
+        foreach (var segment in segments.Skip(1))
+        {
+            var descendant = tile?.Children.FirstOrDefault(candidate => candidate.Key == segment);
+            if (descendant is null || descendant.Scope != TileChildScopes.Tile)
+            {
+                return null;
+            }
+
+            tile = tileOf(descendant.TileId);
+        }
+
+        return tile;
     }
 
     private static (TileChild Child, TileDefinition Tile)? Target(TileChild child, string[] segments, Func<Guid, TileDefinition> tileOf)

@@ -279,8 +279,23 @@ public sealed class TilePreviewer(
             };
         }
 
-        var child = definition.Children.Single(candidate => candidate.Key == from);
+        var segments = from.Split(TileNodeKeys.PathSeparator);
+        var child = definition.Children.Single(candidate => candidate.Key == segments[0]);
         var embedding = instance.Embedding(child, child.Scope == TileChildScopes.Item ? item : null);
+        foreach (var segment in segments.Skip(1))
+        {
+            if (embedding.State != TileEmbeddingStates.Data)
+            {
+                break;
+            }
+
+            embedding = embedding.Tile.Children?.FirstOrDefault(candidate => candidate.Key == segment);
+            if (embedding is null)
+            {
+                return BoundValue.Failed(new TileFieldErrorCause(from, mapping.Field, TileFieldErrorCodes.InvalidBinding));
+            }
+        }
+
         return embedding.State switch
         {
             TileEmbeddingStates.AwaitingInput => BoundValue.Waiting([.. embedding.Pending]),

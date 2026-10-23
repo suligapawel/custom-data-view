@@ -55,14 +55,50 @@ public class TabsTileTests : TileApiTests
         Assert.That(tabs[1]!["state"]?.GetValue<string>(), Is.EqualTo("awaiting_load"));
     }
 
-    private JsonObject Filters()
+    [Test(Description = $"{Dir} - #2")]
+    public async Task Given_BindingFromFormInTab_When_UserFillsFormAndPreviewsSearch_Then_ResultsAreQueriedWithFormValue()
+    {
+        var id = await CreateTile(Search(await CreateTile(Filters(lazyCountry: false))));
+
+        var preview = await Preview(id, new { forms = new Dictionary<string, object> { ["filters/byName"] = new Dictionary<string, object> { ["Miasto"] = "Kra" } } });
+
+        Assert.That(Factory.ExternalApi.Requests.Select(request => request.Url), Is.EqualTo(new[] { "https://api.example.com/cities?name=Kra" }));
+        var results = preview["children"]![1]!;
+        Assert.That(results["state"]?.GetValue<string>(), Is.EqualTo("data"), results.ToJsonString());
+        Assert.That(results["tile"]!["items"]![0]!["key"]?.GetValue<int>(), Is.EqualTo(1));
+    }
+
+    private JsonObject Search(Guid filtersId)
+        => new()
+        {
+            ["name"] = "Wyszukiwarka miast",
+            ["display"] = "details",
+            ["sources"] = new JsonArray(new JsonObject { ["key"] = "note", ["kind"] = "input" }),
+            ["fields"] = new JsonArray(new JsonObject { ["source"] = "note", ["path"] = "$", ["label"] = "Notatka", ["hidden"] = true }),
+            ["children"] = new JsonArray(
+                new JsonObject { ["key"] = "filters", ["tileId"] = filtersId, ["position"] = 0 },
+                new JsonObject { ["key"] = "results", ["tileId"] = resultsTileId, ["position"] = 1 }),
+            ["bindings"] = new JsonArray(
+                Binding("filters/byName", "results", "Miasto", "name"),
+                Binding("filters/byCountry", "results", "Kraj", "country"))
+        };
+
+    private static JsonObject Binding(string from, string to, string field, string parameter)
+        => new()
+        {
+            ["from"] = from,
+            ["to"] = to,
+            ["map"] = new JsonArray(new JsonObject { ["field"] = field, ["parameter"] = parameter })
+        };
+
+    private JsonObject Filters(bool lazyCountry = true)
         => new()
         {
             ["name"] = "Filtry",
             ["display"] = "tabs",
             ["children"] = new JsonArray(
                 new JsonObject { ["key"] = "byName", ["label"] = "Po nazwie", ["tileId"] = nameFormId, ["position"] = 0 },
-                new JsonObject { ["key"] = "byCountry", ["label"] = "Po kraju", ["tileId"] = countryFormId, ["position"] = 1, ["load"] = "lazy" })
+                new JsonObject { ["key"] = "byCountry", ["label"] = "Po kraju", ["tileId"] = countryFormId, ["position"] = 1, ["load"] = lazyCountry ? "lazy" : "eager" })
         };
 
     private static JsonObject Form(string name, string label, bool required)
