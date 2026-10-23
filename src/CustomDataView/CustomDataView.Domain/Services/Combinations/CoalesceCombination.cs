@@ -14,5 +14,5 @@ public sealed class CoalesceCombination : Combination
     public override int MinFields => 2;
 
     public override JsonNode Combine(string parameter, IReadOnlyList<CombinationInput> inputs)
-        => throw new NotSupportedException();
+        => inputs.FirstOrDefault(input => input.Value is not null)?.Value.DeepClone();
 }

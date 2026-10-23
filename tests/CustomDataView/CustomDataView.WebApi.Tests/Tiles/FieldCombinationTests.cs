@@ -133,6 +133,24 @@ public class FieldCombinationTests : TileApiTests
             preview.ToJsonString());
     }
 
+    [TestCase("Email|Telefon", "123 456 789")]
+    [TestCase("Telefon|Email", "123 456 789")]
+    [TestCase("Email|Email2", null)]
+    [Test(Description = $"{Dir} - #7")]
+    public async Task Given_FirstAvailableValueOfFields_When_UserPreviewsTile_Then_FirstValueOtherThanMissingIsReturned(string fields, string expected)
+    {
+        var id = await CreateTile(Address(
+            PlaceField("$.email", "Email"),
+            PlaceField("$.phone", "Telefon"),
+            PlaceField("$.email", "Email2"),
+            Combined("Kontakt", "coalesce", fields: fields.Split('|'))));
+
+        var preview = await Preview(id);
+
+        Assert.That(Field(preview, "Kontakt")["error"], Is.Null, preview.ToJsonString());
+        Assert.That(Value(preview, "Kontakt"), Is.EqualTo(expected));
+    }
+
     private void RespondWithPlace(Action<JsonObject> change)
     {
         var place = JsonNode.Parse(PlaceResponse)!.AsObject();
