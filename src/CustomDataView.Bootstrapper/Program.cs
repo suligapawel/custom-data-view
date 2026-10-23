@@ -29,6 +29,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapTransformationEndpoints();
+app.MapCombinationEndpoints();
 app.MapConnectionEndpoints();
 app.MapTileEndpoints();
 
