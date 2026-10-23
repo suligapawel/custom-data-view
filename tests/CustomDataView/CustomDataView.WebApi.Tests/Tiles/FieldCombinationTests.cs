@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Web;
 
 namespace CustomDataView.WebApi.Tests.Tiles;
 
@@ -30,6 +31,7 @@ public class FieldCombinationTests : TileApiTests
         {
             "/places/1" => Json(PlaceResponse),
             "/cities" => Json(CitiesResponse),
+            "/weather" => Json("""{"temp": 12.5}"""),
             _ => new HttpResponseMessage(HttpStatusCode.NotFound)
         });
         placeConnectionId = await CreateConnection(new { name = "Miejsce", method = "GET", url = "https://api.example.com/places/1" });
@@ -197,12 +199,53 @@ public class FieldCombinationTests : TileApiTests
         Assert.That(items[1]!["actions"]![0]!["inputs"]!["parameters"]!["title"]?.GetValue<string>(), Is.EqualTo("Praga (CZ)"));
     }
 
+    [Test(Description = $"{Dir} - #9")]
+    public async Task Given_TemplateBoundToChildConnectionParameter_When_UserPreviewsTile_Then_ChildConnectionIsCalledWithComposedValue()
+    {
+        var weatherTileId = await CreateWeatherTile();
+        var tile = Address(Combined("Współrzędne", "template", "{Lat},{Lon}"));
+        tile["children"] = new JsonArray(new JsonObject { ["key"] = "weather", ["tileId"] = weatherTileId, ["position"] = 0 });
+        tile["bindings"] = new JsonArray(new JsonObject
+        {
+            ["from"] = "parent",
+            ["to"] = "weather",
+            ["map"] = new JsonArray(new JsonObject { ["field"] = "Współrzędne", ["parameter"] = "latlon" })
+        });
+        var id = await CreateTile(tile);
+
+        var preview = await Preview(id);
+
+        Assert.That(LatLonOfWeatherRequest(), Is.EqualTo("50.06,19.95"), preview.ToJsonString());
+        Assert.That(preview["children"]![0]!["tile"]!["fields"]![0]!["value"]?.GetValue<decimal>(), Is.EqualTo(12.5m));
+    }
+
     private void RespondWithPlace(Action<JsonObject> change)
     {
         var place = JsonNode.Parse(PlaceResponse)!.AsObject();
         change(place);
         Factory.ExternalApi.Respond = (_, _) => Task.FromResult(Json(place.ToJsonString()));
     }
+
+    private async Task<Guid> CreateWeatherTile()
+    {
+        var weatherConnectionId = await CreateConnection(new
+        {
+            name = "Pogoda",
+            method = "GET",
+            url = "https://api.example.com/weather",
+            queryParameters = new[] { new { name = "latlon", required = true } }
+        });
+        return await CreateTile(new JsonObject
+        {
+            ["name"] = "Pogoda",
+            ["display"] = "details",
+            ["sources"] = new JsonArray(new JsonObject { ["key"] = "weather", ["kind"] = "connection", ["connectionId"] = weatherConnectionId }),
+            ["fields"] = new JsonArray(new JsonObject { ["source"] = "weather", ["path"] = "$.temp", ["label"] = "Temperatura" })
+        });
+    }
+
+    private string LatLonOfWeatherRequest()
+        => HttpUtility.ParseQueryString(new Uri(Factory.ExternalApi.Requests.Single(request => request.Url.Contains("/weather")).Url).Query)["latlon"];
 
     private JsonObject Address(params JsonObject[] fields)
         => new()
