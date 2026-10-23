@@ -7,7 +7,8 @@ mają zostać zaprezentowane użytkownikowi. Przechowuje definicje połączeń i
 widoku), udostępnia katalog gotowych transformacji pól, a także umożliwia sprawdzenie, czy połączenie i definicja
 kafelka generują dane zgodne z oczekiwaniami. Kafelek jest samodzielnym, reużywalnym komponentem: buduje się sam na
 podstawie własnej definicji i wartości swoich wejść, ma typ wyświetlania (`table`, `list`, `details`, `summary`,
-`form`), z którego front wie, jak go pokazać, i może zawierać inne kafelki (kafelki złożone). Dane przechodzą między
+`form`, `pagination_table`, `tabs`), z którego front wie, jak go pokazać, może zawierać inne kafelki (kafelki złożone)
+i akcje prowadzące do innych kafelków. Dane przechodzą między
 połączeniami i między kafelkami w kafelku złożonym wyłącznie przez jawne wiązania kafelek → kafelek, a wartości
 wpisywane przez użytkownika pochodzą z kafelków-formularzy.
 Docelowe pobieranie danych i ich renderowanie należą do innych modułów i frontendu, które nie są częścią tego MVP.
@@ -59,7 +60,8 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
 - Dodawanie, odczyt listy, odczyt szczegółów, edycja i usuwanie definicji kafelka.
 - Kafelek jest samodzielnym, reużywalnym komponentem. Określa, co pokazuje i jak (typ wyświetlania, pola z rolami,
   elementy, źródła danych, osadzone dzieci, wiązania wewnętrzne), ale nie wie, gdzie jest osadzony ani skąd dostaje
-  wejścia. Kafelki nic o sobie nie wiedzą; do innych kafelków odwołują się wyłącznie przez osadzenia dzieci.
+  wejścia. Kafelki nic o sobie nie wiedzą; do innych kafelków odwołują się wyłącznie przez osadzenia dzieci
+  i akcje.
 - Typ wyświetlania `display` jest wymagany:
 
   | `display` | Dane | Jak wyświetla front | Wymaga w definicji |
@@ -69,9 +71,11 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
   | `details` | jeden rekord | pary etykieta–wartość | bez `items` |
   | `summary` | jeden rekord | kilka wyróżnionych wartości | bez `items`, co najmniej jedno pole z rolą `primary` |
   | `form` | wartości wpisane przez użytkownika | formularz | pola formularza; bez źródeł, `items`, dzieci i wiązań |
+  | `pagination_table` | strona elementów z API | tabela z paginacją | jak `table` oraz `pagination` |
+  | `tabs` | zakładki | zakładki z osadzonymi kafelkami | dzieci `scope: tile` z `label`; bez pól, źródeł i `items` |
 
 - Opcjonalna rola pola (`role`): `title`, `subtitle`, `badge` dla `list`; `primary`, `secondary` dla `summary`. Rola
-  niezgodna z `display` to błąd walidacji; `table` i `details` nie przyjmują ról.
+  niezgodna z `display` to błąd walidacji; `table`, `pagination_table` i `details` nie przyjmują ról.
 - Źródła danych: lista z unikalnym w kafelku kluczem `key`. Źródło `connection` pobiera dane wskazanym połączeniem;
   źródło `input` to wejście danych, przez które kafelek dostaje gotowy JSON (obiekt, tablicę albo wartość prostą),
   a klucz źródła jest nazwą wejścia w kontrakcie kafelka. Kafelek może mieszać oba rodzaje źródeł.
@@ -87,7 +91,7 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
 - Etykieta pola jest unikalna w kafelku (porównanie bez rozróżniania wielkości liter, po przycięciu białych znaków).
 - Pole ukryte (`hidden: true`) jest zwracane w podglądzie kafelka z oznaczeniem `"hidden": true` (front go nie
   pokazuje), przechodzi przez transformacje i może być źródłem wiązania.
-- Elementy (`items`) kafelka `table` i `list`: `source` (klucz źródła z tablicą elementów), `path` (JSONPath
+- Elementy (`items`) kafelka `table`, `list` i `pagination_table`: `source` (klucz źródła z tablicą elementów), `path` (JSONPath
   z wildcardem lub filtrem, np. `$.cities[*]`) i `key` (etykieta pola identyfikującego element). Ścieżki pól są
   względne wobec elementu, a pola pochodzą ze źródła `items.source`. Pole innego źródła jest dozwolone tylko
   z `hidden: true` i tylko jako źródło wiązania źródło → źródło.
@@ -97,20 +101,38 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
   wartość podana w żądaniu podglądu dla tego osadzenia formularza, a bez niej `default`. Pole wymagane bez wartości
   i bez `default` wstrzymuje cele swoich wiązań (`awaiting_input`); pole opcjonalne bez wartości oznacza brak wartości.
   Wartość niezgodna z typem daje błąd pola `invalid_value`, a cele wiązań z tego pola dostają `dependency_failed`.
+- Stronicowanie (`pagination`, wymagane tylko i wyłącznie dla `pagination_table`): stronicuje API, a moduł przekazuje
+  mu numer i rozmiar strony parametrami połączenia źródła elementów (źródło `connection`) o nazwach
+  `pageNumberParameter` (domyślnie `pageNumber`) i `pageSizeParameter` (domyślnie `pageSize`), różnych
+  i zadeklarowanych w połączeniu. `pageSize` (1–100) to domyślny rozmiar strony, a opcjonalny `totalPath` (JSONPath bez
+  wildcardu i filtra) wskazuje łączną liczbę elementów w odpowiedzi. Strony są numerowane od 1; oba parametry zostają
+  w kontrakcie kafelka.
+- Kafelek `tabs` układa dzieci w zakładki: ma co najmniej jedno dziecko, wszystkie `scope: tile` z `label` (tytuł
+  zakładki), w kolejności `position`; nie ma pól, źródeł, `items`, `pagination` ani akcji. Zakładką może być dowolny
+  kafelek z ładowaniem `eager` albo `lazy`. Wiązania kafelka `tabs` łączą zakładki (dziecko → dziecko lub potomek).
+  Aktywna zakładka to stan frontu.
+- Akcje (`actions`, opcjonalne; nie dla `form` i `tabs`) prowadzą do innego kafelka-korzenia: `key` (unikalny wśród
+  akcji, bez znaku `/`), `label` (1–100 znaków), `type` (`button` — domyślny, `link`), `tileId` (kafelek docelowy, także
+  ten sam), `scope` (`item` — przy każdym elemencie, tylko u kafelka z `items` i u niego domyślny; `tile` — raz na
+  kafelek) i `map` (może być puste): `field` (dla `item` pole źródła elementów, dla `tile` pole spoza niego) i dokładnie
+  jedno z `parameter` (parametr kontraktu celu) i `input` (wejście danych celu), każde wejście celu najwyżej raz.
 - Osadzenia dzieci (`children`): `key` (unikalny w rodzicu, bez znaku `/`), `tileId` (samodzielny kafelek), `position`
-  (unikalna w rodzicu), opcjonalny `cssClass` (do 200 znaków, sposób ułożenia w rodzicu), `scope` (`tile` — jedna
+  (unikalna w rodzicu), opcjonalny `label` (do 100 znaków; tytuł zakładki, wymagany u rodzica `tabs`), opcjonalny
+  `cssClass` (do 200 znaków, sposób ułożenia w rodzicu), `scope` (`tile` — jedna
   instancja, `item` — instancja na element rodzica, tylko u rodzica z `items`) i `load` (`eager` — z rodzicem, `lazy` —
   na żądanie frontu). Formularz może być osadzony tylko ze `scope: tile`. Ten sam kafelek może być osadzony kilka razy.
   Pola kafelka wyświetlają się przed dziećmi, dzieci w kolejności `position`; dzieci `scope: item` trafiają do obszaru
-  elementu. Brak cykli zawierania i najwyżej 3 poziomy zagnieżdżenia (kafelek, dziecko, wnuk).
+  elementu. Brak cykli zawierania; liczba poziomów zagnieżdżenia nie jest ograniczona.
 - Wiązania w kafelku (`bindings`, opcjonalne): `from` → `to` z listą mapowań `map` (`field` — etykieta pola węzła
   źródłowego, dokładnie jedno z `parameter` i `input`, opcjonalny `scope`). Jedno wiązanie przekazuje dowolną liczbę
   wartości: `map` może zawierać wiele mapowań (np. pola „Lat” i „Lon” do parametrów `lat` i `lon`), a jedno pole może
   zasilać kilka parametrów lub wejść celu. Węzły kafelka to jego źródła, osadzenia
   dzieci i `parent` (pola samego kafelka); tworzą jedną przestrzeń nazw. Dozwolone pary: źródło → źródło
   (`connection` → `connection`), dziecko `scope: tile` → źródło, `parent` → dziecko lub potomek, dziecko → dziecko lub
-  potomek. Cel może być wskazany ścieżką osadzeń (`shipping/carrier`, najwyżej 2 segmenty) i musi być wejściem
-  kafelka docelowego niezwiązanym przez kafelek pośredni. Zakres `scope`: brak (wartość pola), `selected` (domyślny dla
+  potomek. Cel może być wskazany ścieżką osadzeń (`shipping/carrier`) i musi być wejściem kafelka docelowego
+  niezwiązanym przez kafelek pośredni. Źródło też może być ścieżką osadzeń `scope: tile` (`filters/byName`): pole
+  pochodzi wtedy z kontraktu ostatniego kafelka ścieżki, a wiązanie działa jak wiązanie z dziecka pierwszego segmentu.
+  Ścieżki nie mają limitu długości. Zakres `scope`: brak (wartość pola), `selected` (domyślny dla
   węzła z `items`; pole elementu wybranego przez użytkownika), `all` (lista wartości pola ze wszystkich elementów),
   `item` (pole bieżącego elementu rodzica dla dziecka `scope: item`).
 - Walidacja wiązań kafelka: węzły istnieją, `from` i `to` są różne, para występuje najwyżej raz, `map` ma co najmniej
@@ -122,9 +144,10 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
   źródeł niezwiązane wiązaniem wewnętrznym w danym połączeniu), `inputs` (wejścia danych) i `outputs` (etykiety pól,
   także ukrytych i pól formularza, oraz informacja, czy kafelek ma elementy). Kontrakt nie obejmuje niezwiązanych wejść
   potomków.
-- Usunięcie kafelka osadzonego jako dziecko w innym kafelku jest blokowane (409 `tile_in_use` z listą kafelków);
-  połączenia pozostają.
-- Edycja kafelka, która usuwa pole albo zmienia etykietę pola użytego jako źródło wiązania w rodzicu, jest blokowana
+- Usunięcie kafelka osadzonego jako dziecko w innym kafelku albo wskazanego przez akcję jest blokowane (409
+  `tile_in_use` z listą kafelków); połączenia pozostają.
+- Edycja kafelka, która usuwa pole albo zmienia etykietę pola użytego jako źródło wiązania w rodzicu albo w przodku
+  (ścieżka `from`), jest blokowana
   (409 `field_in_use` z listą pól i kafelków). Zmiana ścieżki, źródła lub transformacji pola bez
   zmiany etykiety nie jest blokowana. Usunięcie albo zmiana nazwy parametru, wejścia lub klucza osadzenia będącego
   celem wiązania nie jest blokowana; w podglądzie wiązanie daje `invalid_binding`.
@@ -158,6 +181,18 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
   pole formularza; `inputs` i `pending`), `awaiting_load` (`lazy` albo przekroczony limit; `inputs`) albo `error`
   (`dependency_failed` z przyczyną albo `invalid_binding`). `inputs` ma kształt żądania podglądu kafelka, więc front
   doładowuje osadzenie bez znajomości definicji rodzica.
+- Osadzenie z `label` zwraca go w odpowiedzi (tytuł zakładki). Zakładki kafelka `tabs` są wykonywane jak inne dzieci;
+  front pokazuje aktywną zakładkę i wysyła wartości jej formularza.
+- `pagination_table` wywołuje źródło elementów ze stroną z wartości parametru numeru strony (domyślnie 1) i rozmiarem
+  z wartości parametru rozmiaru (domyślnie `pageSize`); wartość musi być liczbą całkowitą (numer ≥ 1, rozmiar 1–100),
+  inaczej elementy mają błąd `invalid_parameters`. Odpowiedź zawiera `pagination`: `page`, `pageSize`, `total`
+  i `pages` (gdy pod `totalPath` jest liczba całkowita), `previous` (gdy `page > 1`) i `next` (gdy `page < pages`,
+  a bez `pages` — gdy strona jest pełna). `previous` i `next` mają kształt żądania podglądu kafelka (wartości doręczone
+  instancji z ustawioną stroną), więc front zmienia stronę bez znajomości definicji rodzica.
+- Akcje są zwracane przy elementach (`scope: item`) albo w kafelku (`scope: tile`): `key`, `label`, `type`, `tileId`
+  i `inputs` celu (wartości pól po transformacjach, w kształcie żądania podglądu) albo `error` (`dependency_failed`
+  z przyczyną przy błędzie pola, `invalid_binding`, gdy cel nie deklaruje już parametru lub wejścia). Front otwiera cel
+  jako nowy korzeń podglądem kafelka `tileId` z `inputs`.
 - Parametry są walidowane osobno dla każdego połączenia, tuż przed jego wywołaniem. Brak wymaganego parametru, zły typ
   albo brak wejścia danych daje błąd pól tego źródła `invalid_parameters` ze szczegółami (parametr, komunikat, czy
   wartość pochodzi z wiązania); pozostałe pola zwracają dane. Podgląd kafelka zwraca zawsze status 200 (zasada
@@ -214,7 +249,8 @@ Historyjki są uporządkowane w kolejności realizacji, od najmniejszych funkcjo
 połączenia, kafelki, widoki i podgląd widoku (TEMP-001 … TEMP-029; widoki wycofane w TEMP-038). Kolejna grupa, kafelki
 złożone i wiązania (TEMP-030 … TEMP-039), rozbudowuje kafelki etapami: unikalna etykieta i ukryte pole, walidacja
 parametrów per połączenie, typ wyświetlania i elementy, źródła z wiązaniami źródło → źródło, wejścia danych, formularze,
-dzieci `scope: tile`, dzieci `scope: item` z limitami, usunięcie widoków na rzecz kafelków złożonych i wybór elementu. TEMP-040 dodaje filtr w ścieżce JSONPath.
+dzieci `scope: tile`, dzieci `scope: item` z limitami, usunięcie widoków na rzecz kafelków złożonych i wybór elementu. TEMP-040 dodaje filtr w ścieżce JSONPath, a TEMP-041 …
+TEMP-043 zakładki, tabelę ze stronicowaniem i akcje przejścia do kafelka (wyszukiwarka z filtrami).
 Każda grupa korzysta wyłącznie z grup wcześniejszych; blokada usuwania połączeń używanych przez kafelki należy do grupy
 kafelków. Historyjki i scenariusze leżą w `docs/scenarios/scenario_TEMP-*`.
 
