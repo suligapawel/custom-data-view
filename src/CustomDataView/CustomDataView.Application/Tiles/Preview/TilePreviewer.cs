@@ -469,7 +469,7 @@ public sealed class TilePreviewer(
     {
         JsonPathParser.TryParse(field.Path, out var path);
         var matches = path.Evaluate(body);
-        if (!path.HasWildcard && matches.Count == 0)
+        if (!path.IsCollection && matches.Count == 0)
         {
             return new TileFieldPreview(field.Label, null, new TileFieldError(TileFieldErrorCodes.PathNotFound), field.Hidden);
         }
@@ -483,7 +483,7 @@ public sealed class TilePreviewer(
         }
 
         var values = results.Select(result => TransformationValue.ToJson(result.Value)).ToArray();
-        return new TileFieldPreview(field.Label, path.HasWildcard ? new JsonArray(values) : values.Single(), null, field.Hidden);
+        return new TileFieldPreview(field.Label, path.IsCollection ? new JsonArray(values) : values.Single(), null, field.Hidden);
     }
 
     private sealed class TileInstance(TileDefinition definition, TileValues delivered, string address)

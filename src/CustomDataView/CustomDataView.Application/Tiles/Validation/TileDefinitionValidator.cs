@@ -212,9 +212,9 @@ public static class TileDefinitionValidator
             errors["items.source"] = [$"Źródło elementów '{input.Items.Source}' nie istnieje w kafelku."];
         }
 
-        if (!JsonPathParser.TryParse(input.Items.Path, out var path) || !path.HasWildcard)
+        if (!JsonPathParser.TryParse(input.Items.Path, out var path) || !path.IsCollection)
         {
-            errors["items.path"] = ["Ścieżka elementów jest wymagana i musi być poprawną ścieżką JSONPath z wildcardem."];
+            errors["items.path"] = ["Ścieżka elementów jest wymagana i musi być poprawną ścieżką JSONPath z wildcardem albo filtrem."];
         }
 
         if (!input.Fields.Any(field => TileLabels.AreEqual(field.Label, input.Items.Key) && field.Source == input.Items.Source))
