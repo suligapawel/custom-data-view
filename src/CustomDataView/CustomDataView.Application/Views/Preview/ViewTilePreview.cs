@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using CustomDataView.Application.Tiles.Preview;
 
 namespace CustomDataView.Application.Views.Preview;
@@ -7,4 +8,8 @@ public sealed record ViewTilePreview(
     string TileName,
     int Position,
     string CssClass,
-    IReadOnlyList<TileFieldPreview> Fields);
+    string Display,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<TileFieldPreview> Fields,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string ItemKey,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<TileItemPreview> Items,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TileFieldError ItemsError);

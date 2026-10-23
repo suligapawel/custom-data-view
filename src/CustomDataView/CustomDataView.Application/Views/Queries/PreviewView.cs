@@ -35,6 +35,13 @@ public sealed class PreviewViewHandler(IViewRepository views, ITileRepository ti
             name,
             tile.Position,
             tile.CssClass,
-            preview.Fields.Where(field => !field.Hidden).ToList());
+            preview.Display,
+            Visible(preview.Fields),
+            preview.ItemKey,
+            preview.Items?.Select(item => item with { Fields = Visible(item.Fields) }).ToList(),
+            preview.ItemsError);
     }
+
+    private static IReadOnlyList<TileFieldPreview> Visible(IReadOnlyList<TileFieldPreview> fields)
+        => fields?.Where(field => !field.Hidden).ToList();
 }

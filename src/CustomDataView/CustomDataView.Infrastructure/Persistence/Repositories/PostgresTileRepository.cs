@@ -24,6 +24,10 @@ public sealed class PostgresTileRepository(
         {
             Id = tile.Id,
             Name = tile.Definition.Name,
+            Display = tile.Definition.Display,
+            ItemsSourceKey = tile.Definition.Items?.Source,
+            ItemsPath = tile.Definition.Items?.Path,
+            ItemsKeyLabel = tile.Definition.Items?.Key,
             Sources = ToSourceRows(tile),
             Fields = ToFieldRows(tile)
         });
@@ -56,6 +60,10 @@ public sealed class PostgresTileRepository(
             .Where(stored => stored.Id == tile.Id)
             .ExecuteUpdate(setters => setters
                 .SetProperty(stored => stored.Name, tile.Definition.Name)
+                .SetProperty(stored => stored.Display, tile.Definition.Display)
+                .SetProperty(stored => stored.ItemsSourceKey, tile.Definition.Items == null ? null : tile.Definition.Items.Source)
+                .SetProperty(stored => stored.ItemsPath, tile.Definition.Items == null ? null : tile.Definition.Items.Path)
+                .SetProperty(stored => stored.ItemsKeyLabel, tile.Definition.Items == null ? null : tile.Definition.Items.Key)
                 .SetProperty(stored => stored.UpdatedAt, stored => DateTime.UtcNow));
         context.TileSources.Where(source => source.TileId == tile.Id).ExecuteDelete();
         context.TileSources.AddRange(ToSourceRows(tile));
@@ -128,6 +136,7 @@ public sealed class PostgresTileRepository(
                 Path = field.Path,
                 Label = field.Label,
                 Hidden = field.Hidden,
+                Role = field.Role,
                 Transformations = field.Transformations
                     .Select((step, position) => new TileFieldTransformationRow
                     {
@@ -153,14 +162,17 @@ public sealed class PostgresTileRepository(
     private Tile ToTile(TileRow tile)
         => new Tile(tile.Id, new TileDefinition(
             tile.Name,
+            tile.Display,
             tile.Sources.Select(source => new TileSource(source.Key, source.Kind, source.ConnectionId)).ToList(),
+            tile.ItemsSourceKey is null ? null : new TileItems(tile.ItemsSourceKey, tile.ItemsPath, tile.ItemsKeyLabel),
             tile.Fields
                 .Select(field => new TileField(
                     field.SourceKey,
                     field.Path,
                     field.Label,
                     field.Transformations.Select(ToStep).ToList(),
-                    field.Hidden))
+                    field.Hidden,
+                    field.Role))
                 .ToList()));
 
     private TransformationStep ToStep(TileFieldTransformationRow step)

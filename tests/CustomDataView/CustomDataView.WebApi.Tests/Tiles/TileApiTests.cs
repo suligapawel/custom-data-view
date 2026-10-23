@@ -72,6 +72,7 @@ public abstract class TileApiTests : ConnectionApiTests
         => new()
         {
             ["name"] = name,
+            ["display"] = "details",
             ["sources"] = new JsonArray(fields
                 .Select(field => field.ConnectionId)
                 .Distinct()

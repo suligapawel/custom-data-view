@@ -73,19 +73,22 @@ public class TileDetailsTests : TileApiTests
                 {
                     ["id"] = id,
                     ["name"] = "Klient i kurs",
+                    ["display"] = "details",
                     ["sources"] = new JsonArray(new JsonObject
                     {
                         ["key"] = "rate",
                         ["kind"] = "connection",
                         ["connectionId"] = RateConnectionId
                     }),
+                    ["items"] = null,
                     ["fields"] = new JsonArray(new JsonObject
                     {
                         ["source"] = "rate",
                         ["path"] = "$.rate",
                         ["label"] = "Kurs EUR",
                         ["transformations"] = JsonNode.Parse("""[{"key": "round", "parameters": {"decimals": 2}}]"""),
-                        ["hidden"] = false
+                        ["hidden"] = false,
+                        ["role"] = null
                     })
                 }),
             Is.True,

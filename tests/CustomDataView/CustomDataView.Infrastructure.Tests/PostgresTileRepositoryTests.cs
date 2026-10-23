@@ -177,6 +177,29 @@ public class PostgresTileRepositoryTests
     }
 
     [Test]
+    public void Given_ListTileWithItemsAndRoles_When_ItIsSavedAndUpdatedToSummary_Then_DisplayItemsAndRolesAreKept()
+    {
+        var list = new Tile(Guid.NewGuid(), Definition("Miasta", [
+            new TileField("customer", "$.id", "ID", []),
+            new TileField("customer", "$.name", "Miasto", [], Role: TileFieldRoles.Title)
+        ]) with { Display = TileDisplays.List, Items = new TileItems("customer", "$.cities[*]", "ID") });
+        repository.Add(list);
+        var loaded = repository.Get(list.Id);
+        var summary = list with
+        {
+            Definition = Definition("Saldo", [new TileField("rate", "$.rate", "Kurs", [], Role: TileFieldRoles.Primary)]) with
+            {
+                Display = TileDisplays.Summary
+            }
+        };
+
+        repository.Update(summary);
+
+        Assert.That(Json(loaded), Is.EqualTo(Json(list)));
+        Assert.That(Json(repository.Get(list.Id)), Is.EqualTo(Json(summary)));
+    }
+
+    [Test]
     public void Given_TileWithLabelsDifferingInCaseAndSpaces_When_ItIsSaved_Then_DatabaseRejectsIt()
     {
         var tile = new Tile(Guid.NewGuid(), Definition("Klient",
@@ -192,6 +215,7 @@ public class PostgresTileRepositoryTests
     private TileDefinition Definition(string name, IReadOnlyList<TileField> fields)
         => new TileDefinition(
             name,
+            TileDisplays.Details,
             fields
                 .Select(field => field.Source)
                 .Distinct()
@@ -200,6 +224,7 @@ public class PostgresTileRepositoryTests
                     TileSourceKinds.Connection,
                     source == "customer" ? customerConnectionId : rateConnectionId))
                 .ToList(),
+            null,
             fields);
 
     private static string Json(Tile tile) => JsonSerializer.Serialize(tile);

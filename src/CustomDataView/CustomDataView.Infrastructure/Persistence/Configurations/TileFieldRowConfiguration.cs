@@ -8,7 +8,11 @@ public sealed class TileFieldRowConfiguration : IEntityTypeConfiguration<TileFie
 {
     public void Configure(EntityTypeBuilder<TileFieldRow> builder)
     {
-        builder.ToTable("tile_fields", table => table.HasCheckConstraint("ck_tile_fields_position", "position >= 0"));
+        builder.ToTable("tile_fields", table =>
+        {
+            table.HasCheckConstraint("ck_tile_fields_position", "position >= 0");
+            table.HasCheckConstraint("ck_tile_fields_role", "role IN ('title', 'subtitle', 'badge', 'primary', 'secondary')");
+        });
         builder.HasKey(field => new { field.TileId, field.Position }).HasName("pk_tile_fields");
         builder.Property(field => field.TileId).HasColumnName("tile_id");
         builder.Property(field => field.Position).HasColumnName("position").ValueGeneratedNever();
@@ -20,6 +24,7 @@ public sealed class TileFieldRowConfiguration : IEntityTypeConfiguration<TileFie
             .HasMaxLength(100)
             .IsRequired()
             .HasComputedColumnSql("lower(btrim(label))", stored: true);
+        builder.Property(field => field.Role).HasColumnName("role").HasMaxLength(10);
         builder.Property(field => field.Hidden).HasColumnName("hidden").HasDefaultValue(false);
         builder.HasIndex(field => new { field.TileId, field.NormalizedLabel })
             .IsUnique()

@@ -5,4 +5,5 @@ public sealed record TileField(
     string Path,
     string Label,
     IReadOnlyList<TransformationStep> Transformations,
-    bool Hidden = false);
+    bool Hidden = false,
+    string Role = null);

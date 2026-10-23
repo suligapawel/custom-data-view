@@ -4,6 +4,7 @@ using CustomDataView.Application.Connections.Calls;
 using CustomDataView.Application.Connections.Validation;
 using CustomDataView.Application.Exceptions;
 using CustomDataView.Domain.Entities;
+using CustomDataView.Domain.Policies;
 using CustomDataView.Domain.Repositories;
 using CustomDataView.Domain.Services;
 using CustomDataView.Domain.Services.Transformations;
@@ -39,12 +40,37 @@ public sealed class TilePreviewer(
         CancellationToken cancellationToken)
     {
         var responses = await Call(definition, parameters, cancellationToken);
+        if (definition.Items is not null)
+        {
+            return PreviewItems(id, definition, responses[definition.Items.Source]);
+        }
+
         return new TilePreview(
             id,
             definition.Name,
-            definition.Fields
-                .Select(field => PreviewField(field, responses[field.Source]) with { Hidden = field.Hidden })
-                .ToList());
+            definition.Display,
+            definition.Fields.Select(field => PreviewField(field, responses[field.Source])).ToList());
+    }
+
+    private TilePreview PreviewItems(Guid? id, TileDefinition definition, SourceResult source)
+    {
+        var preview = new TilePreview(id, definition.Name, definition.Display, null, definition.Items.Key);
+        if (Error(source) is { } error)
+        {
+            return preview with { ItemsError = error };
+        }
+
+        JsonPathParser.TryParse(definition.Items.Path, out var path);
+        var fields = definition.Fields.Where(field => field.Source == definition.Items.Source).ToList();
+        var items = path.Evaluate(source.Response.Body)
+            .Select(element =>
+            {
+                var values = fields.Select(field => PreviewField(field, element)).ToList();
+                var key = values.First(value => TileLabels.AreEqual(value.Label, definition.Items.Key)).Value?.DeepClone();
+                return new TileItemPreview(key, values);
+            })
+            .ToList();
+        return preview with { Items = items };
     }
 
     private async Task<Dictionary<string, SourceResult>> Call(
@@ -78,27 +104,34 @@ public sealed class TilePreviewer(
     }
 
     private TileFieldPreview PreviewField(TileField field, SourceResult source)
+        => Error(source) is { } error
+            ? new TileFieldPreview(field.Label, null, error, field.Hidden)
+            : PreviewField(field, source.Response.Body);
+
+    private static TileFieldError Error(SourceResult source)
     {
         if (source.Error is not null)
         {
-            return new TileFieldPreview(field.Label, null, source.Error);
+            return source.Error;
         }
 
         var response = source.Response;
-        if (!response.IsSuccess)
+        if (response.IsSuccess)
         {
-            var reason = response.ErrorCode == TileFieldErrorCodes.SourceUnavailable ? null : response.ErrorCode;
-            return new TileFieldPreview(
-                field.Label,
-                null,
-                new TileFieldError(TileFieldErrorCodes.SourceUnavailable, Reason: reason, Status: response.Status));
+            return null;
         }
 
+        var reason = response.ErrorCode == TileFieldErrorCodes.SourceUnavailable ? null : response.ErrorCode;
+        return new TileFieldError(TileFieldErrorCodes.SourceUnavailable, Reason: reason, Status: response.Status);
+    }
+
+    private TileFieldPreview PreviewField(TileField field, JsonNode body)
+    {
         JsonPathParser.TryParse(field.Path, out var path);
-        var matches = path.Evaluate(response.Body);
+        var matches = path.Evaluate(body);
         if (!path.HasWildcard && matches.Count == 0)
         {
-            return new TileFieldPreview(field.Label, null, new TileFieldError(TileFieldErrorCodes.PathNotFound));
+            return new TileFieldPreview(field.Label, null, new TileFieldError(TileFieldErrorCodes.PathNotFound), field.Hidden);
         }
 
         var results = matches
@@ -106,11 +139,11 @@ public sealed class TilePreviewer(
             .ToList();
         if (results.FirstOrDefault(result => result.Error is not null)?.Error is { } error)
         {
-            return new TileFieldPreview(field.Label, null, new TileFieldError(error.Code, error.Key, error.Reason));
+            return new TileFieldPreview(field.Label, null, new TileFieldError(error.Code, error.Key, error.Reason), field.Hidden);
         }
 
         var values = results.Select(result => TransformationValue.ToJson(result.Value)).ToArray();
-        return new TileFieldPreview(field.Label, path.HasWildcard ? new JsonArray(values) : values.Single());
+        return new TileFieldPreview(field.Label, path.HasWildcard ? new JsonArray(values) : values.Single(), null, field.Hidden);
     }
 
     private sealed record SourceResult(ExternalApiResult Response, TileFieldError Error);

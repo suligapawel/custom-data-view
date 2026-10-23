@@ -185,6 +185,11 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("path");
 
+                    b.Property<string>("Role")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("role");
+
                     b.Property<string>("SourceKey")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -204,6 +209,8 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                     b.ToTable("tile_fields", "custom_data_view", t =>
                         {
                             t.HasCheckConstraint("ck_tile_fields_position", "position >= 0");
+
+                            t.HasCheckConstraint("ck_tile_fields_role", "role IN ('title', 'subtitle', 'badge', 'primary', 'secondary')");
                         });
                 });
 
@@ -278,6 +285,26 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("now()");
 
+                    b.Property<string>("Display")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("display");
+
+                    b.Property<string>("ItemsKeyLabel")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("items_key_label");
+
+                    b.Property<string>("ItemsPath")
+                        .HasColumnType("text")
+                        .HasColumnName("items_path");
+
+                    b.Property<string>("ItemsSourceKey")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("items_source_key");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -296,7 +323,12 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                     b.HasIndex("CreatedAt", "Id")
                         .HasDatabaseName("ix_tiles_created_at_id");
 
-                    b.ToTable("tiles", "custom_data_view");
+                    b.ToTable("tiles", "custom_data_view", t =>
+                        {
+                            t.HasCheckConstraint("ck_tiles_display", "display IN ('table', 'list', 'details', 'summary', 'form')");
+
+                            t.HasCheckConstraint("ck_tiles_items", "(display IN ('table', 'list')) = (items_source_key IS NOT NULL AND items_path IS NOT NULL AND items_key_label IS NOT NULL) AND (display IN ('table', 'list') OR (items_source_key IS NULL AND items_path IS NULL AND items_key_label IS NULL))");
+                        });
                 });
 
             modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileSourceRow", b =>

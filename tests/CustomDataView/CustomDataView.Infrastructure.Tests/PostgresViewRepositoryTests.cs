@@ -147,7 +147,9 @@ public class PostgresViewRepositoryTests
     {
         var tile = new Tile(Guid.NewGuid(), new TileDefinition(
             name,
+            TileDisplays.Details,
             [new TileSource("source", TileSourceKinds.Connection, connectionId)],
+            null,
             [new TileField("source", "$.name", "Nazwa", [])]));
         tiles.Add(tile);
         return tile.Id;

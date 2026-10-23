@@ -17,6 +17,15 @@ public static class TileDefinitionValidator
             errors["name"] = [$"Nazwa kafelka jest wymagana i może mieć najwyżej {MaxTextLength} znaków."];
         }
 
+        var displayIsValid = TileDisplays.All.Contains(input.Display) && input.Display != TileDisplays.Form;
+        if (!displayIsValid)
+        {
+            errors["display"] =
+            [
+                $"Typ wyświetlania jest wymagany i musi mieć jedną z wartości: {string.Join(", ", TileDisplays.All.Where(display => display != TileDisplays.Form))}."
+            ];
+        }
+
         var sources = ValidateSources(input.Sources, errors);
         if (input.Fields.Count == 0)
         {
@@ -33,7 +42,84 @@ public static class TileDefinitionValidator
             }
         }
 
+        if (displayIsValid)
+        {
+            ValidateRoles(input, errors);
+            ValidateItems(input, sources, errors);
+        }
+
         return errors;
+    }
+
+    private static void ValidateRoles(TileInput input, Dictionary<string, string[]> errors)
+    {
+        var allowed = TileFieldRoles.For(input.Display);
+        for (var index = 0; index < input.Fields.Count; index++)
+        {
+            var role = input.Fields[index].Role;
+            if (!string.IsNullOrWhiteSpace(role) && !allowed.Contains(role))
+            {
+                errors[$"fields[{index}].role"] = allowed.Count == 0
+                    ? [$"Kafelek typu '{input.Display}' nie przyjmuje ról pól."]
+                    : [$"Rola pola w kafelku typu '{input.Display}' musi mieć jedną z wartości: {string.Join(", ", allowed)}."];
+            }
+        }
+
+        var required = input.Display switch
+        {
+            TileDisplays.List => TileFieldRoles.Title,
+            TileDisplays.Summary => TileFieldRoles.Primary,
+            _ => null
+        };
+        if (required is not null && input.Fields.Count > 0 && input.Fields.All(field => field.Role != required))
+        {
+            errors.TryAdd("fields", [$"Kafelek typu '{input.Display}' wymaga co najmniej jednego pola z rolą '{required}'."]);
+        }
+    }
+
+    private static void ValidateItems(TileInput input, HashSet<string> sources, Dictionary<string, string[]> errors)
+    {
+        if (!TileDisplays.HasItems(input.Display))
+        {
+            if (input.Items is not null)
+            {
+                errors["items"] = [$"Kafelek typu '{input.Display}' nie ma elementów."];
+            }
+
+            return;
+        }
+
+        if (input.Items is null)
+        {
+            errors["items"] = [$"Kafelek typu '{input.Display}' wymaga elementów (items)."];
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(input.Items.Source) || !sources.Contains(input.Items.Source))
+        {
+            errors["items.source"] = [$"Źródło elementów '{input.Items.Source}' nie istnieje w kafelku."];
+        }
+
+        if (!JsonPathParser.TryParse(input.Items.Path, out var path) || !path.HasWildcard)
+        {
+            errors["items.path"] = ["Ścieżka elementów jest wymagana i musi być poprawną ścieżką JSONPath z wildcardem."];
+        }
+
+        if (!input.Fields.Any(field => TileLabels.AreEqual(field.Label, input.Items.Key) && field.Source == input.Items.Source))
+        {
+            errors["items.key"] = [$"Klucz elementu '{input.Items.Key}' musi wskazywać etykietę pola ze źródła elementów."];
+        }
+
+        for (var index = 0; index < input.Fields.Count; index++)
+        {
+            var field = input.Fields[index];
+            if (field.Source != input.Items.Source && !field.Hidden && sources.Contains(field.Source ?? string.Empty))
+            {
+                errors.TryAdd(
+                    $"fields[{index}].source",
+                    ["Pole spoza źródła elementów musi być ukryte i służy tylko jako źródło wiązania."]);
+            }
+        }
     }
 
     private static HashSet<string> ValidateSources(IReadOnlyList<TileSourceInput> sources, Dictionary<string, string[]> errors)

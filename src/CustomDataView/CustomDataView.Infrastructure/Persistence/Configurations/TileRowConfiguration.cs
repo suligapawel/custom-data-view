@@ -8,10 +8,21 @@ public sealed class TileRowConfiguration : IEntityTypeConfiguration<TileRow>
 {
     public void Configure(EntityTypeBuilder<TileRow> builder)
     {
-        builder.ToTable("tiles");
+        builder.ToTable("tiles", table =>
+        {
+            table.HasCheckConstraint("ck_tiles_display", "display IN ('table', 'list', 'details', 'summary', 'form')");
+            table.HasCheckConstraint(
+                "ck_tiles_items",
+                "(display IN ('table', 'list')) = (items_source_key IS NOT NULL AND items_path IS NOT NULL AND items_key_label IS NOT NULL) "
+                + "AND (display IN ('table', 'list') OR (items_source_key IS NULL AND items_path IS NULL AND items_key_label IS NULL))");
+        });
         builder.HasKey(tile => tile.Id).HasName("pk_tiles");
         builder.Property(tile => tile.Id).HasColumnName("id").ValueGeneratedNever();
         builder.Property(tile => tile.Name).HasColumnName("name").HasMaxLength(100).IsRequired();
+        builder.Property(tile => tile.Display).HasColumnName("display").HasMaxLength(10).IsRequired();
+        builder.Property(tile => tile.ItemsSourceKey).HasColumnName("items_source_key").HasMaxLength(50);
+        builder.Property(tile => tile.ItemsPath).HasColumnName("items_path").HasColumnType("text");
+        builder.Property(tile => tile.ItemsKeyLabel).HasColumnName("items_key_label").HasMaxLength(100);
         builder.Property(tile => tile.CreatedAt)
             .HasColumnName("created_at")
             .HasColumnType("timestamptz")

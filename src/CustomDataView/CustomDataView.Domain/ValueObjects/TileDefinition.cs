@@ -1,3 +1,8 @@
 namespace CustomDataView.Domain.ValueObjects;
 
-public sealed record TileDefinition(string Name, IReadOnlyList<TileSource> Sources, IReadOnlyList<TileField> Fields);
+public sealed record TileDefinition(
+    string Name,
+    string Display,
+    IReadOnlyList<TileSource> Sources,
+    TileItems Items,
+    IReadOnlyList<TileField> Fields);

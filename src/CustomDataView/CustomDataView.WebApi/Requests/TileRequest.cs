@@ -6,7 +6,12 @@ using CustomDataView.Domain.ValueObjects;
 
 namespace CustomDataView.WebApi.Requests;
 
-public sealed record TileRequest(string Name, IReadOnlyList<TileSourceRequest> Sources, IReadOnlyList<TileFieldRequest> Fields)
+public sealed record TileRequest(
+    string Name,
+    string Display,
+    IReadOnlyList<TileSourceRequest> Sources,
+    TileItemsRequest Items,
+    IReadOnlyList<TileFieldRequest> Fields)
 {
     public IDictionary<string, string[]> Validate() => TileDefinitionValidator.Validate(ToInput());
 
@@ -15,14 +20,17 @@ public sealed record TileRequest(string Name, IReadOnlyList<TileSourceRequest> S
     public TileInput ToInput()
         => new TileInput(
             Name,
+            Display,
             (Sources ?? []).Select(source => new TileSourceInput(source.Key, source.Kind, source.ConnectionId)).ToList(),
+            Items is null ? null : new TileItemsInput(Items.Source, Items.Path, Items.Key),
             (Fields ?? [])
                 .Select(field => new TileFieldInput(
                     field.Source,
                     field.Path,
                     field.Label,
                     (field.Transformations ?? []).Select(ToInput).ToList(),
-                    field.Hidden ?? false))
+                    field.Hidden ?? false,
+                    field.Role))
                 .ToList());
 
     private static TransformationStepInput ToInput(TransformationStepRequest step)
@@ -34,11 +42,14 @@ public sealed record TileRequest(string Name, IReadOnlyList<TileSourceRequest> S
 
 public sealed record TileSourceRequest(string Key, string Kind, Guid? ConnectionId);
 
+public sealed record TileItemsRequest(string Source, string Path, string Key);
+
 public sealed record TileFieldRequest(
     string Source,
     string Path,
     string Label,
     IReadOnlyList<TransformationStepRequest> Transformations,
-    bool? Hidden);
+    bool? Hidden,
+    string Role);
 
 public sealed record TransformationStepRequest(string Key, Dictionary<string, JsonElement> Parameters);

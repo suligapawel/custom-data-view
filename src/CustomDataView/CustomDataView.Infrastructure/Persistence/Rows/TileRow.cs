@@ -6,6 +6,14 @@ public sealed class TileRow
 
     public string Name { get; set; }
 
+    public string Display { get; set; }
+
+    public string ItemsSourceKey { get; set; }
+
+    public string ItemsPath { get; set; }
+
+    public string ItemsKeyLabel { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }

@@ -33,7 +33,13 @@ public class TileDraftPreviewTests : TileApiTests
         Assert.That(
             JsonNode.DeepEquals(
                 unsaved,
-                new JsonObject { ["id"] = null, ["name"] = "Klient i kurs", ["fields"] = saved["fields"]!.DeepClone() }),
+                new JsonObject
+                {
+                    ["id"] = null,
+                    ["name"] = "Klient i kurs",
+                    ["display"] = "details",
+                    ["fields"] = saved["fields"]!.DeepClone()
+                }),
             Is.True,
             unsaved?.ToJsonString());
         Assert.That(await Client.GetStringAsync(TilesUrl), Is.EqualTo(list));

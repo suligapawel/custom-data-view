@@ -16,5 +16,7 @@ public sealed class TileFieldRow
 
     public bool Hidden { get; set; }
 
+    public string Role { get; set; }
+
     public List<TileFieldTransformationRow> Transformations { get; set; } = [];
 }
