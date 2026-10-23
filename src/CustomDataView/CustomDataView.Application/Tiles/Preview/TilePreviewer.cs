@@ -639,13 +639,25 @@ public sealed class TilePreviewer(
                 }
 
                 JsonPathParser.TryParse(Definition.Items.Path, out var path);
-                var itemFields = Definition.Fields.Where(field => field.Source == Definition.Items.Source).ToList();
+                var itemFields = Definition.Fields.Where(field => field.Source == Definition.Items.Source || field.IsCombined).ToList();
                 return items = path.Evaluate(source.Body)
                     .Select((element, index) =>
                     {
-                        var values = itemFields.Select(field => previewer.PreviewField(field, element)).ToList();
-                        var key = values.First(value => TileLabels.AreEqual(value.Label, Definition.Items.Key)).Value;
-                        return new ItemInstance(index, key, values);
+                        var values = new Dictionary<TileField, TileFieldPreview>();
+                        foreach (var field in itemFields.Where(field => !field.IsCombined))
+                        {
+                            values[field] = previewer.PreviewField(field, element);
+                        }
+
+                        foreach (var field in itemFields.Where(field => field.IsCombined))
+                        {
+                            values[field] = previewer.CombineField(
+                                field,
+                                label => values.First(pair => TileLabels.AreEqual(pair.Key.Label, label)).Value);
+                        }
+
+                        var key = values.First(pair => TileLabels.AreEqual(pair.Key.Label, Definition.Items.Key)).Value.Value;
+                        return new ItemInstance(index, key, itemFields.Select(field => values[field]).ToList());
                     })
                     .ToList();
             }

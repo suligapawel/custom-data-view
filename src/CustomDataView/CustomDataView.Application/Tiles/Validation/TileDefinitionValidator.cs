@@ -337,7 +337,7 @@ public static class TileDefinitionValidator
                 var mappingKey = $"{key}.map[{position}]";
                 var itemField = scope == TileActionScopes.Item;
                 if (!input.Fields.Any(field => TileLabels.AreEqual(field.Label, mapping.Field)
-                        && (input.Items is null || (field.Source == input.Items.Source) == itemField)))
+                        && (input.Items is null || (field.Source == input.Items.Source || field.Combine is not null) == itemField)))
                 {
                     errors[$"{mappingKey}.field"] = itemField
                         ? [$"Pole '{mapping.Field}' nie jest polem elementu."]

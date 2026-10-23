@@ -9,6 +9,11 @@ public class FieldCombinationTests : TileApiTests
 {
     private const string Dir = "scenario_TEMP-044";
 
+    private const string CitiesResponse =
+        """
+        {"cities": [{"id": 1, "name": "Kraków", "country": "PL"}, {"id": 2, "name": "Praga", "country": "CZ"}]}
+        """;
+
     private const string PlaceResponse =
         """
         {"street": "Długa", "number": "5", "city": "Kraków", "lat": 50.0647, "lon": 19.9461,
@@ -16,6 +21,7 @@ public class FieldCombinationTests : TileApiTests
         """;
 
     private Guid placeConnectionId;
+    private Guid citiesConnectionId;
 
     [SetUp]
     public async Task CreatePlaceConnection()
@@ -23,9 +29,11 @@ public class FieldCombinationTests : TileApiTests
         Factory.ExternalApi.Respond = (request, _) => Task.FromResult(request.RequestUri!.AbsolutePath switch
         {
             "/places/1" => Json(PlaceResponse),
+            "/cities" => Json(CitiesResponse),
             _ => new HttpResponseMessage(HttpStatusCode.NotFound)
         });
         placeConnectionId = await CreateConnection(new { name = "Miejsce", method = "GET", url = "https://api.example.com/places/1" });
+        citiesConnectionId = await CreateConnection(new { name = "Miasta", method = "GET", url = "https://api.example.com/cities" });
     }
 
     [Test(Description = $"{Dir} - #2")]
@@ -151,6 +159,44 @@ public class FieldCombinationTests : TileApiTests
         Assert.That(Value(preview, "Kontakt"), Is.EqualTo(expected));
     }
 
+    [Test(Description = $"{Dir} - #8")]
+    public async Task Given_ListWithCombinedTitleAndItemAction_When_UserPreviewsList_Then_EachItemHasItsTitleAndActionCarriesIt()
+    {
+        var cityConnectionId = await CreateConnection(new
+        {
+            name = "Miasto po tytule",
+            method = "GET",
+            url = "https://api.example.com/city",
+            queryParameters = new[] { new { name = "title", required = true } }
+        });
+        var cityTileId = await CreateTile(new JsonObject
+        {
+            ["name"] = "Miasto",
+            ["display"] = "details",
+            ["sources"] = new JsonArray(new JsonObject { ["key"] = "city", ["kind"] = "connection", ["connectionId"] = cityConnectionId }),
+            ["fields"] = new JsonArray(new JsonObject { ["source"] = "city", ["path"] = "$.name", ["label"] = "Nazwa" })
+        });
+        var list = Cities("list", Combined("Tytuł", "template", "{Nazwa} ({Kraj})"));
+        list["fields"]!.AsArray().Last()!["role"] = "title";
+        list["actions"] = new JsonArray(new JsonObject
+        {
+            ["key"] = "details",
+            ["label"] = "Szczegóły",
+            ["tileId"] = cityTileId,
+            ["map"] = new JsonArray(new JsonObject { ["field"] = "Tytuł", ["parameter"] = "title" })
+        });
+        var id = await CreateTile(list);
+
+        var preview = await Preview(id);
+
+        var items = preview["items"]!.AsArray();
+        Assert.That(
+            items.Select(item => item!["fields"]!.AsArray().Single(field => field!["label"]!.GetValue<string>() == "Tytuł")!["value"]?.GetValue<string>()),
+            Is.EqualTo(new[] { "Kraków (PL)", "Praga (CZ)" }),
+            preview.ToJsonString());
+        Assert.That(items[1]!["actions"]![0]!["inputs"]!["parameters"]!["title"]?.GetValue<string>(), Is.EqualTo("Praga (CZ)"));
+    }
+
     private void RespondWithPlace(Action<JsonObject> change)
     {
         var place = JsonNode.Parse(PlaceResponse)!.AsObject();
@@ -171,6 +217,22 @@ public class FieldCombinationTests : TileApiTests
                 PlaceField("$.city", "Miasto"),
                 PlaceField("$.lat", "Lat", Transformation("round", 2)),
                 PlaceField("$.lon", "Lon", Transformation("round", 2)),
+                .. fields
+            ])
+        };
+
+    private JsonObject Cities(string display, params JsonObject[] fields)
+        => new()
+        {
+            ["name"] = "Miasta",
+            ["display"] = display,
+            ["sources"] = new JsonArray(new JsonObject { ["key"] = "cities", ["kind"] = "connection", ["connectionId"] = citiesConnectionId }),
+            ["items"] = new JsonObject { ["source"] = "cities", ["path"] = "$.cities[*]", ["key"] = "ID" },
+            ["fields"] = new JsonArray(
+            [
+                new JsonObject { ["source"] = "cities", ["path"] = "$.id", ["label"] = "ID" },
+                new JsonObject { ["source"] = "cities", ["path"] = "$.name", ["label"] = "Nazwa", ["hidden"] = true },
+                new JsonObject { ["source"] = "cities", ["path"] = "$.country", ["label"] = "Kraj", ["hidden"] = true },
                 .. fields
             ])
         };
