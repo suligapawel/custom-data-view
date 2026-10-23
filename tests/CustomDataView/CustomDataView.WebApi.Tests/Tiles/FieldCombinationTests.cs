@@ -45,6 +45,24 @@ public class FieldCombinationTests : TileApiTests
             Has.All.True);
     }
 
+    [Test(Description = $"{Dir} - #3")]
+    public async Task Given_TemplateWithMissingValueAndDoubledBraces_When_UserPreviewsTile_Then_MissingValueIsEmptyAndBracesAreLiteral()
+    {
+        RespondWithPlace(place => place["number"] = null);
+        var id = await CreateTile(Address(Combined("Etykieta", "template", "{{{Ulica} {Nr}}}")));
+
+        var preview = await Preview(id);
+
+        Assert.That(Value(preview, "Etykieta"), Is.EqualTo("{Długa }"), preview.ToJsonString());
+    }
+
+    private void RespondWithPlace(Action<JsonObject> change)
+    {
+        var place = JsonNode.Parse(PlaceResponse)!.AsObject();
+        change(place);
+        Factory.ExternalApi.Respond = (_, _) => Task.FromResult(Json(place.ToJsonString()));
+    }
+
     private JsonObject Address(params JsonObject[] fields)
         => new()
         {
