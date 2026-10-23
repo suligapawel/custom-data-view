@@ -11,8 +11,8 @@ Kafelek (`tiles`) ma uporządkowaną listę pól (`tile_fields`), a każde pole 
 etykietę oraz uporządkowany łańcuch transformacji (`tile_field_transformations`) z parametrami
 (`tile_field_transformation_parameters`). Kafelki nie przechowują wartości parametrów połączeń — przychodzą one z frontu
 przy każdym wywołaniu.
-Wszystkie tabele leżą w schemacie `custom_data_view`; dostęp przez Dapper, bez Entity Framework i bez kolumn JSON
-w tabelach kafelków i widoków.
+Wszystkie tabele leżą w schemacie `custom_data_view`; dostęp przez EF Core (provider Npgsql), bez kolumn JSON
+w tabelach kafelków i widoków (szczegóły w sekcji „Mapowanie EF Core”).
 Widok (`views`) ma uporządkowaną listę kafelków (`view_tiles`): każdy wpis wskazuje kafelek, jego pozycję w widoku
 i opcjonalną klasę CSS, która opisuje sposób wyświetlenia. Kafelek występuje w widoku najwyżej raz, a jego usunięcie
 kaskadowo zdejmuje go ze wszystkich widoków.
@@ -173,6 +173,25 @@ Wszystkie klucze obce: `ON DELETE CASCADE`, z wyjątkiem `tile_fields.connection
   w kolejności (`WHERE view_id = @id ORDER BY position`).
 - `ix_view_tiles_tile_id` (`view_tiles(tile_id)`) — kaskadowe zdjęcie usuwanego kafelka ze wszystkich widoków
   (TEMP-024) bez pełnego skanu `view_tiles`.
+
+## Mapowanie EF Core
+
+- `CustomDataViewDbContext` (`CustomDataView.Infrastructure/Persistence/`) ma domyślny schemat `custom_data_view`
+  i ładuje konfiguracje z `Persistence/Configurations/` (`IEntityTypeConfiguration<T>`, jedna klasa na tabelę).
+- Encje EF to modele wierszy w `Persistence/Rows/` (`ConnectionRow`, `TileFieldRow`, `ViewTileRow` itd.), oddzielone
+  od modelu domeny. Repozytoria mapują wiersze na `Connection`, `Tile` i `View` oraz z powrotem.
+- Konfiguracje odwzorowują ten plan 1:1: nazwy tabel i kolumn, typy (`json`, `text`, `varchar(n)`, `timestamptz`),
+  klucze złożone, nazwy `pk_*`, `fk_*`, `ix_*`, `uq_*`, `OnDelete` (`Cascade`, a dla `tile_fields.connection_id`
+  `Restrict`), CHECK przez `HasCheckConstraint` oraz `UNIQUE (view_id, position)` jako klucz alternatywny.
+  Skrypt wygenerowany z modelu (`GenerateCreateScript`) jest zgodny z migracjami SQL.
+- Identyfikatory i pozycje nadaje aplikacja (`ValueGeneratedNever`). `created_at` i `updated_at` przy dodaniu
+  wypełnia `DEFAULT now()` bazy; edycja ustawia `updated_at` w `ExecuteUpdate` (`DateTime.UtcNow` tłumaczone na
+  `now()`).
+- Repozytoria są singletonami i tworzą krótkożyjący kontekst z `IDbContextFactory<CustomDataViewDbContext>` na każdą
+  operację. Odczyty używają `AsNoTracking`, uporządkowanych `Include` i `AsSplitQuery`. Edycja to `ExecuteUpdate`
+  wiersza głównego, `ExecuteDelete` wierszy podrzędnych i `SaveChanges` nowych wierszy w jednej transakcji
+  (decyzje 5, 16 i 26). Usunięcie to `ExecuteDelete`, a kaskady i `RESTRICT` wykonuje baza.
+- Schemat nadal tworzą migracje SQL w `Persistence/Migrations/`. Migracje EF Core nie zostały jeszcze wygenerowane.
 
 ## Design decisions
 
