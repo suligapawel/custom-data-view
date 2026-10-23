@@ -1,0 +1,101 @@
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json.Nodes;
+
+namespace CustomDataView.WebApi.Tests.Tiles;
+
+public class TileActionTests : TileApiTests
+{
+    private const string Dir = "scenario_TEMP-041-043";
+
+    private Guid searchConnectionId;
+    private Guid cityConnectionId;
+    private Guid cityTileId;
+
+    [SetUp]
+    public async Task CreateTiles()
+    {
+        Factory.ExternalApi.Respond = (request, _) => Task.FromResult(request.RequestUri!.AbsolutePath switch
+        {
+            "/cities" => Json("""{"total": 2, "cities": [{"id": 1, "name": "Kraków"}, {"id": 2, "name": "Krynica"}]}"""),
+            "/cities/1" => Json("""{"id": 1, "name": "Kraków", "population": 800000}"""),
+            _ => new HttpResponseMessage(HttpStatusCode.NotFound)
+        });
+        searchConnectionId = await CreateConnection(new
+        {
+            name = "Szukaj miast",
+            method = "GET",
+            url = "https://api.example.com/cities",
+            queryParameters = new object[]
+            {
+                new { name = "name", required = false },
+                new { name = "pageNumber", required = false },
+                new { name = "pageSize", required = false }
+            }
+        });
+        cityConnectionId = await CreateConnection(new
+        {
+            name = "Miasto",
+            method = "GET",
+            url = "https://api.example.com/cities/{city_id}",
+            pathParameters = new object[] { new { name = "city_id", required = true } }
+        });
+        cityTileId = await CreateTile(City());
+    }
+
+    [Test(Description = $"{Dir} - #16")]
+    public async Task Given_ItemButtonToCity_When_UserPreviewsResults_Then_EachItemHasButtonWithItsCityId()
+    {
+        var id = await CreateTile(Results());
+
+        var preview = await Preview(id, new { parameters = new { name = "Kra" } });
+
+        var items = preview["items"]!.AsArray();
+        Assert.That(
+            JsonNode.DeepEquals(
+                items[0]!["actions"],
+                JsonNode.Parse("""[{"key": "details", "label": "Szczegóły", "type": "button", "tileId": "TILE", "inputs": {"parameters": {"city_id": 1}}}]"""
+                    .Replace("TILE", cityTileId.ToString()))),
+            Is.True,
+            items[0]!.ToJsonString());
+        Assert.That(items[1]!["actions"]![0]!["inputs"]!["parameters"]!["city_id"]?.GetValue<int>(), Is.EqualTo(2));
+    }
+
+    private JsonObject Results()
+        => new()
+        {
+            ["name"] = "Wyniki",
+            ["display"] = "pagination_table",
+            ["sources"] = new JsonArray(new JsonObject { ["key"] = "cities", ["kind"] = "connection", ["connectionId"] = searchConnectionId }),
+            ["items"] = new JsonObject { ["source"] = "cities", ["path"] = "$.cities[*]", ["key"] = "ID" },
+            ["pagination"] = new JsonObject { ["pageSize"] = 10, ["totalPath"] = "$.total" },
+            ["fields"] = new JsonArray(
+                new JsonObject { ["source"] = "cities", ["path"] = "$.id", ["label"] = "ID" },
+                new JsonObject { ["source"] = "cities", ["path"] = "$.name", ["label"] = "Miasto" }),
+            ["actions"] = new JsonArray(new JsonObject
+            {
+                ["key"] = "details",
+                ["label"] = "Szczegóły",
+                ["tileId"] = cityTileId,
+                ["map"] = new JsonArray(new JsonObject { ["field"] = "ID", ["parameter"] = "city_id" })
+            })
+        };
+
+    private JsonObject City()
+        => new()
+        {
+            ["name"] = "Miasto",
+            ["display"] = "details",
+            ["sources"] = new JsonArray(new JsonObject { ["key"] = "city", ["kind"] = "connection", ["connectionId"] = cityConnectionId }),
+            ["fields"] = new JsonArray(
+                new JsonObject { ["source"] = "city", ["path"] = "$.name", ["label"] = "Nazwa" },
+                new JsonObject { ["source"] = "city", ["path"] = "$.population", ["label"] = "Ludność" })
+        };
+
+    private async Task<JsonObject> Preview(Guid id, object values)
+    {
+        var response = await Client.PostAsJsonAsync($"{TilesUrl}/{id}/preview", values);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<JsonObject>();
+    }
+}

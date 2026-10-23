@@ -14,7 +14,8 @@ public sealed record TileRequest(
     IReadOnlyList<TileFieldRequest> Fields,
     IReadOnlyList<TileChildRequest> Children,
     IReadOnlyList<TileBindingRequest> Bindings,
-    TilePaginationRequest Pagination)
+    TilePaginationRequest Pagination,
+    IReadOnlyList<TileActionRequest> Actions)
 {
     public IDictionary<string, string[]> Validate() => TileDefinitionValidator.Validate(ToInput());
 
@@ -44,6 +45,15 @@ public sealed record TileRequest(
             Pagination = Pagination is null
                 ? null
                 : new TilePaginationInput(Pagination.PageNumberParameter, Pagination.PageSizeParameter, Pagination.PageSize, Pagination.TotalPath),
+            Actions = (Actions ?? [])
+                .Select(action => new TileActionInput(
+                    action.Key,
+                    action.Label,
+                    action.Type,
+                    action.TileId,
+                    action.Scope,
+                    (action.Map ?? []).Select(mapping => new TileActionMappingInput(mapping.Field, mapping.Parameter, mapping.Input)).ToList()))
+                .ToList(),
             Children = (Children ?? [])
                 .Select(child => new TileChildInput(child.Key, child.TileId, child.Position, child.CssClass, child.Scope, child.Load, child.Label))
                 .ToList(),
@@ -62,6 +72,16 @@ public sealed record TileRequest(
             step.Key,
             step.Parameter is { } parameter ? JsonNode.Parse(parameter.GetRawText()) : null);
 }
+
+public sealed record TileActionRequest(
+    string Key,
+    string Label,
+    string Type,
+    Guid? TileId,
+    string Scope,
+    IReadOnlyList<TileActionMappingRequest> Map);
+
+public sealed record TileActionMappingRequest(string Field, string Parameter, string Input);
 
 public sealed record TilePaginationRequest(string PageNumberParameter, string PageSizeParameter, int? PageSize, string TotalPath);
 

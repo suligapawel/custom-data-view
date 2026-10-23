@@ -14,4 +14,6 @@ public sealed record TileDefinition(
     public IReadOnlyList<TileBinding> Bindings { get; init; } = [];
 
     public TilePagination Pagination { get; init; }
+
+    public IReadOnlyList<TileAction> Actions { get; init; } = [];
 }

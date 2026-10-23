@@ -7,4 +7,7 @@ public sealed record TileItemPreview(JsonNode Key, IReadOnlyList<TileFieldPrevie
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<TileEmbeddingPreview> Children { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<TileActionPreview> Actions { get; init; }
 }

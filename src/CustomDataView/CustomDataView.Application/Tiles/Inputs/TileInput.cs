@@ -17,6 +17,8 @@ public sealed record TileInput(
 
     public TilePaginationInput Pagination { get; init; }
 
+    public IReadOnlyList<TileActionInput> Actions { get; init; } = [];
+
     public const string DefaultPageNumberParameter = "pageNumber";
     public const string DefaultPageSizeParameter = "pageSize";
 
@@ -58,6 +60,15 @@ public sealed record TileInput(
                     string.IsNullOrWhiteSpace(Pagination.PageSizeParameter) ? DefaultPageSizeParameter : Pagination.PageSizeParameter,
                     Pagination.PageSize ?? 0,
                     string.IsNullOrWhiteSpace(Pagination.TotalPath) ? null : Pagination.TotalPath),
+            Actions = Actions
+                .Select(action => new TileAction(
+                    action.Key,
+                    action.Label?.Trim(),
+                    action.Type ?? TileActionTypes.Button,
+                    action.TileId ?? Guid.Empty,
+                    action.Scope ?? (Items is null ? TileActionScopes.Tile : TileActionScopes.Item),
+                    action.Map.Select(mapping => new TileActionMapping(mapping.Field, mapping.Parameter, mapping.Input)).ToList()))
+                .ToList(),
             Children = Children
                 .Select(child => new TileChild(
                     child.Key,

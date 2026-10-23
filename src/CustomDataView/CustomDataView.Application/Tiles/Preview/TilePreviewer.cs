@@ -495,10 +495,20 @@ public sealed class TilePreviewer(
             Items = items
                 .Select(item => new TileItemPreview(item.Key?.DeepClone(), item.Fields)
                 {
-                    Children = itemChildren.Count > 0 ? itemChildren.Select(child => instance.Embedding(child, item)).ToList() : null
+                    Children = itemChildren.Count > 0 ? itemChildren.Select(child => instance.Embedding(child, item)).ToList() : null,
+                    Actions = Actions(definition, TileActionScopes.Item, label => item.Field(label))
                 })
                 .ToList()
         };
+    }
+
+    private static IReadOnlyList<TileActionPreview> Actions(TileDefinition definition, string scope, Func<string, TileFieldPreview> field)
+    {
+        var actions = definition.Actions
+            .Where(action => action.Scope == scope)
+            .Select(action => TileActionValues.Preview(action, field))
+            .ToList();
+        return actions.Count > 0 ? actions : null;
     }
 
     private static TileEmbeddingPreview Embedding(

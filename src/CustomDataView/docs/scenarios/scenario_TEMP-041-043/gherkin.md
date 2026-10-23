@@ -8,14 +8,14 @@ Given użytkownik konfiguruje kafelki dla widoków danych
 And   istnieje połączenie "Szukaj miast" z opcjonalnymi parametrami zapytania "name" i "country" oraz parametrami
       "pageNumber" i "pageSize", które dla nazwy "Kra" odpowiada stroną
       {"total": 12, "cities": [{"id": 1, "name": "Kraków"}, … 10 miast]} na stronie 1 i 2 miastami na stronie 2
-And   istnieje połączenie "Miasto" z wymaganym parametrem ścieżki "cityId", które odpowiada danymi
+And   istnieje połączenie "Miasto" z wymaganym parametrem ścieżki "city_id", które odpowiada danymi
       {"id": 1, "name": "Kraków", "population": 800000}
 And   kafelek "Nazwa miasta" typu form ma pole "Miasto" (text)
 And   kafelek "Kraj" typu form ma pole "Kraj" (text)
 And   kafelek "Miasto" typu details ma źródło "city" z połączenia "Miasto" i pola "Nazwa" oraz "Ludność"
 And   kafelek "Wyniki" typu pagination_table ma elementy ze źródła "Szukaj miast" pod "$.cities[*]" z kluczem "ID",
       pola "ID" i "Miasto", stronicowanie po 10 elementów z łączną liczbą pod "$.total" oraz przycisk "Szczegóły"
-      przy każdym elemencie, który otwiera kafelek "Miasto" z polem "ID" jako "cityId"
+      przy każdym elemencie, który otwiera kafelek "Miasto" z polem "ID" jako "city_id"
 
 ---
 
@@ -61,7 +61,7 @@ And   źródło "Szukaj miast" nie zostaje odpytane
 Zakładki dostają wartości od rodzica i od innych zakładek
 
 ```
-Given zakładka "Pogoda" kafelka "Filtry" pokazuje kafelek z wymaganym parametrem "cityId"
+Given zakładka "Pogoda" kafelka "Filtry" pokazuje kafelek z wymaganym parametrem "city_id"
 And   kafelek "Wyszukiwarka miast" przekazuje swoje pole "Domyślne miasto" do zakładki "filters/weather"
 When  użytkownik ogląda podgląd kafelka "Wyszukiwarka miast"
 Then  zakładka "Pogoda" zostaje wczytana dla domyślnego miasta
@@ -230,8 +230,8 @@ Przycisk przy każdym elemencie niesie wartości dla kafelka docelowego
 
 ```
 When  użytkownik ogląda podgląd kafelka "Wyniki" dla nazwy "Kra"
-Then  element "1" ma przycisk "Szczegóły" prowadzący do kafelka "Miasto" z wartością "cityId" = 1
-And   każdy element ma przycisk z własną wartością "cityId"
+Then  element "1" ma przycisk "Szczegóły" prowadzący do kafelka "Miasto" z wartością "city_id" = 1
+And   każdy element ma przycisk z własną wartością "city_id"
 ```
 
 #### Scenario #17
@@ -262,8 +262,8 @@ Błąd pola albo zmiana kafelka docelowego dają akcję z błędem
 Given pole "ID" elementów kafelka "Wyniki" wskazuje nieistniejącą wartość
 When  użytkownik ogląda podgląd kafelka "Wyniki"
 Then  przycisk "Szczegóły" każdego elementu ma błąd zależności od pola "ID"
-When  kafelek "Miasto" przestaje przyjmować parametr "cityId" i użytkownik ogląda podgląd kafelka "Wyniki"
-Then  przycisk "Szczegóły" ma błąd niepoprawnego wiązania parametru "cityId"
+When  kafelek "Miasto" przestaje przyjmować parametr "city_id" i użytkownik ogląda podgląd kafelka "Wyniki"
+Then  przycisk "Szczegóły" ma błąd niepoprawnego wiązania parametru "city_id"
 ```
 
 #### Scenario #20
