@@ -18,10 +18,12 @@ public sealed class JoinCombination : Combination
     public override CombinationParameterDescriptor Parameter => SeparatorParameter;
 
     public override JsonNode Combine(string parameter, IReadOnlyList<CombinationInput> inputs)
-        => JsonValue.Create(string.Join(
-            parameter ?? string.Empty,
-            inputs
-                .SelectMany(input => input.Value is JsonArray array ? array : [input.Value])
-                .Where(value => value is not null)
-                .Select(value => CombinationValue.ToText(Key, value))));
+    {
+        var values = inputs
+            .SelectMany(input => input.Value is JsonArray array ? array : [input.Value])
+            .Where(value => value is not null)
+            .Select(value => CombinationValue.ToText(Key, value))
+            .ToList();
+        return values.Count == 0 ? null : JsonValue.Create(string.Join(parameter ?? string.Empty, values));
+    }
 }

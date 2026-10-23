@@ -9,4 +9,8 @@ public sealed record TileFieldError(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? Status = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<TileParameterError> Parameters = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TileFieldErrorCause Cause = null,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<TilePendingBinding> Pending = null);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<TilePendingBinding> Pending = null)
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string Combination { get; init; }
+}

@@ -8,6 +8,7 @@ using CustomDataView.Application.Tiles.Contracts;
 using CustomDataView.Application.Tiles.Validation;
 using CustomDataView.Domain.Dictionaries;
 using CustomDataView.Domain.Entities;
+using CustomDataView.Domain.Exceptions;
 using CustomDataView.Domain.Policies;
 using CustomDataView.Domain.Repositories;
 using CustomDataView.Domain.Services;
@@ -577,7 +578,20 @@ public sealed class TilePreviewer(
             .Select(label => input(label))
             .Select(preview => new CombinationInput(preview.Label, preview.Value))
             .ToList();
-        var value = combination.Combine(field.Combination.Parameter, inputs);
+        JsonNode value;
+        try
+        {
+            value = combination.Combine(field.Combination.Parameter, inputs);
+        }
+        catch (CombinationFailedException exception)
+        {
+            return new TileFieldPreview(
+                field.Label,
+                null,
+                new TileFieldError(TileFieldErrorCodes.CombinationFailed, Reason: exception.Reason) { Combination = exception.Key },
+                field.Hidden);
+        }
+
         var result = transformations.Apply(TransformationValue.FromJson(value), field.Transformations);
         return new TileFieldPreview(field.Label, TransformationValue.ToJson(result.Value), null, field.Hidden);
     }

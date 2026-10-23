@@ -69,6 +69,30 @@ public class FieldCombinationTests : TileApiTests
         Assert.That(Value(preview, "Złączone"), Is.EqualTo(expected), preview.ToJsonString());
     }
 
+    [Test(Description = $"{Dir} - #5")]
+    public async Task Given_JoinOfMissingValuesAndOfObject_When_UserPreviewsTile_Then_FirstHasNoValueAndSecondHasCombinationError()
+    {
+        var id = await CreateTile(Address(
+            PlaceField("$.email", "Email"),
+            Combined("Bez wartości", "join", fields: ["Email"]),
+            PlaceField("$", "Całość"),
+            Combined("Błędne", "join", fields: ["Miasto", "Całość"])));
+
+        var preview = await Preview(id);
+
+        Assert.That(
+            JsonNode.DeepEquals(Field(preview, "Bez wartości"), JsonNode.Parse("""{"label": "Bez wartości", "value": null}""")),
+            Is.True,
+            preview.ToJsonString());
+        Assert.That(
+            JsonNode.DeepEquals(
+                Field(preview, "Błędne"),
+                JsonNode.Parse("""{"label": "Błędne", "error": {"code": "combination_failed", "combination": "join", "reason": "unsupported_value"}}""")),
+            Is.True,
+            preview.ToJsonString());
+        Assert.That(Value(preview, "Miasto"), Is.EqualTo("Kraków"));
+    }
+
     private void RespondWithPlace(Action<JsonObject> change)
     {
         var place = JsonNode.Parse(PlaceResponse)!.AsObject();
