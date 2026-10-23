@@ -7,8 +7,9 @@ public static class TileDisplays
     public const string Details = "details";
     public const string Summary = "summary";
     public const string Form = "form";
+    public const string Tabs = "tabs";
 
-    public static readonly IReadOnlyList<string> All = [Table, List, Details, Summary, Form];
+    public static readonly IReadOnlyList<string> All = [Table, List, Details, Summary, Form, Tabs];
 
     public static bool HasItems(string display) => display is Table or List;
 }

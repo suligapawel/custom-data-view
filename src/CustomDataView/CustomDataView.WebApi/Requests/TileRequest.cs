@@ -41,7 +41,7 @@ public sealed record TileRequest(
                 .ToList())
         {
             Children = (Children ?? [])
-                .Select(child => new TileChildInput(child.Key, child.TileId, child.Position, child.CssClass, child.Scope, child.Load))
+                .Select(child => new TileChildInput(child.Key, child.TileId, child.Position, child.CssClass, child.Scope, child.Load, child.Label))
                 .ToList(),
             Bindings = (Bindings ?? [])
                 .Select(binding => new TileBindingInput(
@@ -63,7 +63,7 @@ public sealed record TileSourceRequest(string Key, string Kind, Guid? Connection
 
 public sealed record TileItemsRequest(string Source, string Path, string Key);
 
-public sealed record TileChildRequest(string Key, Guid? TileId, int? Position, string CssClass, string Scope, string Load);
+public sealed record TileChildRequest(string Key, Guid? TileId, int? Position, string CssClass, string Scope, string Load, string Label);
 
 public sealed record TileBindingRequest(string From, string To, IReadOnlyList<TileBindingMappingRequest> Map);
 

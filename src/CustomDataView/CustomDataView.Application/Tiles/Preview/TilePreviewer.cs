@@ -421,6 +421,11 @@ public sealed class TilePreviewer(
         {
             Children = children.Count > 0 ? children : null
         };
+        if (definition.Display == TileDisplays.Tabs)
+        {
+            return preview;
+        }
+
         if (definition.Items is null)
         {
             return preview with { Fields = definition.Fields.Select(field => instance.Field(field, PreviewField)).ToList() };
@@ -456,7 +461,10 @@ public sealed class TilePreviewer(
         IReadOnlyList<TilePendingBinding> pending = null,
         TileFieldError error = null,
         TilePreview tile = null)
-        => new(child.Key, address, child.TileId, child.Position, child.CssClass, state, tile, inputs?.Compact(), pending, error);
+        => new(child.Key, address, child.TileId, child.Position, child.CssClass, state, tile, inputs?.Compact(), pending, error)
+        {
+            Label = child.Label
+        };
 
     private static string Address(string parent, string key) => parent.Length == 0 ? key : $"{parent}/{key}";
 

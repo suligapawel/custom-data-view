@@ -31,7 +31,7 @@ public sealed class GetTileHandler(ITileRepository repository, TileContracts con
                     field.Role))
             ],
             definition.Children
-                .Select(child => new TileChildDto(child.Key, child.TileId, child.Position, child.CssClass, child.Scope, child.Load))
+                .Select(child => new TileChildDto(child.Key, child.TileId, child.Position, child.CssClass, child.Scope, child.Load, child.Label))
                 .ToList(),
             definition.Bindings
                 .Select(binding => new TileBindingDto(

@@ -12,4 +12,8 @@ public sealed record TileEmbeddingPreview(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TilePreview Tile = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TileValues Inputs = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<TilePendingBinding> Pending = null,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TileFieldError Error = null);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TileFieldError Error = null)
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string Label { get; init; }
+}

@@ -23,6 +23,7 @@ public sealed class TileChildRowConfiguration : IEntityTypeConfiguration<TileChi
         builder.Property(child => child.CssClass).HasColumnName("css_class").HasMaxLength(200);
         builder.Property(child => child.Scope).HasColumnName("scope").HasMaxLength(4).IsRequired();
         builder.Property(child => child.Load).HasColumnName("load").HasMaxLength(5).IsRequired();
+        builder.Property(child => child.Label).HasColumnName("label").HasMaxLength(100);
         builder.HasAlternateKey(child => new { child.ParentTileId, child.Position }).HasName("uq_tile_children_parent_tile_id_position");
         builder.HasIndex(child => child.ChildTileId).HasDatabaseName("ix_tile_children_child_tile_id");
         builder.HasOne<TileRow>()

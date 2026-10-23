@@ -24,7 +24,7 @@ public static class TileDefinitionValidator
             errors["display"] = [$"Typ wyświetlania jest wymagany i musi mieć jedną z wartości: {string.Join(", ", TileDisplays.All)}."];
         }
 
-        if (input.Fields.Count == 0)
+        if (input.Fields.Count == 0 && !input.IsTabs)
         {
             errors["fields"] = ["Kafelek musi mieć co najmniej jedno pole."];
         }
@@ -46,6 +46,14 @@ public static class TileDefinitionValidator
         if (input.IsForm)
         {
             ValidateForm(input, errors);
+            return errors;
+        }
+
+        if (input.IsTabs)
+        {
+            ValidateTabs(input, errors);
+            ValidateChildren(input, [], errors);
+            TileBindingsValidator.ValidateShape(input, errors);
             return errors;
         }
 
@@ -108,6 +116,37 @@ public static class TileDefinitionValidator
         }
     }
 
+    private static void ValidateTabs(TileInput input, Dictionary<string, string[]> errors)
+    {
+        if (input.Fields.Count > 0)
+        {
+            errors["fields"] = ["Kafelek z zakładkami nie ma pól."];
+        }
+
+        if (input.Sources.Count > 0)
+        {
+            errors["sources"] = ["Kafelek z zakładkami nie ma źródeł danych."];
+        }
+
+        if (input.Items is not null)
+        {
+            errors["items"] = ["Kafelek z zakładkami nie ma elementów."];
+        }
+
+        if (input.Children.Count == 0)
+        {
+            errors["children"] = ["Kafelek z zakładkami musi mieć co najmniej jedną zakładkę."];
+        }
+
+        for (var index = 0; index < input.Children.Count; index++)
+        {
+            if (string.IsNullOrWhiteSpace(input.Children[index].Label))
+            {
+                errors[$"children[{index}].label"] = ["Tytuł zakładki jest wymagany."];
+            }
+        }
+    }
+
     private static void ValidateChildren(TileInput input, HashSet<string> sources, Dictionary<string, string[]> errors)
     {
         var keys = new HashSet<string>(StringComparer.Ordinal);
@@ -154,6 +193,11 @@ public static class TileDefinitionValidator
             if (child.Load is not null && !TileChildLoads.All.Contains(child.Load))
             {
                 errors[$"{key}.load"] = [$"Ładowanie dziecka musi mieć jedną z wartości: {string.Join(", ", TileChildLoads.All)}."];
+            }
+
+            if (child.Label?.Trim().Length > MaxTextLength)
+            {
+                errors[$"{key}.label"] = [$"Tytuł osadzenia może mieć najwyżej {MaxTextLength} znaków."];
             }
 
             if (child.CssClass?.Trim().Length > MaxCssClassLength)

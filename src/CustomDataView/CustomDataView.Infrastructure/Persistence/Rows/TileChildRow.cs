@@ -15,4 +15,6 @@ public sealed class TileChildRow
     public string Scope { get; set; }
 
     public string Load { get; set; }
+
+    public string Label { get; set; }
 }

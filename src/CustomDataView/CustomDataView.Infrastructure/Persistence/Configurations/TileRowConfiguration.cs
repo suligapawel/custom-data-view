@@ -10,7 +10,7 @@ public sealed class TileRowConfiguration : IEntityTypeConfiguration<TileRow>
     {
         builder.ToTable("tiles", table =>
         {
-            table.HasCheckConstraint("ck_tiles_display", "display IN ('table', 'list', 'details', 'summary', 'form')");
+            table.HasCheckConstraint("ck_tiles_display", "display IN ('table', 'list', 'details', 'summary', 'form', 'tabs')");
             table.HasCheckConstraint(
                 "ck_tiles_items",
                 "(display IN ('table', 'list')) = (items_source_key IS NOT NULL AND items_path IS NOT NULL AND items_key_label IS NOT NULL) "

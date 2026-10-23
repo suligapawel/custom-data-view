@@ -17,6 +17,8 @@ public sealed record TileInput(
 
     public bool IsForm => Display == TileDisplays.Form;
 
+    public bool IsTabs => Display == TileDisplays.Tabs;
+
     public TileDefinition ToDefinition()
         => IsForm ? ToFormDefinition() : ToDataDefinition();
 
@@ -51,7 +53,8 @@ public sealed record TileInput(
                     child.Position ?? 0,
                     string.IsNullOrWhiteSpace(child.CssClass) ? null : child.CssClass.Trim(),
                     child.Scope ?? TileChildScopes.Tile,
-                    child.Load ?? TileChildLoads.Eager))
+                    child.Load ?? TileChildLoads.Eager,
+                    string.IsNullOrWhiteSpace(child.Label) ? null : child.Label.Trim()))
                 .ToList(),
             Bindings = Bindings
                 .Select(binding => new TileBinding(

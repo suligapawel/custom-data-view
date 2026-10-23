@@ -168,7 +168,8 @@ public sealed class PostgresTileRepository(IDbContextFactory<CustomDataViewDbCon
                 Position = child.Position,
                 CssClass = child.CssClass,
                 Scope = child.Scope,
-                Load = child.Load
+                Load = child.Load,
+                Label = child.Label
             })
             .ToList();
 
@@ -256,7 +257,7 @@ public sealed class PostgresTileRepository(IDbContextFactory<CustomDataViewDbCon
         {
             Bindings = ToBindings(tile.Bindings),
             Children = tile.Children
-                .Select(child => new TileChild(child.Key, child.ChildTileId, child.Position, child.CssClass, child.Scope, child.Load))
+                .Select(child => new TileChild(child.Key, child.ChildTileId, child.Position, child.CssClass, child.Scope, child.Load, child.Label))
                 .ToList(),
             FormFields = tile.FormFields
                 .Select(field => new TileFormField(
