@@ -16,4 +16,6 @@ public sealed record TileDefinition(
     public TilePagination Pagination { get; init; }
 
     public IReadOnlyList<TileAction> Actions { get; init; } = [];
+
+    public bool IsItemField(TileField field) => Items is not null && (field.Source == Items.Source || field.IsCombined);
 }

@@ -274,7 +274,7 @@ public static class TileBindingsValidator
             : fromTile is not null
                 ? fromTile.Items is not null
                 : definition.Items is not null && definition.Fields.Any(field =>
-                    TileLabels.AreEqual(field.Label, mapping.Field) && field.Source == definition.Items.Source);
+                    TileLabels.AreEqual(field.Label, mapping.Field) && definition.IsItemField(field));
         if (fromSource is not null && fromItems)
         {
             errors[$"{key}.field"] = ["Pole elementu nie może zasilać wiązania źródło → źródło."];

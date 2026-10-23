@@ -292,7 +292,7 @@ public sealed class TilePreviewer(
         if (from == TileNodeKeys.Parent || definition.Sources.Any(source => source.Key == from))
         {
             var field = definition.Fields.First(candidate => TileLabels.AreEqual(candidate.Label, mapping.Field));
-            if (definition.Items is null || field.Source != definition.Items.Source)
+            if (!definition.IsItemField(field))
             {
                 return Value(instance.Field(field), field.Source, instance.Address);
             }
@@ -655,7 +655,7 @@ public sealed class TilePreviewer(
                 }
 
                 JsonPathParser.TryParse(Definition.Items.Path, out var path);
-                var itemFields = Definition.Fields.Where(field => field.Source == Definition.Items.Source || field.IsCombined).ToList();
+                var itemFields = Definition.Fields.Where(Definition.IsItemField).ToList();
                 return items = path.Evaluate(source.Body)
                     .Select((element, index) =>
                     {

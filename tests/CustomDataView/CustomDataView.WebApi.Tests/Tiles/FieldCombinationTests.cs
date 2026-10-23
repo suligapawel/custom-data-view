@@ -199,6 +199,31 @@ public class FieldCombinationTests : TileApiTests
         Assert.That(items[1]!["actions"]![0]!["inputs"]!["parameters"]!["title"]?.GetValue<string>(), Is.EqualTo("Praga (CZ)"));
     }
 
+    [Test(Description = $"{Dir} - #8")]
+    public async Task Given_CombinedItemFieldBoundToItemChild_When_UserPreviewsList_Then_EachItemChildGetsItsComposedValue()
+    {
+        var weatherTileId = await CreateWeatherTile();
+        var list = Cities("list", Combined("Tytuł", "template", "{Nazwa} ({Kraj})"));
+        list["fields"]!.AsArray().Last()!["role"] = "title";
+        list["children"] = new JsonArray(new JsonObject { ["key"] = "weather", ["tileId"] = weatherTileId, ["position"] = 0, ["scope"] = "item" });
+        list["bindings"] = new JsonArray(new JsonObject
+        {
+            ["from"] = "parent",
+            ["to"] = "weather",
+            ["map"] = new JsonArray(new JsonObject { ["field"] = "Tytuł", ["parameter"] = "latlon", ["scope"] = "item" })
+        });
+        var id = await CreateTile(list);
+
+        var preview = await Preview(id);
+
+        Assert.That(
+            Factory.ExternalApi.Requests
+                .Where(request => request.Url.Contains("/weather"))
+                .Select(request => HttpUtility.ParseQueryString(new Uri(request.Url).Query)["latlon"]),
+            Is.EquivalentTo(new[] { "Kraków (PL)", "Praga (CZ)" }),
+            preview.ToJsonString());
+    }
+
     [Test(Description = $"{Dir} - #9")]
     public async Task Given_TemplateBoundToChildConnectionParameter_When_UserPreviewsTile_Then_ChildConnectionIsCalledWithComposedValue()
     {
