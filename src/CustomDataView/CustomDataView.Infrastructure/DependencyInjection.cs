@@ -20,7 +20,7 @@ public static class DependencyInjection
             provider.GetRequiredService<IConfiguration>().GetConnectionString(ConnectionStringName)
             ?? throw new InvalidOperationException($"Connection string \"{ConnectionStringName}\" is not configured.")));
         services.AddDbContextFactory<CustomDataViewDbContext>(
-            (provider, options) => options.UseNpgsql(provider.GetRequiredService<NpgsqlDataSource>()));
+            (provider, options) => options.UseNpgsql(provider.GetRequiredService<NpgsqlDataSource>(), CustomDataViewDbContext.ConfigureNpgsql));
         services.AddSingleton<IConnectionRepository, PostgresConnectionRepository>();
         services.AddSingleton<ITileRepository, PostgresTileRepository>();
         services.AddSingleton<IViewRepository, PostgresViewRepository>();

@@ -22,10 +22,4 @@
     <ProjectReference Include="..\..\..\src\CustomDataView\CustomDataView.Infrastructure\CustomDataView.Infrastructure.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="..\..\..\src\CustomDataView\CustomDataView.Infrastructure\Persistence\Migrations\*.sql"
-          LinkBase="Migrations"
-          CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
-
 </Project>

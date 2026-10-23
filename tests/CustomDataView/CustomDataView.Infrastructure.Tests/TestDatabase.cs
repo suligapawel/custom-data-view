@@ -26,9 +26,9 @@ public static class TestDatabase
 
         var dataSource = NpgsqlDataSource.Create(connectionString);
         Execute(dataSource, "DROP SCHEMA IF EXISTS custom_data_view CASCADE");
-        foreach (var migration in Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "Migrations"), "*.sql").Order())
+        using (var context = ContextFactory(dataSource).CreateDbContext())
         {
-            Execute(dataSource, File.ReadAllText(migration));
+            context.Database.Migrate();
         }
 
         return dataSource;
@@ -36,7 +36,9 @@ public static class TestDatabase
 
     public static IDbContextFactory<CustomDataViewDbContext> ContextFactory(NpgsqlDataSource dataSource)
         => new PooledDbContextFactory<CustomDataViewDbContext>(
-            new DbContextOptionsBuilder<CustomDataViewDbContext>().UseNpgsql(dataSource).Options);
+            new DbContextOptionsBuilder<CustomDataViewDbContext>()
+                .UseNpgsql(dataSource, CustomDataViewDbContext.ConfigureNpgsql)
+                .Options);
 
     public static void Clear(NpgsqlDataSource dataSource)
     {
