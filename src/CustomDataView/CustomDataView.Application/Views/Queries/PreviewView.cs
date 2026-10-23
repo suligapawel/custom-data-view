@@ -29,25 +29,12 @@ public sealed class PreviewViewHandler(IViewRepository views, ITileRepository ti
         IReadOnlyDictionary<string, JsonElement> parameters,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            var preview = await tilePreviewer.Preview(tile.TileId, parameters, cancellationToken);
-            return new ViewTilePreview(
-                tile.TileId,
-                name,
-                tile.Position,
-                tile.CssClass,
-                preview.Fields.Where(field => !field.Hidden).ToList());
-        }
-        catch (ValidationException exception)
-        {
-            return new ViewTilePreview(
-                tile.TileId,
-                name,
-                tile.Position,
-                tile.CssClass,
-                null,
-                new ViewTileError(ViewTileErrorCodes.InvalidParameters, exception.Errors));
-        }
+        var preview = await tilePreviewer.Preview(tile.TileId, parameters, cancellationToken);
+        return new ViewTilePreview(
+            tile.TileId,
+            name,
+            tile.Position,
+            tile.CssClass,
+            preview.Fields.Where(field => !field.Hidden).ToList());
     }
 }

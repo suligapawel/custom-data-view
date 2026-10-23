@@ -273,12 +273,13 @@ Wynik zawiera układ widoku i podgląd każdego kafelka w kolejności pozycji:
 }
 ```
 
-Brak wymaganego parametru daje błąd tylko w kafelku, którego połączenia go wymagają (pozostałe kafelki zwracają
-dane, status 200):
+Brak wymaganego parametru albo jego zły typ daje błąd tylko polom połączenia, które go wymaga; połączenie nie jest
+wywoływane, pozostałe pola i kafelki zwracają dane, a status to zawsze 200 (tak samo w podglądzie kafelka):
 
 ```json
-{ "tileId": "…", "tileName": "Pogoda", "position": 0, "cssClass": null,
-  "error": { "code": "invalid_parameters", "errors": { "parameters.city": ["…"] } } }
+{ "label": "Miasto",
+  "error": { "code": "invalid_parameters",
+             "parameters": [ { "name": "city", "message": "Wartość wymaganego parametru jest wymagana.", "bound": false } ] } }
 ```
 
 Każdy kafelek pobiera dane osobno, więc połączenie wspólne dla kilku kafelków jest wywoływane kilka razy.

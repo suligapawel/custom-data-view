@@ -6,20 +6,6 @@ namespace CustomDataView.WebApi.Tests.Tiles;
 
 public class TilePreviewValuesTests : TileApiTests
 {
-    [Test(Description = "scenario_TEMP-015-023 - #37")]
-    public async Task Given_FieldsFromCustomerAndRate_When_UserPreviewsWithCurrencyOnly_Then_PreviewIsRejectedWithoutCalls()
-    {
-        var id = await CustomerAndRateTile();
-
-        var response = await Client.PostAsJsonAsync($"{TilesUrl}/{id}/preview", new
-        {
-            parameters = new { currency = "EUR" }
-        });
-
-        await AssertRejected(response, "parameters.customer_id");
-        Assert.That(Factory.ExternalApi.Requests, Is.Empty);
-    }
-
     [Test(Description = "scenario_TEMP-015-023 - #38")]
     public async Task Given_RateAndArchiveRateFields_When_UserPreviewsWithCurrency_Then_BothSourcesGetCurrency()
     {
@@ -83,19 +69,6 @@ public class TilePreviewValuesTests : TileApiTests
         Assert.That(preview["fields"]![0]!["value"]?.GetValue<string>(), Is.EqualTo("acme"));
     }
 
-    [Test(Description = "scenario_TEMP-015-023 - #51")]
-    public async Task Given_CustomerField_When_UserPreviewsWithCustomerAsObject_Then_PreviewIsRejectedWithoutCalls()
-    {
-        var id = await CreateTile(new { name = "Klient", fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa") } });
-
-        var response = await Client.PostAsJsonAsync(
-            $"{TilesUrl}/{id}/preview",
-            new { parameters = new { customer_id = new { id = 42 } } });
-
-        await AssertRejected(response, "parameters.customer_id");
-        Assert.That(Factory.ExternalApi.Requests, Is.Empty);
-    }
-
     [Test(Description = "scenario_TEMP-015-023 - #52")]
     public async Task Given_FieldsFromCustomerAndRate_When_UserPreviewsWithGet_Then_PreviewEqualsPostPreview()
     {
@@ -137,11 +110,4 @@ public class TilePreviewValuesTests : TileApiTests
             name = "Klient i kurs",
             fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa"), Field(RateConnectionId, "$.rate", "Kurs EUR") }
         });
-
-    private static async Task AssertRejected(HttpResponseMessage response, string errorKey)
-    {
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-        var problem = await response.Content.ReadFromJsonAsync<JsonObject>();
-        Assert.That(problem["errors"]!.AsObject().Select(error => error.Key), Does.Contain(errorKey));
-    }
 }

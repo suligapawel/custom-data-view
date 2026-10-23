@@ -41,7 +41,7 @@ Then  podgląd jest taki sam jak przy podaniu tych parametrów w treści żądan
 
 #### Scenario #3
 
-Brak wymaganego parametru dotyczy tylko kafelka, który go potrzebuje
+Brak wymaganego parametru dotyczy tylko kafelka, który go potrzebuje (zastąpiony przez TEMP-031 #4)
 
 ```
 Given użytkownik zapisał widok "Pulpit klienta" z kafelkami "Klient" i "Kurs walut"

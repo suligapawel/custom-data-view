@@ -38,24 +38,6 @@ public class ViewPreviewTests : ViewApiTests
         Assert.That(await response.Content.ReadAsStringAsync(), Is.EqualTo(posted));
     }
 
-    [Test(Description = "scenario_TEMP-029 - #3")]
-    public async Task Given_ViewWithCustomerAndRateTiles_When_UserPreviewsWithoutCustomerId_Then_OnlyCustomerTileHasParameterError()
-    {
-        var id = await CreateView("Pulpit klienta", ViewTile(CustomerTileId, 0), ViewTile(RateTileId, 1));
-
-        var response = await Client.PostAsJsonAsync($"{ViewsUrl}/{id}/preview", new { parameters = new { currency = "EUR" } });
-
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        var preview = await response.Content.ReadFromJsonAsync<JsonObject>();
-        var customer = preview["tiles"]![0]!.AsObject();
-        Assert.That(customer["tileName"]?.GetValue<string>(), Is.EqualTo("Klient"));
-        Assert.That(customer["error"]?["code"]?.GetValue<string>(), Is.EqualTo("invalid_parameters"));
-        Assert.That(customer["error"]!["errors"]!.AsObject().Select(error => error.Key), Is.EqualTo(new[] { "parameters.customer_id" }));
-        Assert.That(customer.ContainsKey("fields"), Is.False);
-        Assert.That(Factory.ExternalApi.Requests.Select(request => request.Url), Is.EqualTo(new[] { RateUrl }));
-        Assert.That(Fields(preview, 1), Is.EqualTo(new[] { ("Kurs", "4.32") }));
-    }
-
     [Test(Description = "scenario_TEMP-029 - #4")]
     public async Task Given_RateSourceUnavailable_When_UserPreviewsView_Then_OnlyRateTileFieldHasSourceError()
     {

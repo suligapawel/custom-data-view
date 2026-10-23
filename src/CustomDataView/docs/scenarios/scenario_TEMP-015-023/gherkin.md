@@ -469,7 +469,7 @@ And   źródło "Kurs walut" zostaje odpytane o walutę "EUR"
 
 #### Scenario #37
 
-Brak wymaganego parametru połączenia
+Brak wymaganego parametru połączenia (zastąpiony przez TEMP-031 #1)
 
 ```
 Given kafelek ma pola ze źródeł "Klient" i "Kurs walut"
@@ -629,7 +629,7 @@ And   pole "Nazwa" ma wartość "acme"
 
 #### Scenario #51
 
-Niepoprawna wartość parametru połączenia
+Niepoprawna wartość parametru połączenia (zastąpiony przez TEMP-031 #2)
 
 ```
 Given kafelek ma pole "Nazwa" ze źródła "Klient"
