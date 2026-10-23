@@ -417,6 +417,21 @@ public class FieldCombinationTests : TileApiTests
         Assert.That(Value(preview!, "Pełny adres"), Is.EqualTo("Długa 5, Kraków"), preview.ToJsonString());
     }
 
+    [Test(Description = $"{Dir} - #17")]
+    public async Task Given_ChildCombinedFieldBoundToSibling_When_UserPreviewsPanel_Then_SiblingIsCalledWithComposedValue()
+    {
+        var weatherTileId = await CreateWeatherTile();
+        var addressId = await CreateTile(Address(Combined("Współrzędne", "template", "{Lat},{Lon}")));
+        var panelId = await CreateTile(Panel(addressId, weatherTileId));
+
+        var preview = await Preview(panelId);
+
+        Assert.That(LatLonOfWeatherRequest(), Is.EqualTo("50.06,19.95"), preview.ToJsonString());
+        var weather = preview["children"]!.AsArray().Single(child => child!["key"]!.GetValue<string>() == "weather")!;
+        Assert.That(weather["state"]?.GetValue<string>(), Is.EqualTo("data"));
+        Assert.That(weather["tile"]!["fields"]![0]!["value"]?.GetValue<decimal>(), Is.EqualTo(12.5m));
+    }
+
     private async Task<Guid> CreateWeatherTile()
     {
         var weatherConnectionId = await CreateConnection(new
