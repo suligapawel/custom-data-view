@@ -1,0 +1,68 @@
+# Połączenia do deweloperskiego API pogody (FakeWeatherEndpoints, środowisko Development).
+# Uruchamiaj żądania po kolei: każde zapisuje identyfikator połączenia w zmiennej globalnej klienta HTTP.
+
+### Prognoza dla miasta
+POST {{host}}/api/custom-data-view/connections
+Content-Type: application/json
+
+{
+  "name": "Prognoza dla miasta",
+  "method": "GET",
+  "url": "{{host}}/api/fake/weather/{city}/forecast",
+  "pathParameters": [
+    { "name": "city", "required": true }
+  ],
+  "queryParameters": [
+    { "name": "days", "required": false, "defaultValue": "3" },
+    { "name": "units", "required": false, "defaultValue": "metric" }
+  ]
+}
+
+> {%
+    client.global.set("forecastConnectionId", response.body.id);
+%}
+
+### Stacja pomiarowa miasta
+POST {{host}}/api/custom-data-view/connections
+Content-Type: application/json
+
+{
+  "name": "Stacja pomiarowa miasta",
+  "method": "GET",
+  "url": "{{host}}/api/fake/weather/{city}/station",
+  "pathParameters": [
+    { "name": "city", "required": true }
+  ]
+}
+
+> {%
+    client.global.set("stationConnectionId", response.body.id);
+%}
+
+### Odczyty stacji
+POST {{host}}/api/custom-data-view/connections
+Content-Type: application/json
+
+{
+  "name": "Odczyty stacji",
+  "method": "GET",
+  "url": "{{host}}/api/fake/weather/stations/{station_id}/readings",
+  "pathParameters": [
+    { "name": "station_id", "required": true }
+  ],
+  "queryParameters": [
+    { "name": "hours", "required": false, "defaultValue": "6" }
+  ]
+}
+
+> {%
+    client.global.set("readingsConnectionId", response.body.id);
+%}
+
+### Test połączenia „Stacja pomiarowa miasta”
+POST {{host}}/api/custom-data-view/connections/{{stationConnectionId}}/test
+Content-Type: application/json
+
+{
+  "parameters": { "path": { "city": "Warszawa" } }
+}

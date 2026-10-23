@@ -1,0 +1,29 @@
+# Podglądy drzewa „Panel pogodowy”. Wymaga zmiennych z 01-connections.http i 02-tiles.http.
+
+### Podgląd całego panelu dla Warszawy (wejście-parametr city z kontraktu korzenia)
+POST {{host}}/api/custom-data-view/tiles/{{panelTileId}}/preview
+Content-Type: application/json
+
+{
+  "parameters": { "city": "Warszawa" }
+}
+
+### To samo metodą GET (tylko płaskie parametry w adresie)
+GET {{host}}/api/custom-data-view/tiles/{{panelTileId}}/preview?city=Warszawa
+
+### Podgląd samej etykiety „Stacja” z dłuższym oknem odczytów dla wnuka (descendants)
+POST {{host}}/api/custom-data-view/tiles/{{stationTileId}}/preview
+Content-Type: application/json
+
+{
+  "parameters": { "city": "Gdańsk" },
+  "descendants": { "readings": { "parameters": { "hours": 12 } } }
+}
+
+### Podgląd samej tabeli odczytów z wartością testową stacji
+POST {{host}}/api/custom-data-view/tiles/{{readingsTileId}}/preview
+Content-Type: application/json
+
+{
+  "parameters": { "station_id": "WAR-01", "hours": 4 }
+}

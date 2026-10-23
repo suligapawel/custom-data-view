@@ -1,0 +1,125 @@
+# Kafelki drzewa „Panel pogodowy”. Wymaga zmiennych z 01-connections.http.
+# Kolejność ma znaczenie: dzieci zapisuje się przed rodzicami.
+#
+# Panel pogodowy (details, korzeń)
+# ├── days: Prognoza dni (table)
+# └── station: Stacja (details, etykieta)
+#     └── readings: Odczyty stacji (table)
+
+### Tabela „Prognoza dni” (dziecko panelu)
+POST {{host}}/api/custom-data-view/tiles
+Content-Type: application/json
+
+{
+  "name": "Prognoza dni",
+  "display": "table",
+  "sources": [
+    { "key": "forecast", "kind": "connection", "connectionId": "{{forecastConnectionId}}" }
+  ],
+  "items": { "source": "forecast", "path": "$.forecast[*]", "key": "Dzień" },
+  "fields": [
+    { "source": "forecast", "path": "$.date", "label": "Dzień",
+      "transformations": [ { "key": "date_format", "parameters": { "pattern": "dd.MM" } } ] },
+    { "source": "forecast", "path": "$.temperature", "label": "Temperatura",
+      "transformations": [ { "key": "suffix", "parameters": { "text": " °C" } } ] },
+    { "source": "forecast", "path": "$.humidity", "label": "Wilgotność",
+      "transformations": [ { "key": "suffix", "parameters": { "text": " %" } } ] },
+    { "source": "forecast", "path": "$.summary", "label": "Opis" }
+  ]
+}
+
+> {%
+    client.global.set("forecastTileId", response.body.id);
+%}
+
+### Tabela „Odczyty stacji” (wnuk panelu, dziecko etykiety „Stacja”)
+POST {{host}}/api/custom-data-view/tiles
+Content-Type: application/json
+
+{
+  "name": "Odczyty stacji",
+  "display": "table",
+  "sources": [
+    { "key": "readings", "kind": "connection", "connectionId": "{{readingsConnectionId}}" }
+  ],
+  "items": { "source": "readings", "path": "$.readings[*]", "key": "Godzina" },
+  "fields": [
+    { "source": "readings", "path": "$.hour", "label": "Godzina" },
+    { "source": "readings", "path": "$.temperature", "label": "Temperatura",
+      "transformations": [ { "key": "suffix", "parameters": { "text": " °C" } } ] },
+    { "source": "readings", "path": "$.humidity", "label": "Wilgotność",
+      "transformations": [ { "key": "suffix", "parameters": { "text": " %" } } ] },
+    { "source": "readings", "path": "$.pressure", "label": "Ciśnienie",
+      "transformations": [ { "key": "suffix", "parameters": { "text": " hPa" } } ] }
+  ]
+}
+
+> {%
+    client.global.set("readingsTileId", response.body.id);
+%}
+
+### Etykieta „Stacja” (dziecko panelu) z tabelą odczytów
+# Ukryte pole „ID stacji” zasila parametr station_id tabeli odczytów (wiązanie parent → dziecko).
+POST {{host}}/api/custom-data-view/tiles
+Content-Type: application/json
+
+{
+  "name": "Stacja",
+  "display": "details",
+  "sources": [
+    { "key": "station", "kind": "connection", "connectionId": "{{stationConnectionId}}" }
+  ],
+  "fields": [
+    { "source": "station", "path": "$.name", "label": "Nazwa" },
+    { "source": "station", "path": "$.elevation", "label": "Wysokość",
+      "transformations": [ { "key": "suffix", "parameters": { "text": " m n.p.m." } } ] },
+    { "source": "station", "path": "$.operator", "label": "Operator" },
+    { "source": "station", "path": "$.id", "label": "ID stacji", "hidden": true }
+  ],
+  "children": [
+    { "key": "readings", "tileId": "{{readingsTileId}}", "position": 0, "cssClass": "col-12", "scope": "tile", "load": "eager" }
+  ],
+  "bindings": [
+    { "from": "parent", "to": "readings", "map": [ { "field": "ID stacji", "parameter": "station_id" } ] }
+  ]
+}
+
+> {%
+    client.global.set("stationTileId", response.body.id);
+%}
+
+### Korzeń „Panel pogodowy” z dwoma dziećmi
+# Klucze źródeł i dzieci mają wspólną przestrzeń nazw, dlatego dziecko z prognozą ma klucz „days”.
+# Ukryte pole „Kod miasta” przekazuje miasto obu dzieciom. Prognoza rodzica i tabeli dzieci ma te same wartości
+# parametrów, więc w podglądzie połączenie jest wywoływane raz (deduplikacja w obrębie żądania).
+POST {{host}}/api/custom-data-view/tiles
+Content-Type: application/json
+
+{
+  "name": "Panel pogodowy",
+  "display": "details",
+  "sources": [
+    { "key": "forecast", "kind": "connection", "connectionId": "{{forecastConnectionId}}" }
+  ],
+  "fields": [
+    { "source": "forecast", "path": "$.city", "label": "Miasto",
+      "transformations": [ { "key": "uppercase", "parameters": {} } ] },
+    { "source": "forecast", "path": "$.units", "label": "Jednostki" },
+    { "source": "forecast", "path": "$.city", "label": "Kod miasta", "hidden": true }
+  ],
+  "children": [
+    { "key": "days", "tileId": "{{forecastTileId}}", "position": 0, "cssClass": "col-8", "scope": "tile", "load": "eager" },
+    { "key": "station", "tileId": "{{stationTileId}}", "position": 1, "cssClass": "col-4", "scope": "tile", "load": "eager" }
+  ],
+  "bindings": [
+    { "from": "parent", "to": "days", "map": [ { "field": "Kod miasta", "parameter": "city" } ] },
+    { "from": "parent", "to": "station", "map": [ { "field": "Kod miasta", "parameter": "city" } ] }
+  ]
+}
+
+> {%
+    client.global.set("panelTileId", response.body.id);
+%}
+
+### Szczegóły panelu z kontraktem
+GET {{host}}/api/custom-data-view/tiles/{{panelTileId}}

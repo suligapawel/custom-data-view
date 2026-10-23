@@ -245,8 +245,8 @@ Wszystkie klucze obce: `ON DELETE CASCADE`, z wyjątkiem `tile_sources.connectio
   wiersza głównego, `ExecuteDelete` wierszy podrzędnych i `SaveChanges` nowych wierszy w jednej transakcji
   (decyzje 5 i 16). Usunięcie to `ExecuteDelete`, a kaskady i `RESTRICT` wykonuje baza.
 - Schemat tworzą migracje EF Core w `Persistence/Migrations/` z tabelą historii
-  `custom_data_view.__ef_migrations_history`. Migracja bazowa odtwarza schemat wcześniejszych migracji SQL; kolejne
-  migracje zawierają także migracje danych (`migrationBuilder.Sql`). Uruchamianie migracji na bazie wymaga zgody
+  `custom_data_view.__ef_migrations_history`. Migracja `Initial` tworzy cały schemat od zera; schemat z dawnych
+  migracji SQL nie jest migrowany (dane trzeba odtworzyć przez API). Uruchamianie migracji na bazie wymaga zgody
   dewelopera; testy repozytoriów stosują je na bazie testowej.
 
 ## Design decisions
@@ -303,15 +303,15 @@ Wszystkie klucze obce: `ON DELETE CASCADE`, z wyjątkiem `tile_sources.connectio
 20. **Kolejność listy kafelków po `created_at, id`** — jak w połączeniach (decyzja 7).
 21. **Wartości parametrów połączeń nie są przechowywane.** Przychodzą z frontu przy każdym podglądzie lub pobraniu
     danych, więc jeden kafelek obsługuje wielu klientów. Wyniki podglądu nie są zapisywane.
-22. **Widoki usunięte** (decyzja dewelopera, 2026-10-23). Tabele `views` i `view_tiles` usuwa migracja
-    `RemoveViews` (razem z danymi); rolę widoku pełni kafelek złożony z dziećmi i wiązaniami. Dawne decyzje o siatce widoku
+22. **Widoki usunięte** (decyzja dewelopera, 2026-10-23). Tabel `views` i `view_tiles` nie ma w schemacie;
+    rolę widoku pełni kafelek złożony z dziećmi i wiązaniami. Dawne decyzje o siatce widoku
     nie obowiązują.
 23. **Unikalna etykieta przez kolumnę generowaną.** `normalized_label` (`lower(btrim(label))`, `STORED`) z indeksem
-    unikalnym zabezpiecza w bazie regułę walidatora (bez rozróżniania wielkości liter, po przycięciu). Przed dodaniem
-    indeksu deweloper sprawdza duplikaty zapytaniem z sekcji „Migracje danych”.
+    unikalnym zabezpiecza w bazie regułę walidatora (bez rozróżniania wielkości liter, po przycięciu). Dane przenoszone ze
+    starego schematu trzeba wcześniej sprawdzić zapytaniem z sekcji „Przenoszenie danych ze starego schematu”.
 24. **Źródła w osobnej tabeli `tile_sources`.** Pole wskazuje źródło kluczem (FK złożone), a połączenie należy do
-    źródła. Migracja danych tworzy dla każdego kafelka jedno źródło `connection` na każde użyte połączenie, z kluczem
-    `source_<n>` w kolejności pierwszego użycia. Kolumna `position` zachowuje kolejność źródeł z definicji (szczegóły
+    źródła. Przy ręcznym przenoszeniu starych kafelków tworzy się jedno źródło `connection` na każde użyte połączenie,
+    z kluczem `source_<n>` w kolejności pierwszego użycia. Kolumna `position` zachowuje kolejność źródeł z definicji (szczegóły
     kafelka zwracają je w tej kolejności).
 25. **Wiązania jako jeden wiersz na mapowanie** (`tile_bindings`). Grupowanie `from` → `to`
     odtwarza repozytorium przy odczycie (kolejność z `position`). PK celu gwarantuje, że wejście celu ma jedno źródło
@@ -319,12 +319,13 @@ Wszystkie klucze obce: `ON DELETE CASCADE`, z wyjątkiem `tile_sources.connectio
     istnienie sprawdza walidator.
 26. **`ON DELETE RESTRICT` z `tile_children.child_tile_id`.** Usunięcie kafelka osadzonego jako dziecko zepsułoby
     definicję rodzica, dlatego aplikacja zwraca 409 `tile_in_use`, a FK chroni przed wyścigiem.
-27. **Typ wyświetlania i elementy w `tiles`.** `display` i trzy kolumny `items_*` z CHECK spójności; istniejące kafelki
-    dostały w migracji `details`. Pola formularza mają własną tabelę z typem i wartością domyślną w `json`.
+27. **Typ wyświetlania i elementy w `tiles`.** `display` i trzy kolumny `items_*` z CHECK spójności; kafelki przenoszone ze
+    starego schematu dostają `details`. Pola formularza mają własną tabelę z typem i wartością domyślną w `json`.
 
-## Migracje danych
+## Przenoszenie danych ze starego schematu
 
-- Duplikaty etykiet przed indeksem `ux_tile_fields_tile_id_normalized_label`:
+- Duplikaty etykiet w starej tabeli `tile_fields` (nowy indeks `ux_tile_fields_tile_id_normalized_label` ich nie
+  przyjmie):
 
   ```sql
   SELECT tile_id, lower(btrim(label)) AS normalized_label, count(*)

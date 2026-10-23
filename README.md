@@ -31,10 +31,10 @@ dotnet ef migrations add <Nazwa> --project src/CustomDataView/CustomDataView.Inf
 dotnet ef database update --project src/CustomDataView/CustomDataView.Infrastructure --connection "<connection string>"
 ```
 
-Przed migracją `AddTileFieldHiddenAndNormalizedLabel` na istniejącej bazie sprawdź, czy etykiety pól w kafelkach się
-nie powtarzają (zapytanie w `src/CustomDataView/docs/foundation/db-plan.md`, sekcja „Migracje danych”). Baza
-utworzona wcześniej migracjami SQL ma już schemat z migracji `CreateSchema` — wpisz ją do historii, zanim
-zastosujesz kolejne. Migracja `RemoveViews` usuwa tabele widoków razem z danymi.
+Jedna migracja `Initial` tworzy cały schemat od zera. Nie przenosi danych ze schematu utworzonego dawnymi
+migracjami SQL (tam pola wskazywały połączenie, a widoki miały własne tabele).
+
+Pełna lista kroków przed wdrożeniem jest w `docs/foundation/pre-deployment.md`.
 
 ## Model w skrócie
 
@@ -62,192 +62,113 @@ zastosujesz kolejne. Migracja `RemoveViews` usuwa tabele widoków razem z danymi
 - **Pole ukryte** (`hidden: true`) przechodzi przez transformacje i może zasilać wiązania; podgląd zwraca je
   z oznaczeniem `"hidden": true`, a front go nie pokazuje.
 
-## Przykład: pulpit pogodowy na fałszywym API pogody
+## Przykład: panel pogodowy z dwoma dziećmi
 
-Przykład korzysta z endpointów deweloperskich `FakeWeatherEndpoints` (`/api/fake/weather/...`) i zakłada, że aplikacja
-działa pod adresem `http://localhost:5080`. Kolejność kroków ma znaczenie — kafelki odwołują się do identyfikatorów
-połączeń i innych kafelków.
+Gotowe żądania są w `docs/foundation/rest/` (klient HTTP Ridera): `01-connections.http` tworzy połączenia,
+`02-tiles.http` kafelki, a `03-preview.http` podglądy. Przykład korzysta z endpointów deweloperskich
+`FakeWeatherEndpoints` (środowisko `Development`, `http://localhost:5080`):
 
-### 1. Połączenia
+| Endpoint | Dane |
+|---|---|
+| `GET /api/fake/weather/{city}/forecast?days=&units=` | prognoza na kolejne dni |
+| `POST /api/fake/weather/search` | prognozy kilku miast |
+| `GET /api/fake/weather/{city}/station` | stacja pomiarowa miasta (`id`, `name`, `elevation`, `operator`) |
+| `GET /api/fake/weather/stations/{stationId}/readings?hours=` | odczyty stacji z ostatnich godzin |
 
-`POST /api/custom-data-view/connections` — „Prognoza dla miasta” (zwraca `id` → `<ID_PROGNOZA>`):
+Drzewo kafelków:
 
-```json
-{
-  "name": "Prognoza dla miasta",
-  "method": "GET",
-  "url": "http://localhost:5080/api/fake/weather/{city}/forecast",
-  "pathParameters": [ { "name": "city", "required": true } ],
-  "queryParameters": [
-    { "name": "days", "required": false, "defaultValue": "3" },
-    { "name": "units", "required": false, "defaultValue": "metric" }
-  ]
-}
+```text
+Panel pogodowy (details, korzeń)         pola: Miasto, Jednostki, [Kod miasta]
+├── days: Prognoza dni (table)           elementy $.forecast[*], klucz „Dzień”
+└── station: Stacja (details, etykieta)  pola: Nazwa, Wysokość, Operator, [ID stacji]
+    └── readings: Odczyty stacji (table) elementy $.readings[*], klucz „Godzina”
 ```
 
-„Wyszukiwanie prognoz” (`<ID_WYSZUKIWANIE>`):
+`[…]` to pola ukryte, które zasilają wiązania. Korzeń ma własne źródło prognozy i przekazuje miasto obu dzieciom,
+a etykieta „Stacja” przekazuje identyfikator stacji swojej tabeli:
 
 ```json
 {
-  "name": "Wyszukiwanie prognoz",
-  "method": "POST",
-  "url": "http://localhost:5080/api/fake/weather/search",
-  "body": { "cities": "{cities}", "days": "{days}" },
-  "bodyParameters": [
-    { "name": "cities", "required": true },
-    { "name": "days", "required": false, "defaultValue": 1 }
-  ]
-}
-```
-
-### 2. Formularz „Filtry” (`form`)
-
-`POST /api/custom-data-view/tiles` → `<ID_FILTRY>`:
-
-```json
-{
-  "name": "Filtry",
-  "display": "form",
-  "fields": [
-    { "label": "Miasto", "type": "text", "required": true },
-    { "label": "Dni", "type": "number", "default": 3 }
-  ]
-}
-```
-
-### 3. Tabela „Dni prognozy” (`table` z wejściem danych)
-
-Kafelek dostaje surowy JSON dni od rodzica przez wejście `days` → `<ID_DNI>`:
-
-```json
-{
-  "name": "Dni prognozy",
-  "display": "table",
-  "sources": [ { "key": "days", "kind": "input" } ],
-  "items": { "source": "days", "path": "$[*]", "key": "Dzień" },
-  "fields": [
-    { "source": "days", "path": "$.date", "label": "Dzień",
-      "transformations": [ { "key": "date_format", "parameters": { "pattern": "dd.MM" } } ] },
-    { "source": "days", "path": "$.temperature", "label": "Temperatura",
-      "transformations": [ { "key": "suffix", "parameters": { "text": " °C" } } ] },
-    { "source": "days", "path": "$.summary", "label": "Opis" }
-  ]
-}
-```
-
-### 4. Lista „Porównanie” (`list`) i podsumowanie „Dziś” (`summary`)
-
-`<ID_PORÓWNANIE>` — lista miast z wyszukiwania (wymaga parametru `cities`):
-
-```json
-{
-  "name": "Porównanie",
-  "display": "list",
-  "sources": [ { "key": "search", "kind": "connection", "connectionId": "<ID_WYSZUKIWANIE>" } ],
-  "items": { "source": "search", "path": "$.results[*]", "key": "Miasto" },
-  "fields": [
-    { "source": "search", "path": "$.city", "label": "Miasto", "role": "title" },
-    { "source": "search", "path": "$.forecast[0].summary", "label": "Opis", "role": "subtitle" },
-    { "source": "search", "path": "$.forecast[0].temperature", "label": "Temperatura", "role": "badge" }
-  ]
-}
-```
-
-`<ID_DZIŚ>` — wyróżnione wartości bieżącego dnia (wymaga parametru `city`):
-
-```json
-{
-  "name": "Dziś",
-  "display": "summary",
-  "sources": [ { "key": "forecast", "kind": "connection", "connectionId": "<ID_PROGNOZA>" } ],
-  "fields": [
-    { "source": "forecast", "path": "$.forecast[0].temperature", "label": "Temperatura", "role": "primary" },
-    { "source": "forecast", "path": "$.forecast[0].windSpeed", "label": "Wiatr", "role": "secondary",
-      "transformations": [ { "key": "round", "parameters": { "decimals": 0 } }, { "key": "suffix", "parameters": { "text": " m/s" } } ] }
-  ]
-}
-```
-
-### 5. Kafelek złożony „Pulpit pogodowy”
-
-Rodzic ma własne źródło i pola oraz cztery dzieci. Formularz zasila połączenie rodzica (dziecko → źródło, dwa
-mapowania w jednym wiązaniu), ukryte pole z surowym JSON dni trafia do wejścia tabeli (`parent` → dziecko), a miasto
-z formularza trafia do dziecka „Dziś”. „Porównanie” ładuje się na żądanie frontu (`lazy`):
-
-```json
-{
-  "name": "Pulpit pogodowy",
+  "name": "Panel pogodowy",
   "display": "details",
   "sources": [ { "key": "forecast", "kind": "connection", "connectionId": "<ID_PROGNOZA>" } ],
   "fields": [
     { "source": "forecast", "path": "$.city", "label": "Miasto",
       "transformations": [ { "key": "uppercase", "parameters": {} } ] },
-    { "source": "forecast", "path": "$.forecast", "label": "Dni JSON", "hidden": true }
+    { "source": "forecast", "path": "$.units", "label": "Jednostki" },
+    { "source": "forecast", "path": "$.city", "label": "Kod miasta", "hidden": true }
   ],
   "children": [
-    { "key": "filters", "tileId": "<ID_FILTRY>", "position": 0, "cssClass": "col-12" },
-    { "key": "today", "tileId": "<ID_DZIŚ>", "position": 1, "cssClass": "col-4" },
-    { "key": "days", "tileId": "<ID_DNI>", "position": 2, "cssClass": "col-8" },
-    { "key": "compare", "tileId": "<ID_PORÓWNANIE>", "position": 3, "load": "lazy" }
+    { "key": "days", "tileId": "<ID_PROGNOZA_DNI>", "position": 0, "cssClass": "col-8" },
+    { "key": "station", "tileId": "<ID_STACJA>", "position": 1, "cssClass": "col-4" }
   ],
   "bindings": [
-    { "from": "filters", "to": "forecast",
-      "map": [ { "field": "Miasto", "parameter": "city" }, { "field": "Dni", "parameter": "days" } ] },
-    { "from": "parent", "to": "days", "map": [ { "field": "Dni JSON", "input": "days" } ] },
-    { "from": "filters", "to": "today", "map": [ { "field": "Miasto", "parameter": "city" } ] }
+    { "from": "parent", "to": "days", "map": [ { "field": "Kod miasta", "parameter": "city" } ] },
+    { "from": "parent", "to": "station", "map": [ { "field": "Kod miasta", "parameter": "city" } ] }
   ]
 }
 ```
-
-Szczegóły kafelka (`GET /api/custom-data-view/tiles/{id}`) zwracają definicję i kontrakt — wejścia, których nie
-wiąże sam kafelek (tu opcjonalne `units` połączenia rodzica), oraz wyjścia:
-
-```json
-"contract": {
-  "parameters": [ { "name": "units", "required": false } ],
-  "inputs": [],
-  "outputs": { "fields": ["Miasto", "Dni JSON"], "items": false }
-}
-```
-
-### 6. Podgląd
-
-`POST /api/custom-data-view/tiles/{id}/preview` — wartości formularzy według adresu osadzenia formularza:
-
-```json
-{ "forms": { "filters": { "Miasto": "Warszawa", "Dni": 5 } } }
-```
-
-Odpowiedź (skrócona) zawiera pola rodzica i osadzenia w kolejności pozycji z adresem i stanem:
 
 ```json
 {
-  "id": "<ID_PULPIT>", "name": "Pulpit pogodowy", "display": "details",
-  "fields": [ { "label": "Miasto", "value": "WARSZAWA" }, { "label": "Dni JSON", "value": [ ], "hidden": true } ],
+  "name": "Stacja",
+  "display": "details",
+  "sources": [ { "key": "station", "kind": "connection", "connectionId": "<ID_STACJA_POLACZENIE>" } ],
+  "fields": [
+    { "source": "station", "path": "$.name", "label": "Nazwa" },
+    { "source": "station", "path": "$.elevation", "label": "Wysokość",
+      "transformations": [ { "key": "suffix", "parameters": { "text": " m n.p.m." } } ] },
+    { "source": "station", "path": "$.operator", "label": "Operator" },
+    { "source": "station", "path": "$.id", "label": "ID stacji", "hidden": true }
+  ],
+  "children": [ { "key": "readings", "tileId": "<ID_ODCZYTY>", "position": 0, "cssClass": "col-12" } ],
+  "bindings": [ { "from": "parent", "to": "readings", "map": [ { "field": "ID stacji", "parameter": "station_id" } ] } ]
+}
+```
+
+Klucze źródeł i dzieci mają wspólną przestrzeń nazw w kafelku, dlatego dziecko z prognozą ma klucz `days`, a nie
+`forecast`. Szczegóły panelu (`GET /api/custom-data-view/tiles/{id}`) zwracają kontrakt — wejścia, których kafelek
+nie wiąże sam, oraz wyjścia:
+
+```json
+"contract": {
+  "parameters": [ { "name": "city", "required": true }, { "name": "days", "required": false }, { "name": "units", "required": false } ],
+  "inputs": [],
+  "outputs": { "fields": ["Miasto", "Jednostki", "Kod miasta"], "items": false }
+}
+```
+
+### Podgląd
+
+`POST /api/custom-data-view/tiles/{id}/preview` z `{ "parameters": { "city": "Warszawa" } }` (albo
+`GET .../preview?city=Warszawa`) zwraca pola korzenia i osadzenia w kolejności pozycji (skrót):
+
+```json
+{
+  "name": "Panel pogodowy", "display": "details",
+  "fields": [ { "label": "Miasto", "value": "WARSZAWA" }, { "label": "Jednostki", "value": "metric" },
+              { "label": "Kod miasta", "value": "Warszawa", "hidden": true } ],
   "children": [
-    { "key": "filters", "address": "filters", "state": "data",
-      "tile": { "display": "form", "fields": [ { "label": "Miasto", "type": "text", "required": true, "default": null, "value": "Warszawa" } ] } },
-    { "key": "today", "address": "today", "state": "data", "tile": { "display": "summary", "fields": [ ] } },
-    { "key": "days", "address": "days", "state": "data",
-      "tile": { "display": "table", "itemKey": "Dzień", "items": [ { "key": "23.10", "fields": [ ] } ] } },
-    { "key": "compare", "address": "compare", "state": "awaiting_load", "inputs": {} }
+    { "key": "days", "address": "days", "cssClass": "col-8", "state": "data",
+      "tile": { "name": "Prognoza dni", "display": "table", "itemKey": "Dzień",
+                "items": [ { "key": "23.10", "fields": [ { "label": "Dzień", "value": "23.10" }, { "label": "Temperatura", "value": "0 °C" } ] } ] } },
+    { "key": "station", "address": "station", "cssClass": "col-4", "state": "data",
+      "tile": { "name": "Stacja", "display": "details",
+                "fields": [ { "label": "Nazwa", "value": "Stacja Warszawa-Centrum" }, { "label": "ID stacji", "value": "WAR-03", "hidden": true } ],
+                "children": [ { "key": "readings", "address": "station/readings", "state": "data",
+                                "tile": { "name": "Odczyty stacji", "display": "table", "itemKey": "Godzina", "items": [ ] } } ] } }
   ]
 }
 ```
 
-Dziecko `lazy` front doładowuje podglądem kafelka dziecka z jego `inputs` (tu bez wiązań, więc z własnymi
-wartościami):
+Prognoza korzenia i tabeli `days` ma te same wartości parametrów, więc połączenie jest wywoływane raz na żądanie.
+Podgląd samej etykiety może doręczyć wartości wnukowi: `{ "parameters": { "city": "Gdańsk" }, "descendants":
+{ "readings": { "parameters": { "hours": 12 } } } }`.
 
-```bash
-curl -X POST "http://localhost:5080/api/custom-data-view/tiles/<ID_PORÓWNANIE>/preview" \
-  -H "Content-Type: application/json" \
-  -d '{"parameters": {"cities": ["Warszawa"]}}'
-```
-
-Treść żądania podglądu (wszystkie sekcje opcjonalne): `forms` (wartości formularzy według adresu; podgląd samego
-formularza używa adresu `""`), `parameters` (wartości wejść-parametrów kontraktu), `inputs` (wejścia danych)
-i `descendants` (wartości dla potomków według ścieżki, np. `{ "days": { "inputs": { "days": [ ] } } }`). Wiązanie
-w definicji wygrywa z wartością z żądania. `GET .../preview?city=Warszawa` przyjmuje tylko płaskie `parameters`.
+Treść żądania podglądu (wszystkie sekcje opcjonalne): `forms` (wartości formularzy według adresu osadzenia
+formularza; podgląd samego formularza używa adresu `""`), `parameters` (wartości wejść-parametrów kontraktu), `inputs`
+(wejścia danych) i `descendants` (wartości dla potomków według ścieżki). Wiązanie w definicji wygrywa z wartością
+z żądania. `GET .../preview` przyjmuje tylko płaskie `parameters` w adresie.
 
 ### Wybór elementu i dzieci w elementach
 
@@ -255,7 +176,7 @@ w definicji wygrywa z wartością z żądania. `GET .../preview?city=Warszawa` p
   (`from` — adres węzła, `field`, `scope`, `parameter`/`input`) i kompletem pozostałych `inputs`. Po wyborze front
   uzupełnia wartość i woła podgląd kafelka celu.
 - Dziecko `scope: item` ma instancję w każdym elemencie rodzica, z adresem zawierającym klucz elementu
-  (`[23.10]/details`), a `parent` z zakresem `item` przekazuje pole bieżącego elementu:
+  (`days[23.10]/details`), a `parent` z zakresem `item` przekazuje pole bieżącego elementu:
 
   ```json
   "children": [ { "key": "details", "tileId": "<ID_SZCZEGÓŁY_DNIA>", "position": 0, "scope": "item", "load": "lazy" } ],
