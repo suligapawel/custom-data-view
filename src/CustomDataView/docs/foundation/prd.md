@@ -78,16 +78,19 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
 - Pole kafelka (poza formularzem) zawiera źródło (`source`), ścieżkę JSONPath, etykietę, opcjonalną rolę, flagę
   `hidden` (domyślnie `false`) oraz uporządkowaną listę transformacji z katalogu (może być pusta). Transformacja ma
   `key` i opcjonalny `parameter` — prostą wartość (tekst albo liczba, zapisywana jako tekst).
-- Ścieżka JSONPath obsługuje podzbiór składni: `$`, `.name`, `['name']`, `[n]` (także ujemny), `[*]` i `.*`. Ścieżka
-  bez wildcardu wskazuje jedną wartość; ścieżka z wildcardem zwraca płaską tablicę dopasowań, a każdy jej element
-  przechodzi przez łańcuch transformacji pola.
+- Ścieżka JSONPath obsługuje podzbiór składni: `$`, `.name`, `['name']`, `[n]` (także ujemny), `[*]`, `.*` i filtr
+  `[?@.a.b == 'x']` (także `[?(...)]`). Filtr porównuje operatorem `==` lub `!=` wartość pod ścieżką względną `@`
+  (segmenty `.name`, `['name']`, `[n]`) z literałem: tekstem, liczbą, `true`, `false` albo `null`; liczby porównywane są
+  wartością, wartości różnych typów są różne, a brak wartości nie spełnia `==` i spełnia `!=`. Ścieżka bez wildcardu
+  i filtra wskazuje jedną wartość; ścieżka z wildcardem lub filtrem zwraca płaską tablicę dopasowań, a każdy jej
+  element przechodzi przez łańcuch transformacji pola.
 - Etykieta pola jest unikalna w kafelku (porównanie bez rozróżniania wielkości liter, po przycięciu białych znaków).
 - Pole ukryte (`hidden: true`) jest zwracane w podglądzie kafelka z oznaczeniem `"hidden": true` (front go nie
   pokazuje), przechodzi przez transformacje i może być źródłem wiązania.
 - Elementy (`items`) kafelka `table` i `list`: `source` (klucz źródła z tablicą elementów), `path` (JSONPath
-  z wildcardem, np. `$.cities[*]`) i `key` (etykieta pola identyfikującego element). Ścieżki pól są względne wobec
-  elementu, a pola pochodzą ze źródła `items.source`. Pole innego źródła jest dozwolone tylko z `hidden: true` i tylko
-  jako źródło wiązania źródło → źródło.
+  z wildcardem lub filtrem, np. `$.cities[*]`) i `key` (etykieta pola identyfikującego element). Ścieżki pól są
+  względne wobec elementu, a pola pochodzą ze źródła `items.source`. Pole innego źródła jest dozwolone tylko
+  z `hidden: true` i tylko jako źródło wiązania źródło → źródło.
 - Kafelek `form` zbiera wartości od użytkownika i wystawia je jako swoje pola; nic nie pobiera i nie ma źródeł,
   `items`, dzieci ani wiązań. Pole formularza ma unikalną `label`, `type` (`text`, `number`, `boolean`, `date` jako tekst
   ISO 8601 `yyyy-MM-dd`), `required` (domyślnie `false`) i opcjonalne `default` zgodne z typem. Wartością pola jest
@@ -211,7 +214,7 @@ Historyjki są uporządkowane w kolejności realizacji, od najmniejszych funkcjo
 połączenia, kafelki, widoki i podgląd widoku (TEMP-001 … TEMP-029; widoki wycofane w TEMP-038). Kolejna grupa, kafelki
 złożone i wiązania (TEMP-030 … TEMP-039), rozbudowuje kafelki etapami: unikalna etykieta i ukryte pole, walidacja
 parametrów per połączenie, typ wyświetlania i elementy, źródła z wiązaniami źródło → źródło, wejścia danych, formularze,
-dzieci `scope: tile`, dzieci `scope: item` z limitami, usunięcie widoków na rzecz kafelków złożonych i wybór elementu.
+dzieci `scope: tile`, dzieci `scope: item` z limitami, usunięcie widoków na rzecz kafelków złożonych i wybór elementu. TEMP-040 dodaje filtr w ścieżce JSONPath.
 Każda grupa korzysta wyłącznie z grup wcześniejszych; blokada usuwania połączeń używanych przez kafelki należy do grupy
 kafelków. Historyjki i scenariusze leżą w `docs/scenarios/scenario_TEMP-*`.
 
