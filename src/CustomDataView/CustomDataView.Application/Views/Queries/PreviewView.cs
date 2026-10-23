@@ -29,7 +29,7 @@ public sealed class PreviewViewHandler(IViewRepository views, ITileRepository ti
         IReadOnlyDictionary<string, JsonElement> parameters,
         CancellationToken cancellationToken)
     {
-        var preview = await tilePreviewer.Preview(tile.TileId, parameters, cancellationToken);
+        var preview = await tilePreviewer.Preview(tile.TileId, TilePreviewValues.Of(parameters), cancellationToken);
         return new ViewTilePreview(
             tile.TileId,
             name,

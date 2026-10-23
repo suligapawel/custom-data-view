@@ -143,13 +143,17 @@ public static class TileDefinitionValidator
                 errors[$"{key}.key"] = [$"Klucz źródła '{source.Key}' występuje w kafelku więcej niż raz."];
             }
 
-            if (source.Kind != TileSourceKinds.Connection)
+            if (!TileSourceKinds.All.Contains(source.Kind))
             {
-                errors[$"{key}.kind"] = [$"Rodzaj źródła musi mieć wartość '{TileSourceKinds.Connection}'."];
+                errors[$"{key}.kind"] = [$"Rodzaj źródła musi mieć jedną z wartości: {string.Join(", ", TileSourceKinds.All)}."];
             }
-            else if (source.ConnectionId is null)
+            else if (source.Kind == TileSourceKinds.Connection && source.ConnectionId is null)
             {
                 errors[$"{key}.connectionId"] = ["Połączenie źródła jest wymagane."];
+            }
+            else if (source.Kind == TileSourceKinds.Input && source.ConnectionId is not null)
+            {
+                errors[$"{key}.connectionId"] = ["Wejście danych nie wskazuje połączenia."];
             }
         }
 

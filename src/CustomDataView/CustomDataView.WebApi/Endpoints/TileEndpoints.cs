@@ -111,7 +111,9 @@ public static class TileEndpoints
                         return Results.ValidationProblem(errors);
                     }
 
-                    var query = new PreviewTileDraft(request.Tile.ToDefinition(), TilePreviewRequest.ValuesOf(request.Parameters));
+                    var query = new PreviewTileDraft(
+                        request.Tile.ToDefinition(),
+                        TilePreviewRequest.ValuesOf(request.Parameters, request.Inputs));
                     return Results.Ok(await bus.InvokeAsync<TilePreview>(query, cancellationToken));
                 });
             return endpoints;
@@ -122,7 +124,7 @@ public static class TileEndpoints
             endpoints.MapPost(
                 $"{TileUrl}/preview",
                 async (Guid id, TilePreviewRequest request, IMessageBus bus, CancellationToken cancellationToken)
-                    => Results.Ok(await bus.InvokeAsync<TilePreview>(new PreviewTile(id, request.ToInput()), cancellationToken)));
+                    => Results.Ok(await bus.InvokeAsync<TilePreview>(new PreviewTile(id, request.ToValues()), cancellationToken)));
             return endpoints;
         }
 
@@ -132,7 +134,7 @@ public static class TileEndpoints
                 $"{TileUrl}/preview",
                 async (Guid id, HttpContext httpContext, IMessageBus bus, CancellationToken cancellationToken) =>
                 {
-                    var query = new PreviewTile(id, TilePreviewRequest.ValuesOf(httpContext.Request.Query));
+                    var query = new PreviewTile(id, TilePreviewValues.Of(TilePreviewRequest.ValuesOf(httpContext.Request.Query)));
                     return Results.Ok(await bus.InvokeAsync<TilePreview>(query, cancellationToken));
                 });
             return endpoints;

@@ -5,6 +5,7 @@ using CustomDataView.Application.Connections.Calls;
 using CustomDataView.Application.Connections.Validation;
 using CustomDataView.Application.Exceptions;
 using CustomDataView.Application.Tiles.Validation;
+using CustomDataView.Domain.Dictionaries;
 using CustomDataView.Domain.Entities;
 using CustomDataView.Domain.Policies;
 using CustomDataView.Domain.Repositories;
@@ -22,26 +23,26 @@ public sealed class TilePreviewer(
 {
     public async Task<TilePreview> Preview(
         Guid id,
-        IReadOnlyDictionary<string, JsonElement> parameters,
+        TilePreviewValues values,
         CancellationToken cancellationToken)
     {
         var tile = tiles.Get(id) ?? throw new NotFoundException(id);
-        return await Preview(tile.Id, tile.Definition, parameters, cancellationToken);
+        return await Preview(tile.Id, tile.Definition, values, cancellationToken);
     }
 
     public Task<TilePreview> Preview(
         TileDefinition definition,
-        IReadOnlyDictionary<string, JsonElement> parameters,
+        TilePreviewValues values,
         CancellationToken cancellationToken)
-        => Preview(null, definition, parameters, cancellationToken);
+        => Preview(null, definition, values, cancellationToken);
 
     private async Task<TilePreview> Preview(
         Guid? id,
         TileDefinition definition,
-        IReadOnlyDictionary<string, JsonElement> parameters,
+        TilePreviewValues values,
         CancellationToken cancellationToken)
     {
-        var instance = new TileInstance(definition, parameters);
+        var instance = new TileInstance(definition, values);
         var order = BindingGraph.Order(
             definition.Sources.Select(source => source.Key).ToList(),
             definition.Bindings.Select(binding => (binding.From, binding.To)));
@@ -65,6 +66,16 @@ public sealed class TilePreviewer(
     private async Task Execute(TileInstance instance, string key, CancellationToken cancellationToken)
     {
         var source = instance.Definition.Sources.Single(candidate => candidate.Key == key);
+        if (source.Kind == TileSourceKinds.Input)
+        {
+            instance.Complete(key, instance.Values.Inputs.TryGetValue(key, out var input)
+                ? new SourceResult(JsonNode.Parse(input.GetRawText()), null)
+                : SourceResult.Failed(new TileFieldError(
+                    TileFieldErrorCodes.InvalidParameters,
+                    Parameters: [new TileParameterError(key, "Brak wartości wejścia danych.", false)])));
+            return;
+        }
+
         var connection = connections.Get(source.ConnectionId.Value);
         var mappings = instance.Definition.Bindings
             .Where(binding => binding.To == key)
@@ -101,7 +112,7 @@ public sealed class TilePreviewer(
             return;
         }
 
-        var values = new Dictionary<string, JsonElement>(instance.Parameters, StringComparer.Ordinal);
+        var values = new Dictionary<string, JsonElement>(instance.Values.Parameters, StringComparer.Ordinal);
         foreach (var (name, value) in bound)
         {
             if (value is null)
@@ -190,14 +201,14 @@ public sealed class TilePreviewer(
         return new TileFieldPreview(field.Label, path.HasWildcard ? new JsonArray(values) : values.Single(), null, field.Hidden);
     }
 
-    private sealed class TileInstance(TileDefinition definition, IReadOnlyDictionary<string, JsonElement> parameters)
+    private sealed class TileInstance(TileDefinition definition, TilePreviewValues values)
     {
         private readonly ConcurrentDictionary<string, SourceResult> results = new(StringComparer.Ordinal);
         private readonly ConcurrentDictionary<TileField, TileFieldPreview> fields = new();
 
         public TileDefinition Definition { get; } = definition;
 
-        public IReadOnlyDictionary<string, JsonElement> Parameters { get; } = parameters;
+        public TilePreviewValues Values { get; } = values;
 
         public void Complete(string source, SourceResult result) => results[source] = result;
 

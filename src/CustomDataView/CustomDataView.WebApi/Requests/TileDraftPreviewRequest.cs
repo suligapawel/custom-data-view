@@ -3,7 +3,10 @@ using CustomDataView.Application.Tiles.Validation;
 
 namespace CustomDataView.WebApi.Requests;
 
-public sealed record TileDraftPreviewRequest(TileRequest Tile, Dictionary<string, JsonElement> Parameters)
+public sealed record TileDraftPreviewRequest(
+    TileRequest Tile,
+    Dictionary<string, JsonElement> Parameters,
+    Dictionary<string, JsonElement> Inputs)
 {
     public IDictionary<string, string[]> Validate(TileReferencesValidator referencesValidator)
     {
