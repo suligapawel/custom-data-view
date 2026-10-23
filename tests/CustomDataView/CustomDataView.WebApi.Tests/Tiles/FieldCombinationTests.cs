@@ -56,6 +56,19 @@ public class FieldCombinationTests : TileApiTests
         Assert.That(Value(preview, "Etykieta"), Is.EqualTo("{Długa }"), preview.ToJsonString());
     }
 
+    [TestCase("Ulica|Nr|Miasto", "Długa, 5, Kraków")]
+    [TestCase("Miasto|Tagi", "Kraków, zabytki, rynek")]
+    [TestCase("Lat|Lon", "50.06, 19.95")]
+    [Test(Description = $"{Dir} - #4")]
+    public async Task Given_JoinOfFields_When_UserPreviewsTile_Then_ValuesAreJoinedSkippingMissingAndSpreadingLists(string fields, string expected)
+    {
+        var id = await CreateTile(Address(PlaceField("$.tags[*]", "Tagi"), Combined("Złączone", "join", ", ", fields.Split('|'))));
+
+        var preview = await Preview(id);
+
+        Assert.That(Value(preview, "Złączone"), Is.EqualTo(expected), preview.ToJsonString());
+    }
+
     private void RespondWithPlace(Action<JsonObject> change)
     {
         var place = JsonNode.Parse(PlaceResponse)!.AsObject();
