@@ -1,0 +1,197 @@
+# Kombinatory pól (TEMP-044): pole złożone z kilku innych pól kafelka zamiast źródła i ścieżki.
+# Korzysta z deweloperskiego API miast (FakeCityEndpoints). Niezależne od plików 01–05.
+#
+# Wizytówka miasta (details, korzeń)    pola: [Nazwa], [Kraj], [Ludność], [ID], Opis (template),
+# │                                            Miejsce (join), Nazwa lub kraj (coalesce), [Dane] (object)
+# └── card: Karta miasta (details)      wejście danych „city” ← pole „Dane” rodzica
+#
+# Miasta na „Kr” (list)                 elementy: $.cities[*], tytuł „Miasto i kraj” (template) w każdym elemencie
+
+### Katalog kombinatorów
+GET {{host}}/api/custom-data-view/combinations
+
+### Połączenie „Szukaj miast (kombinatory)”
+POST {{host}}/api/custom-data-view/connections
+Content-Type: application/json
+
+{
+  "name": "Szukaj miast (kombinatory)",
+  "method": "GET",
+  "url": "{{host}}/api/fake/cities",
+  "queryParameters": [
+    { "name": "name", "required": false },
+    { "name": "country", "required": false }
+  ]
+}
+
+> {%
+    client.global.set("combinationSearchConnectionId", response.body.id);
+%}
+
+### Połączenie „Miasto (kombinatory)”
+POST {{host}}/api/custom-data-view/connections
+Content-Type: application/json
+
+{
+  "name": "Miasto (kombinatory)",
+  "method": "GET",
+  "url": "{{host}}/api/fake/cities/{city_id}",
+  "pathParameters": [ { "name": "city_id", "required": true } ]
+}
+
+> {%
+    client.global.set("combinationCityConnectionId", response.body.id);
+%}
+
+### Kafelek „Karta miasta” — dostaje obiekt przez wejście danych „city”
+POST {{host}}/api/custom-data-view/tiles
+Content-Type: application/json
+
+{
+  "name": "Karta miasta",
+  "display": "details",
+  "sources": [ { "key": "city", "kind": "input" } ],
+  "fields": [
+    { "source": "city", "path": "$.Nazwa", "label": "Miasto" },
+    { "source": "city", "path": "$.Kraj", "label": "Państwo" },
+    { "source": "city", "path": "$['Ludność']", "label": "Mieszkańcy" }
+  ]
+}
+
+> {%
+    client.global.set("cityCardTileId", response.body.id);
+%}
+
+### Kafelek „Wizytówka miasta” — składniki ukryte, widoczne tylko pola złożone
+POST {{host}}/api/custom-data-view/tiles
+Content-Type: application/json
+
+{
+  "name": "Wizytówka miasta",
+  "display": "details",
+  "sources": [
+    { "key": "city", "kind": "connection", "connectionId": "{{combinationCityConnectionId}}" }
+  ],
+  "fields": [
+    { "source": "city", "path": "$.id", "label": "ID", "hidden": true },
+    { "source": "city", "path": "$.name", "label": "Nazwa", "hidden": true },
+    { "source": "city", "path": "$.country", "label": "Kraj", "hidden": true },
+    { "source": "city", "path": "$.population", "label": "Ludność", "hidden": true },
+    { "label": "Opis",
+      "combine": { "key": "template", "parameter": "{Nazwa} ({Kraj}) — {Ludność} mieszkańców" } },
+    { "label": "Miejsce",
+      "combine": { "key": "join", "parameter": ", ", "fields": [ "Nazwa", "Kraj" ] },
+      "transformations": [ { "key": "uppercase" } ] },
+    { "label": "Nazwa lub kraj",
+      "combine": { "key": "coalesce", "fields": [ "Nazwa", "Kraj" ] } },
+    { "label": "Dane", "hidden": true,
+      "combine": { "key": "object", "fields": [ "Nazwa", "Kraj", "Ludność" ] } }
+  ],
+  "children": [
+    { "key": "card", "tileId": "{{cityCardTileId}}", "position": 0 }
+  ],
+  "bindings": [
+    { "from": "parent", "to": "card", "map": [ { "field": "Dane", "input": "city" } ] }
+  ]
+}
+
+> {%
+    client.global.set("cityBadgeTileId", response.body.id);
+%}
+
+### Szczegóły wizytówki: pola złożone mają „combine” zamiast „source” i „path”
+GET {{host}}/api/custom-data-view/tiles/{{cityBadgeTileId}}
+
+### Podgląd wizytówki Krakowa: „Opis”, „MIEJSCE” i obiekt „Dane” przekazany do dziecka „card”
+POST {{host}}/api/custom-data-view/tiles/{{cityBadgeTileId}}/preview
+Content-Type: application/json
+
+{
+  "parameters": { "city_id": "1" }
+}
+
+### Kafelek „Miasta” (list) — tytuł elementu złożony z pól elementu
+POST {{host}}/api/custom-data-view/tiles
+Content-Type: application/json
+
+{
+  "name": "Miasta",
+  "display": "list",
+  "sources": [
+    { "key": "cities", "kind": "connection", "connectionId": "{{combinationSearchConnectionId}}" }
+  ],
+  "items": { "source": "cities", "path": "$.cities[*]", "key": "ID" },
+  "fields": [
+    { "source": "cities", "path": "$.id", "label": "ID", "hidden": true },
+    { "source": "cities", "path": "$.name", "label": "Nazwa", "hidden": true },
+    { "source": "cities", "path": "$.country", "label": "Kraj", "hidden": true },
+    { "label": "Miasto i kraj", "role": "title",
+      "combine": { "key": "template", "parameter": "{Nazwa} ({Kraj})" } }
+  ]
+}
+
+> {%
+    client.global.set("combinedCitiesTileId", response.body.id);
+%}
+
+### Podgląd listy miast na „Kr”: każdy element ma własny tytuł, np. „Kraków (Polska)”
+POST {{host}}/api/custom-data-view/tiles/{{combinedCitiesTileId}}/preview
+Content-Type: application/json
+
+{
+  "parameters": { "name": "Kr" }
+}
+
+### Podgląd niezapisanego kafelka: brak wartości pod ścieżką składnika daje polu złożonemu dependency_failed
+POST {{host}}/api/custom-data-view/tiles/preview
+Content-Type: application/json
+
+{
+  "tile": {
+    "name": "Region miasta",
+    "display": "details",
+    "sources": [
+      { "key": "city", "kind": "connection", "connectionId": "{{combinationCityConnectionId}}" }
+    ],
+    "fields": [
+      { "source": "city", "path": "$.name", "label": "Nazwa", "hidden": true },
+      { "source": "city", "path": "$.region", "label": "Region", "hidden": true },
+      { "label": "Nazwa i region", "combine": { "key": "join", "parameter": " / ", "fields": [ "Nazwa", "Region" ] } }
+    ]
+  },
+  "parameters": { "city_id": "1" }
+}
+
+### Niepoprawny wzorzec (niezamknięta klamra) — 400 z błędem fields[1].combine.parameter
+POST {{host}}/api/custom-data-view/tiles
+Content-Type: application/json
+
+{
+  "name": "Błędny wzorzec",
+  "display": "details",
+  "sources": [
+    { "key": "city", "kind": "connection", "connectionId": "{{combinationCityConnectionId}}" }
+  ],
+  "fields": [
+    { "source": "city", "path": "$.name", "label": "Nazwa", "hidden": true },
+    { "label": "Opis", "combine": { "key": "template", "parameter": "{Nazwa" } }
+  ]
+}
+
+### Nieznane pole wejściowe i obiekt z transformacją — 400 z błędami fields[1].combine i fields[1].transformations
+POST {{host}}/api/custom-data-view/tiles
+Content-Type: application/json
+
+{
+  "name": "Błędny obiekt",
+  "display": "details",
+  "sources": [
+    { "key": "city", "kind": "connection", "connectionId": "{{combinationCityConnectionId}}" }
+  ],
+  "fields": [
+    { "source": "city", "path": "$.name", "label": "Nazwa", "hidden": true },
+    { "label": "Dane",
+      "combine": { "key": "object", "fields": [ "Nazwa", "Kod pocztowy" ] },
+      "transformations": [ { "key": "uppercase" } ] }
+  ]
+}

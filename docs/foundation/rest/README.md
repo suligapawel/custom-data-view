@@ -32,6 +32,12 @@ tabeli odczytów.
    korzeń. Pole formularza z zakładki zasila wyniki wiązaniem `from: "filters/byName"`. Kolejne żądania pokazują
    podgląd korzenia z wpisaną nazwą, następną stronę (wartości `pagination.next`) i otwarcie celu przycisku
    (wartości `actions[].inputs`).
+7. `06-combinations.http` (niezależny od 01–05, korzysta z `FakeCityEndpoints`) — kombinatory pól (TEMP-044):
+   katalog `GET /combinations`, „Wizytówka miasta” z ukrytymi składnikami i polami złożonymi `template`, `join`
+   (z transformacją `uppercase`), `coalesce` i `object`, przy czym obiekt „Dane” zasila wejście danych dziecka
+   „Karta miasta”. Do tego lista miast z tytułem elementu złożonym z pól elementu, podgląd szkicu z błędem
+   składnika (`dependency_failed`) i dwa odrzucone zapisy (błędny wzorzec, nieznane pole i transformacja przy
+   `object`).
 
 W odpowiedzi podglądu panel zwraca swoje pola i dwa osadzenia (`days`, `station`) ze stanem `data`; osadzenie
 `station` zawiera zagnieżdżony podgląd etykiety z osadzeniem `readings` pod adresem `station/readings`. Prognoza
