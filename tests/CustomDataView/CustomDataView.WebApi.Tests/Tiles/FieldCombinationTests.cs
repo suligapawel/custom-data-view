@@ -405,6 +405,18 @@ public class FieldCombinationTests : TileApiTests
         Assert.That(tile["contract"]!["outputs"]!["fields"]!.AsArray().Select(label => label!.GetValue<string>()), Does.Contain("Miejsce"));
     }
 
+    [Test(Description = $"{Dir} - #16")]
+    public async Task Given_UnsavedTileWithTemplate_When_UserPreviewsDefinition_Then_CombinedFieldIsComposed()
+    {
+        var tile = Address(Combined("Pełny adres", "template", "{Ulica} {Nr}, {Miasto}"));
+
+        var response = await Client.PostAsJsonAsync($"{TilesUrl}/preview", new { tile });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var preview = await response.Content.ReadFromJsonAsync<JsonObject>();
+        Assert.That(Value(preview!, "Pełny adres"), Is.EqualTo("Długa 5, Kraków"), preview.ToJsonString());
+    }
+
     private async Task<Guid> CreateWeatherTile()
     {
         var weatherConnectionId = await CreateConnection(new
