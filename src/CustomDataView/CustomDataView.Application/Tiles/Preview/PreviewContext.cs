@@ -13,13 +13,33 @@ public sealed class PreviewContext(TilePreviewValues values, TimeProvider time, 
     private readonly ConcurrentDictionary<string, Lazy<Task<ExternalApiResult>>> calls = new(StringComparer.Ordinal);
     private readonly SemaphoreSlim throttle = new(MaxParallelCalls);
     private readonly long started = time.GetTimestamp();
-    private int callCount;
+    private int budget;
 
     public TilePreviewValues Values { get; } = values;
 
     public CancellationToken CancellationToken { get; } = cancellationToken;
 
-    public bool TryStartEmbedding() => Volatile.Read(ref callCount) < MaxExternalCalls && time.GetElapsedTime(started) < MaxDuration;
+    public bool TryStartEmbedding(int calls)
+    {
+        if (time.GetElapsedTime(started) >= MaxDuration)
+        {
+            return false;
+        }
+
+        while (true)
+        {
+            var current = Volatile.Read(ref budget);
+            if (calls > 0 && current + calls > MaxExternalCalls)
+            {
+                return false;
+            }
+
+            if (Interlocked.CompareExchange(ref budget, current + calls, current) == current)
+            {
+                return true;
+            }
+        }
+    }
 
     public Task<ExternalApiResult> Call(
         Guid connectionId,
@@ -28,8 +48,13 @@ public sealed class PreviewContext(TilePreviewValues values, TimeProvider time, 
         Func<Task<ExternalApiResult>> call)
         => calls.GetOrAdd(Key(connectionId, parameters), _ => new Lazy<Task<ExternalApiResult>>(() =>
         {
-            Interlocked.Increment(ref callCount);
-            return embedded ? Throttled(call) : call();
+            if (!embedded)
+            {
+                Interlocked.Increment(ref budget);
+                return call();
+            }
+
+            return Throttled(call);
         })).Value;
 
     private async Task<ExternalApiResult> Throttled(Func<Task<ExternalApiResult>> call)

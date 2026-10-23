@@ -100,7 +100,7 @@ public static class TileBindingsValidator
                 continue;
             }
 
-            if (!IsAllowedPair(fromParent, fromSource, fromChild, toSource, segments.Length))
+            if (!IsAllowedPair(fromParent, fromSource, fromChild, toSource, toChild, segments.Length))
             {
                 errors[$"{key}.to"] = [$"Wiązanie '{binding.From}' → '{binding.To}' łączy niedozwoloną parę węzłów."];
                 continue;
@@ -155,8 +155,19 @@ public static class TileBindingsValidator
                 : binding.From,
             To: binding.To.Split(TileNodeKeys.PathSeparator)[0])));
 
-    private static bool IsAllowedPair(bool fromParent, TileSource fromSource, TileChild fromChild, TileSource toSource, int segments)
+    private static bool IsAllowedPair(
+        bool fromParent,
+        TileSource fromSource,
+        TileChild fromChild,
+        TileSource toSource,
+        TileChild toChild,
+        int segments)
     {
+        if (fromChild?.Scope == TileChildScopes.Item && toChild?.Scope != TileChildScopes.Item)
+        {
+            return false;
+        }
+
         if (toSource is not null)
         {
             return segments == 1

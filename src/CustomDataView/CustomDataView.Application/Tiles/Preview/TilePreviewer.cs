@@ -207,7 +207,7 @@ public sealed class TilePreviewer(
             return Embedding(child, address, TileEmbeddingStates.Error, error: invalid);
         }
 
-        if (!context.TryStartEmbedding())
+        if (!context.TryStartEmbedding(tile.Definition.Sources.Count(source => source.Kind == TileSourceKinds.Connection)))
         {
             return Embedding(child, address, TileEmbeddingStates.AwaitingLoad, values);
         }

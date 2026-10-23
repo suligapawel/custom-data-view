@@ -14,12 +14,15 @@ public class CustomDataViewApplicationFactory : WebApplicationFactory<Program>
 
     public FakeExternalApi ExternalApi { get; } = new();
 
+    public TestTimeProvider Time { get; } = new();
+
     public void Reset()
     {
         Services.GetRequiredService<TestConnectionRepository>().Clear();
         Services.GetRequiredService<TestTileRepository>().Clear();
         Services.GetRequiredService<TestViewRepository>().Clear();
         ExternalApi.Reset();
+        Time.Reset();
         var options = Services.GetRequiredService<IOptions<ExternalApiOptions>>().Value;
         defaultExternalApiOptions ??= new ExternalApiOptions
         {
@@ -34,6 +37,7 @@ public class CustomDataViewApplicationFactory : WebApplicationFactory<Program>
     {
         builder.ConfigureTestServices(services =>
         {
+            services.AddSingleton<TimeProvider>(Time);
             services.AddSingleton<TestConnectionRepository>();
             services.AddSingleton<IConnectionRepository>(provider => provider.GetRequiredService<TestConnectionRepository>());
             services.AddSingleton<TestTileRepository>();
