@@ -140,6 +140,36 @@ public sealed class TilePreviewer(
             }
         }
 
+        if (instance.Definition.Pagination is { } pagination && source.Key == instance.Definition.Items.Source)
+        {
+            var errors = new List<TileParameterError>();
+            if (!TilePages.TryRead(values, pagination.PageNumberParameter, 1, int.MaxValue, out var number))
+            {
+                errors.Add(new TileParameterError(
+                    pagination.PageNumberParameter,
+                    "Numer strony musi być liczbą całkowitą nie mniejszą niż 1.",
+                    gate.Parameters.ContainsKey(pagination.PageNumberParameter)));
+            }
+
+            if (!TilePages.TryRead(values, pagination.PageSizeParameter, pagination.PageSize, TilePages.MaxPageSize, out var size))
+            {
+                errors.Add(new TileParameterError(
+                    pagination.PageSizeParameter,
+                    $"Rozmiar strony musi być liczbą całkowitą od 1 do {TilePages.MaxPageSize}.",
+                    gate.Parameters.ContainsKey(pagination.PageSizeParameter)));
+            }
+
+            if (errors.Count > 0)
+            {
+                instance.Complete(source.Key, SourceResult.Failed(new TileFieldError(TileFieldErrorCodes.InvalidParameters, Parameters: errors)));
+                return;
+            }
+
+            values[pagination.PageNumberParameter] = JsonSerializer.SerializeToElement(number);
+            values[pagination.PageSizeParameter] = JsonSerializer.SerializeToElement(size);
+            instance.Page = new TilePages.Page(number, size);
+        }
+
         instance.Complete(
             source.Key,
             await Call(connection, TileParameterValues.For(connection.Definition, values), gate.Parameters.Keys, instance.Address.Length > 0, context));
@@ -459,6 +489,9 @@ public sealed class TilePreviewer(
             .ToList();
         return preview with
         {
+            Pagination = definition.Pagination is null
+                ? null
+                : TilePages.Preview(definition.Pagination, instance.Page, items.Count, instance.Result(definition.Items.Source).Body, instance.Delivered),
             Items = items
                 .Select(item => new TileItemPreview(item.Key?.DeepClone(), item.Fields)
                 {
@@ -523,6 +556,8 @@ public sealed class TilePreviewer(
         public TileValues Delivered { get; } = delivered;
 
         public string Address { get; } = address;
+
+        public TilePages.Page Page { get; set; }
 
         public void Complete(string source, SourceResult result) => results[source] = result;
 

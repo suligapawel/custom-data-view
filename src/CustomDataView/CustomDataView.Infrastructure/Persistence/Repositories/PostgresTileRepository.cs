@@ -20,6 +20,10 @@ public sealed class PostgresTileRepository(IDbContextFactory<CustomDataViewDbCon
             ItemsSourceKey = tile.Definition.Items?.Source,
             ItemsPath = tile.Definition.Items?.Path,
             ItemsKeyLabel = tile.Definition.Items?.Key,
+            PaginationPageNumberParameter = tile.Definition.Pagination?.PageNumberParameter,
+            PaginationPageSizeParameter = tile.Definition.Pagination?.PageSizeParameter,
+            PaginationPageSize = tile.Definition.Pagination?.PageSize,
+            PaginationTotalPath = tile.Definition.Pagination?.TotalPath,
             Sources = ToSourceRows(tile),
             Fields = ToFieldRows(tile),
             Bindings = ToBindingRows(tile),
@@ -59,6 +63,14 @@ public sealed class PostgresTileRepository(IDbContextFactory<CustomDataViewDbCon
                 .SetProperty(stored => stored.ItemsSourceKey, tile.Definition.Items == null ? null : tile.Definition.Items.Source)
                 .SetProperty(stored => stored.ItemsPath, tile.Definition.Items == null ? null : tile.Definition.Items.Path)
                 .SetProperty(stored => stored.ItemsKeyLabel, tile.Definition.Items == null ? null : tile.Definition.Items.Key)
+                .SetProperty(
+                    stored => stored.PaginationPageNumberParameter,
+                    tile.Definition.Pagination == null ? null : tile.Definition.Pagination.PageNumberParameter)
+                .SetProperty(
+                    stored => stored.PaginationPageSizeParameter,
+                    tile.Definition.Pagination == null ? null : tile.Definition.Pagination.PageSizeParameter)
+                .SetProperty(stored => stored.PaginationPageSize, tile.Definition.Pagination == null ? null : tile.Definition.Pagination.PageSize)
+                .SetProperty(stored => stored.PaginationTotalPath, tile.Definition.Pagination == null ? null : tile.Definition.Pagination.TotalPath)
                 .SetProperty(stored => stored.UpdatedAt, stored => DateTime.UtcNow));
         context.TileBindings.Where(binding => binding.TileId == tile.Id).ExecuteDelete();
         context.TileFormFields.Where(field => field.TileId == tile.Id).ExecuteDelete();
@@ -289,6 +301,13 @@ public sealed class PostgresTileRepository(IDbContextFactory<CustomDataViewDbCon
                     field.Role))
                 .ToList())
         {
+            Pagination = tile.PaginationPageSize is null
+                ? null
+                : new TilePagination(
+                    tile.PaginationPageNumberParameter,
+                    tile.PaginationPageSizeParameter,
+                    tile.PaginationPageSize.Value,
+                    tile.PaginationTotalPath),
             Bindings = ToBindings(tile.Bindings),
             Children = tile.Children
                 .Select(child => new TileChild(child.Key, child.ChildTileId, child.Position, child.CssClass, child.Scope, child.Load, child.Label))

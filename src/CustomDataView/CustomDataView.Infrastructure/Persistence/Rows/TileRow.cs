@@ -14,6 +14,14 @@ public sealed class TileRow
 
     public string ItemsKeyLabel { get; set; }
 
+    public string PaginationPageNumberParameter { get; set; }
+
+    public string PaginationPageSizeParameter { get; set; }
+
+    public int? PaginationPageSize { get; set; }
+
+    public string PaginationTotalPath { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }

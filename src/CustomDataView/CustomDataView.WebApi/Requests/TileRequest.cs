@@ -13,7 +13,8 @@ public sealed record TileRequest(
     TileItemsRequest Items,
     IReadOnlyList<TileFieldRequest> Fields,
     IReadOnlyList<TileChildRequest> Children,
-    IReadOnlyList<TileBindingRequest> Bindings)
+    IReadOnlyList<TileBindingRequest> Bindings,
+    TilePaginationRequest Pagination)
 {
     public IDictionary<string, string[]> Validate() => TileDefinitionValidator.Validate(ToInput());
 
@@ -40,6 +41,9 @@ public sealed record TileRequest(
                 })
                 .ToList())
         {
+            Pagination = Pagination is null
+                ? null
+                : new TilePaginationInput(Pagination.PageNumberParameter, Pagination.PageSizeParameter, Pagination.PageSize, Pagination.TotalPath),
             Children = (Children ?? [])
                 .Select(child => new TileChildInput(child.Key, child.TileId, child.Position, child.CssClass, child.Scope, child.Load, child.Label))
                 .ToList(),
@@ -58,6 +62,8 @@ public sealed record TileRequest(
             step.Key,
             step.Parameter is { } parameter ? JsonNode.Parse(parameter.GetRawText()) : null);
 }
+
+public sealed record TilePaginationRequest(string PageNumberParameter, string PageSizeParameter, int? PageSize, string TotalPath);
 
 public sealed record TileSourceRequest(string Key, string Kind, Guid? ConnectionId);
 

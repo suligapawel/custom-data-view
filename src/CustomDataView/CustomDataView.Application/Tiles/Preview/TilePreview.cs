@@ -13,4 +13,7 @@ public sealed record TilePreview(
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<TileEmbeddingPreview> Children { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public TilePaginationPreview Pagination { get; init; }
 }

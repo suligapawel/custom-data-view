@@ -12,4 +12,6 @@ public sealed record TileDefinition(
     public IReadOnlyList<TileChild> Children { get; init; } = [];
 
     public IReadOnlyList<TileBinding> Bindings { get; init; } = [];
+
+    public TilePagination Pagination { get; init; }
 }
