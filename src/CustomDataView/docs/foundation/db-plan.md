@@ -3,7 +3,8 @@
 ## Overview
 
 Plan obejmuje definicje połączeń do zewnętrznych REST API (PRD 3.2, TEMP-007 … TEMP-014), definicje kafelków
-(PRD 3.3, TEMP-015 … TEMP-023) oraz kafelki złożone i wiązania (TEMP-030 … TEMP-039). Widoki (dawniej TEMP-024 …
+(PRD 3.3, TEMP-015 … TEMP-023) oraz kafelki złożone i wiązania (TEMP-030 … TEMP-039), zakładki, tabelę ze stronicowaniem i akcje (TEMP-041 …
+TEMP-043). Widoki (dawniej TEMP-024 …
 TEMP-029) zostały usunięte; ich rolę pełni kafelek złożony (TEMP-038). Tabela `connections` przechowuje szablon żądania GET lub POST, a każdy typ parametru —
 deklaracje parametrów ścieżki, query i treści — ma własną tabelę podrzędną powiązaną z połączeniem relacją
 wiele-do-jednego. Nagłówki nie są przechowywane: są stałe i predefiniowane w kodzie.
@@ -12,7 +13,8 @@ połączenie albo wejście danych), uporządkowaną listę pól (`tile_fields`) 
 unikalną etykietę, rolę, flagę ukrycia oraz uporządkowany łańcuch transformacji (`tile_field_transformations`,
 każda z najwyżej jednym parametrem tekstowym; transformacja wskazuje pole etykietą). Kafelek `form` ma zamiast nich pola formularza
 (`tile_form_fields`). Kafelek może osadzać inne kafelki (`tile_children`) i definiować wiązania wewnętrzne
-(`tile_bindings`, jeden wiersz na mapowanie). Kafelki nie przechowują wartości parametrów połączeń — przychodzą one
+(`tile_bindings`, jeden wiersz na mapowanie) oraz akcje prowadzące do innych kafelków (`tile_actions`
+z mapowaniami w `tile_action_mappings`). Kafelki nie przechowują wartości parametrów połączeń — przychodzą one
 z wiązań albo z żądania podglądu.
 Wszystkie tabele leżą w schemacie `custom_data_view`; dostęp przez EF Core (provider Npgsql), bez kolumn JSON
 w tabelach kafelków poza wartością domyślną pola formularza (szczegóły w sekcji „Mapowanie EF Core”).
@@ -70,15 +72,22 @@ PK: `(connection_id, name)`.
 |------------------|--------------|-------------------------|-----------------------------------------------------------------|
 | id               | uuid         | PK, NOT NULL            | Identyfikator kafelka nadawany przez aplikację (`Guid.NewGuid()`) |
 | name             | varchar(100) | NOT NULL                | Nazwa kafelka; bez wymogu unikalności                           |
-| display          | varchar(10)  | NOT NULL, CHECK (display IN ('table', 'list', 'details', 'summary', 'form')) | Typ wyświetlania |
+| display          | varchar(20)  | NOT NULL, CHECK (display IN ('table', 'list', 'details', 'summary', 'form', 'tabs', 'pagination_table')) | Typ wyświetlania |
 | items_source_key | varchar(50)  | NULL                    | Klucz źródła z tablicą elementów (`table`, `list`)              |
 | items_path       | text         | NULL                    | Ścieżka JSONPath do elementów                                   |
 | items_key_label  | varchar(100) | NULL                    | Etykieta pola identyfikującego element                          |
+| pagination_page_number_parameter | varchar(50) | NULL | Parametr połączenia z numerem strony (`pagination_table`)    |
+| pagination_page_size_parameter   | varchar(50) | NULL | Parametr połączenia z rozmiarem strony (`pagination_table`)  |
+| pagination_page_size             | integer     | NULL | Domyślny rozmiar strony (1–100)                              |
+| pagination_total_path            | text        | NULL | JSONPath łącznej liczby elementów; NULL = brak               |
 | created_at       | timestamptz  | NOT NULL, DEFAULT now() | Moment dodania; wyznacza kolejność listy; nie zmienia się przy edycji |
 | updated_at       | timestamptz  | NOT NULL, DEFAULT now() | Moment ostatniej edycji; ustawiany przez repozytorium           |
 
 CHECK `ck_tiles_items`: wszystkie trzy kolumny `items_*` są ustawione wtedy i tylko wtedy, gdy
-`display IN ('table', 'list')`.
+`display IN ('table', 'list', 'pagination_table')`. CHECK `ck_tiles_pagination`: trzy kolumny
+`pagination_page_number_parameter`, `pagination_page_size_parameter` i `pagination_page_size` są ustawione wtedy i
+tylko wtedy, gdy `display = 'pagination_table'`, `pagination_total_path` tylko wtedy, a `pagination_page_size` wynosi
+1–100.
 
 ### custom_data_view.tile_sources
 
@@ -150,19 +159,21 @@ w `tile_fields` i `tile_sources`) sprawdza aplikacja.
 | css_class      | varchar(200) | NULL                                          | Ułożenie w rodzicu; NULL = brak              |
 | scope          | varchar(4)   | NOT NULL, CHECK (scope IN ('tile', 'item'))   | Jedna instancja albo instancja na element    |
 | load           | varchar(5)   | NOT NULL, CHECK (load IN ('eager', 'lazy'))   | Wykonanie z rodzicem albo na żądanie frontu  |
+| label          | varchar(100) | NULL                                          | Tytuł osadzenia (zakładki); wymagany u rodzica `tabs` — pilnuje aplikacja |
 
 PK: `(parent_tile_id, key)`. UNIQUE `uq_tile_children_parent_tile_id_position` na `(parent_tile_id, position)`.
-CHECK `ck_tile_children_not_self`: `parent_tile_id <> child_tile_id`. Dłuższe cykle i głębokość sprawdza aplikacja.
+CHECK `ck_tile_children_not_self`: `parent_tile_id <> child_tile_id`. Dłuższe cykle sprawdza aplikacja; głębokość
+nie jest ograniczona.
 
 ### custom_data_view.tile_bindings
 
 | Column       | Type         | Constraints                                   | Description                                  |
 |--------------|--------------|-----------------------------------------------|----------------------------------------------|
 | tile_id      | uuid         | PK, NOT NULL, FK → tiles.id ON DELETE CASCADE | Kafelek definiujący wiązanie                 |
-| target_node  | varchar(110) | PK, NOT NULL                                  | Klucz źródła, osadzenia albo ścieżka osadzeń (do 2 segmentów) |
+| target_node  | text         | PK, NOT NULL                                  | Klucz źródła, osadzenia albo ścieżka osadzeń |
 | target_kind  | varchar(9)   | PK, NOT NULL, CHECK (target_kind IN ('parameter', 'input')) | Rodzaj wejścia celu            |
 | target_name  | varchar(50)  | PK, NOT NULL                                  | Nazwa parametru albo wejścia                 |
-| source_node  | varchar(50)  | NOT NULL                                      | Klucz źródła, osadzenia albo `parent`        |
+| source_node  | text         | NOT NULL                                      | Klucz źródła, osadzenia, ścieżka osadzeń albo `parent` |
 | source_field | varchar(100) | NOT NULL                                      | Etykieta pola węzła źródłowego               |
 | source_scope | varchar(8)   | NULL, CHECK (source_scope IN ('selected', 'all', 'item')) | Zakres wartości; NULL = brak     |
 | position     | integer      | NOT NULL, CHECK (position >= 0)               | Kolejność mapowania w definicji (od 0)       |
@@ -170,6 +181,34 @@ CHECK `ck_tile_children_not_self`: `parent_tile_id <> child_tile_id`. Dłuższe 
 PK: `(tile_id, target_node, target_kind, target_name)` — jeden cel ma jedno źródło w kafelku. CHECK
 `ck_tile_bindings_nodes`: `source_node <> target_node`. Węzły nie mają kluczy obcych; ich istnienie sprawdza
 aplikacja.
+
+### custom_data_view.tile_actions
+
+| Column         | Type         | Constraints                                   | Description                                  |
+|----------------|--------------|-----------------------------------------------|----------------------------------------------|
+| tile_id        | uuid         | PK, NOT NULL, FK → tiles.id ON DELETE CASCADE | Kafelek z akcją                              |
+| key            | varchar(50)  | PK, NOT NULL                                  | Klucz akcji, unikalny w kafelku              |
+| position       | integer      | NOT NULL, CHECK (position >= 0)               | Kolejność akcji w definicji (od 0)           |
+| label          | varchar(100) | NOT NULL                                      | Etykieta przycisku albo linku                |
+| type           | varchar(6)   | NOT NULL, CHECK (type IN ('button', 'link'))  | Sposób wyświetlenia                          |
+| target_tile_id | uuid         | NOT NULL, FK → tiles.id ON DELETE NO ACTION   | Kafelek docelowy (nowy korzeń; także ten sam kafelek) |
+| scope          | varchar(4)   | NOT NULL, CHECK (scope IN ('tile', 'item'))   | Raz na kafelek albo przy każdym elemencie    |
+
+PK: `(tile_id, key)`. UNIQUE `uq_tile_actions_tile_id_position` na `(tile_id, position)`.
+
+### custom_data_view.tile_action_mappings
+
+| Column       | Type         | Constraints                                   | Description                                  |
+|--------------|--------------|-----------------------------------------------|----------------------------------------------|
+| tile_id      | uuid         | PK, NOT NULL, FK (z action_key)               | Kafelek z akcją                              |
+| action_key   | varchar(50)  | PK, NOT NULL, FK (z tile_id)                  | Akcja                                        |
+| target_kind  | varchar(9)   | PK, NOT NULL, CHECK (target_kind IN ('parameter', 'input')) | Rodzaj wejścia celu            |
+| target_name  | varchar(50)  | PK, NOT NULL                                  | Nazwa parametru albo wejścia celu            |
+| source_field | varchar(100) | NOT NULL                                      | Etykieta pola kafelka                        |
+| position     | integer      | NOT NULL, CHECK (position >= 0)               | Kolejność mapowania w akcji (od 0)           |
+
+PK: `(tile_id, action_key, target_kind, target_name)` — każde wejście celu najwyżej raz w akcji. FK:
+`(tile_id, action_key)` → `tile_actions (tile_id, key)` `ON DELETE CASCADE`.
 
 ## Relationships
 
@@ -187,9 +226,13 @@ aplikacja.
 | tile_children               | tiles       | many-to-one | tile_children.parent_tile_id → tiles.id                    |
 | tile_children               | tiles       | many-to-one | tile_children.child_tile_id → tiles.id                     |
 | tile_bindings               | tiles       | many-to-one | tile_bindings.tile_id → tiles.id                           |
+| tile_actions                | tiles       | many-to-one | tile_actions.tile_id → tiles.id                            |
+| tile_actions                | tiles       | many-to-one | tile_actions.target_tile_id → tiles.id                     |
+| tile_action_mappings        | tile_actions | many-to-one | (tile_id, action_key) → tile_actions (tile_id, key)       |
 
 Wszystkie klucze obce: `ON DELETE CASCADE`, z wyjątkiem `tile_sources.connection_id → connections.id` i
-`tile_children.child_tile_id → tiles.id` (`ON DELETE RESTRICT`).
+`tile_children.child_tile_id → tiles.id` (`ON DELETE RESTRICT`) i `tile_actions.target_tile_id → tiles.id`
+(`ON DELETE NO ACTION`).
 
 ## Indexes
 
@@ -215,7 +258,9 @@ Wszystkie klucze obce: `ON DELETE CASCADE`, z wyjątkiem `tile_sources.connectio
   w kafelku (TEMP-030).
 - `uq_tile_fields_tile_id_label` (`tile_fields(tile_id, label)`) — cel FK transformacji wskazujących pole etykietą.
 - `ix_tile_children_child_tile_id` (`tile_children(child_tile_id)`) — blokada usunięcia kafelka osadzonego jako
-  dziecko, walidacja cykli i głębokości, blokada edycji pól używanych w wiązaniach rodziców; obsługa FK `RESTRICT`.
+  dziecko, walidacja cykli, blokada edycji pól używanych w wiązaniach rodziców; obsługa FK `RESTRICT`.
+- `ix_tile_actions_target_tile_id` (`tile_actions(target_tile_id)`) — blokada usunięcia kafelka wskazanego przez akcję
+  (TEMP-043) i obsługa FK.
 
 ## Mapowanie EF Core
 
@@ -234,7 +279,8 @@ Wszystkie klucze obce: `ON DELETE CASCADE`, z wyjątkiem `tile_sources.connectio
   wiersza głównego, `ExecuteDelete` wierszy podrzędnych i `SaveChanges` nowych wierszy w jednej transakcji
   (decyzje 5 i 16). Usunięcie to `ExecuteDelete`, a kaskady i `RESTRICT` wykonuje baza.
 - Schemat tworzą migracje EF Core w `Persistence/Migrations/` z tabelą historii
-  `custom_data_view.__ef_migrations_history`. Migracja `Initial` tworzy cały schemat od zera; schemat z dawnych
+  `custom_data_view.__ef_migrations_history`. Migracja `Initial` tworzy cały schemat od zera, a `AddTabsPaginationAndActions` dodaje
+  zakładki, stronicowanie i akcje (TEMP-041 … TEMP-043); schemat z dawnych
   migracji SQL nie jest migrowany (dane trzeba odtworzyć przez API). Uruchamianie migracji na bazie wymaga zgody
   dewelopera; testy repozytoriów stosują je na bazie testowej.
 
@@ -314,6 +360,16 @@ Wszystkie klucze obce: `ON DELETE CASCADE`, z wyjątkiem `tile_sources.connectio
     definicję rodzica, dlatego aplikacja zwraca 409 `tile_in_use`, a FK chroni przed wyścigiem.
 27. **Typ wyświetlania i elementy w `tiles`.** `display` i trzy kolumny `items_*` z CHECK spójności; kafelki przenoszone ze
     starego schematu dostają `details`. Pola formularza mają własną tabelę z typem i wartością domyślną w `json`.
+
+28. **Stronicowanie w kolumnach `tiles`** (TEMP-042). Stronicowanie ma stały kształt i jest jedno na kafelek, więc
+    cztery kolumny `pagination_*` z CHECK spójności z `display` zamiast osobnej tabeli.
+29. **Akcje w osobnych tabelach** (TEMP-043), jak wiązania: jeden wiersz na akcję i jeden na mapowanie. FK celu ma
+    `ON DELETE NO ACTION`, nie `RESTRICT`: akcja może wskazywać ten sam kafelek, a `NO ACTION` sprawdza referencję
+    po kaskadowym usunięciu jego akcji. Usunięcie kafelka wskazanego przez akcję innego kafelka blokuje aplikacja
+    (409 `tile_in_use`), a FK chroni przed wyścigiem.
+30. **Ścieżki osadzeń bez limitu** (TEMP-041). `source_node` i `target_node` w `tile_bindings` są `text`; ścieżkę
+    `from` do potomka rozwiązuje repozytorium przy blokadzie `field_in_use` (wiązania ze znakiem `/` w `source_node`
+    i drzewo `tile_children`).
 
 ## Przenoszenie danych ze starego schematu
 

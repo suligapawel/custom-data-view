@@ -25,6 +25,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
     app.MapScalarApiReference();
     app.MapFakeWeatherEndpoints();
+    app.MapFakeCityEndpoints();
 }
 
 app.MapTransformationEndpoints();

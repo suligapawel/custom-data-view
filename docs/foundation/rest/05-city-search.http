@@ -1,0 +1,185 @@
+# Wyszukiwarka miast: zakładki filtrów, tabela ze stronicowaniem i przycisk do kafelka szczegółów.
+# Korzysta z deweloperskiego API miast (FakeCityEndpoints). Niezależne od plików 01–04.
+#
+# Wyszukiwarka miast (details, korzeń)
+# ├── filters: Filtry (tabs)
+# │   ├── byName  „Po nazwie” → Nazwa miasta (form)
+# │   └── byCountry „Po kraju” → Kraj (form)
+# └── results: Wyniki (pagination_table, przycisk „Szczegóły” → Miasto)
+
+### Połączenie „Szukaj miast” (API stronicuje)
+POST {{host}}/api/custom-data-view/connections
+Content-Type: application/json
+
+{
+  "name": "Szukaj miast",
+  "method": "GET",
+  "url": "{{host}}/api/fake/cities",
+  "queryParameters": [
+    { "name": "name", "required": false },
+    { "name": "country", "required": false },
+    { "name": "pageNumber", "required": false },
+    { "name": "pageSize", "required": false }
+  ]
+}
+
+> {%
+    client.global.set("searchConnectionId", response.body.id);
+%}
+
+### Połączenie „Miasto”
+POST {{host}}/api/custom-data-view/connections
+Content-Type: application/json
+
+{
+  "name": "Miasto",
+  "method": "GET",
+  "url": "{{host}}/api/fake/cities/{city_id}",
+  "pathParameters": [ { "name": "city_id", "required": true } ]
+}
+
+> {%
+    client.global.set("cityConnectionId", response.body.id);
+%}
+
+### Kafelek „Miasto” (cel przycisku, nowy korzeń)
+POST {{host}}/api/custom-data-view/tiles
+Content-Type: application/json
+
+{
+  "name": "Miasto",
+  "display": "details",
+  "sources": [ { "key": "city", "kind": "connection", "connectionId": "{{cityConnectionId}}" } ],
+  "fields": [
+    { "source": "city", "path": "$.name", "label": "Nazwa" },
+    { "source": "city", "path": "$.country", "label": "Kraj" },
+    { "source": "city", "path": "$.population", "label": "Ludność" }
+  ]
+}
+
+> {%
+    client.global.set("cityTileId", response.body.id);
+%}
+
+### Tabela ze stronicowaniem „Wyniki” z przyciskiem przy każdym wierszu
+POST {{host}}/api/custom-data-view/tiles
+Content-Type: application/json
+
+{
+  "name": "Wyniki",
+  "display": "pagination_table",
+  "sources": [ { "key": "cities", "kind": "connection", "connectionId": "{{searchConnectionId}}" } ],
+  "items": { "source": "cities", "path": "$.cities[*]", "key": "ID" },
+  "pagination": { "pageNumberParameter": "pageNumber", "pageSizeParameter": "pageSize", "pageSize": 5, "totalPath": "$.total" },
+  "fields": [
+    { "source": "cities", "path": "$.id", "label": "ID", "hidden": true },
+    { "source": "cities", "path": "$.name", "label": "Miasto" },
+    { "source": "cities", "path": "$.country", "label": "Kraj" }
+  ],
+  "actions": [
+    {
+      "key": "details",
+      "label": "Szczegóły",
+      "type": "button",
+      "tileId": "{{cityTileId}}",
+      "scope": "item",
+      "map": [ { "field": "ID", "parameter": "city_id" } ]
+    }
+  ]
+}
+
+> {%
+    client.global.set("resultsTileId", response.body.id);
+%}
+
+### Formularz „Nazwa miasta”
+POST {{host}}/api/custom-data-view/tiles
+Content-Type: application/json
+
+{
+  "name": "Nazwa miasta",
+  "display": "form",
+  "fields": [ { "label": "Miasto", "type": "text" } ]
+}
+
+> {%
+    client.global.set("nameFormId", response.body.id);
+%}
+
+### Formularz „Kraj”
+POST {{host}}/api/custom-data-view/tiles
+Content-Type: application/json
+
+{
+  "name": "Kraj",
+  "display": "form",
+  "fields": [ { "label": "Kraj", "type": "text" } ]
+}
+
+> {%
+    client.global.set("countryFormId", response.body.id);
+%}
+
+### Zakładki „Filtry”
+POST {{host}}/api/custom-data-view/tiles
+Content-Type: application/json
+
+{
+  "name": "Filtry",
+  "display": "tabs",
+  "children": [
+    { "key": "byName", "label": "Po nazwie", "tileId": "{{nameFormId}}", "position": 0 },
+    { "key": "byCountry", "label": "Po kraju", "tileId": "{{countryFormId}}", "position": 1 }
+  ]
+}
+
+> {%
+    client.global.set("filtersTileId", response.body.id);
+%}
+
+### Korzeń „Wyszukiwarka miast”: pola formularzy z zakładek zasilają wyniki
+POST {{host}}/api/custom-data-view/tiles
+Content-Type: application/json
+
+{
+  "name": "Wyszukiwarka miast",
+  "display": "details",
+  "sources": [ { "key": "note", "kind": "input" } ],
+  "fields": [ { "source": "note", "path": "$", "label": "Notatka", "hidden": true } ],
+  "children": [
+    { "key": "filters", "tileId": "{{filtersTileId}}", "position": 0 },
+    { "key": "results", "tileId": "{{resultsTileId}}", "position": 1 }
+  ],
+  "bindings": [
+    { "from": "filters/byName", "to": "results", "map": [ { "field": "Miasto", "parameter": "name" } ] },
+    { "from": "filters/byCountry", "to": "results", "map": [ { "field": "Kraj", "parameter": "country" } ] }
+  ]
+}
+
+> {%
+    client.global.set("citySearchTileId", response.body.id);
+%}
+
+### Podgląd: zakładka „Po nazwie”, wpisane „Kr” → pierwsza strona wyników z przyciskami i `pagination.next`
+POST {{host}}/api/custom-data-view/tiles/{{citySearchTileId}}/preview
+Content-Type: application/json
+
+{
+  "forms": { "filters/byName": { "Miasto": "Kr" } }
+}
+
+### Następna strona: front wysyła `pagination.next` z odpowiedzi do podglądu kafelka wyników
+POST {{host}}/api/custom-data-view/tiles/{{resultsTileId}}/preview
+Content-Type: application/json
+
+{
+  "parameters": { "name": "Kr", "pageNumber": 2, "pageSize": 5 }
+}
+
+### Przycisk „Szczegóły”: front otwiera kafelek `tileId` jako nowy korzeń z `inputs` akcji
+POST {{host}}/api/custom-data-view/tiles/{{cityTileId}}/preview
+Content-Type: application/json
+
+{
+  "parameters": { "city_id": 1 }
+}

@@ -26,6 +26,12 @@ tabeli odczytów.
    słońca” z elementami `$.forecast[?(@.summary != 'Słonecznie')]`, etykieta z polami
    `$.forecast[?@.summary == 'Deszczowo'].date` i `$.forecast[?@.humidity == 99].date`, ich podglądy oraz odrzucony
    filtr z operatorem `>`.
+6. `05-city-search.http` (niezależny od 01–04, korzysta z `FakeCityEndpoints`) — wyszukiwarka miast: zakładki
+   `tabs` z formularzami „Po nazwie” i „Po kraju”, tabela `pagination_table` stronicowana przez API (`pageNumber`,
+   `pageSize`, `$.total`) z przyciskiem „Szczegóły” przy każdym wierszu oraz kafelek „Miasto” otwierany jako nowy
+   korzeń. Pole formularza z zakładki zasila wyniki wiązaniem `from: "filters/byName"`. Kolejne żądania pokazują
+   podgląd korzenia z wpisaną nazwą, następną stronę (wartości `pagination.next`) i otwarcie celu przycisku
+   (wartości `actions[].inputs`).
 
 W odpowiedzi podglądu panel zwraca swoje pola i dwa osadzenia (`days`, `station`) ze stanem `data`; osadzenie
 `station` zawiera zagnieżdżony podgląd etykiety z osadzeniem `readings` pod adresem `station/readings`. Prognoza
