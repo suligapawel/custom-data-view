@@ -67,6 +67,7 @@ public static class TileBindingsValidator
         Func<Guid, TileDefinition> tileOf,
         Func<Guid, Connection> connectionOf,
         TileContracts contracts,
+        CombinationService combinations,
         Dictionary<string, string[]> errors)
     {
         var sources = definition.Sources.ToDictionary(source => source.Key, StringComparer.Ordinal);
@@ -141,19 +142,33 @@ public static class TileBindingsValidator
 
         var order = BindingGraph.Order(
             [.. sources.Keys, .. children.Keys],
-            Edges(definition));
+            Edges(definition, combinations));
         if (order.Cycle.Count > 0)
         {
             errors.TryAdd("bindings", [$"Wiązania tworzą cykl między węzłami: {string.Join(", ", order.Cycle)}."]);
         }
     }
 
-    public static IEnumerable<(string From, string To)> Edges(TileDefinition definition)
-        => definition.Bindings.SelectMany(binding => binding.Map.Select(mapping => (
-            From: binding.From == TileNodeKeys.Parent
-                ? definition.Fields.FirstOrDefault(field => TileLabels.AreEqual(field.Label, mapping.Field))?.Source ?? binding.From
-                : binding.From.Split(TileNodeKeys.PathSeparator)[0],
-            To: binding.To.Split(TileNodeKeys.PathSeparator)[0])));
+    public static IEnumerable<(string From, string To)> Edges(TileDefinition definition, CombinationService combinations)
+        => definition.Bindings.SelectMany(binding => binding.Map.SelectMany(mapping =>
+            Sources(definition, binding, mapping, combinations).Select(from => (From: from, To: binding.To.Split(TileNodeKeys.PathSeparator)[0]))));
+
+    private static IEnumerable<string> Sources(
+        TileDefinition definition,
+        TileBinding binding,
+        TileBindingMapping mapping,
+        CombinationService combinations)
+    {
+        if (binding.From != TileNodeKeys.Parent)
+        {
+            return [binding.From.Split(TileNodeKeys.PathSeparator)[0]];
+        }
+
+        var field = definition.Fields.FirstOrDefault(candidate => TileLabels.AreEqual(candidate.Label, mapping.Field));
+        return field is { IsCombined: true }
+            ? combinations.Inputs(definition, field).Select(input => input.Source)
+            : [field?.Source ?? binding.From];
+    }
 
     private static bool IsAllowedPair(
         bool fromParent,

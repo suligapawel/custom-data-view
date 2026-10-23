@@ -12,7 +12,6 @@ using CustomDataView.Domain.Exceptions;
 using CustomDataView.Domain.Policies;
 using CustomDataView.Domain.Repositories;
 using CustomDataView.Domain.Services;
-using CustomDataView.Domain.Services.Combinations;
 using CustomDataView.Domain.Services.Transformations;
 using CustomDataView.Domain.ValueObjects;
 
@@ -25,12 +24,9 @@ public sealed class TilePreviewer(
     ITransformationService transformations,
     TileContracts contracts,
     TimeProvider time,
-    IEnumerable<ICombination> combinations)
+    CombinationService combinations)
 {
     public const int MaxItemInstances = 50;
-
-    private readonly Dictionary<string, ICombination> combinations =
-        combinations.ToDictionary(combination => combination.Key, StringComparer.Ordinal);
 
     public async Task<TilePreview> Preview(Guid id, TilePreviewValues values, CancellationToken cancellationToken)
     {
@@ -62,7 +58,7 @@ public sealed class TilePreviewer(
 
         var instance = new TileInstance(definition, delivered, address, this);
         var nodes = definition.Sources.Select(source => source.Key).Concat(definition.Children.Select(child => child.Key)).ToList();
-        var edges = TileBindingsValidator.Edges(definition).ToList();
+        var edges = TileBindingsValidator.Edges(definition, combinations).ToList();
         if (definition.Items is not null)
         {
             edges.AddRange(definition.Children
@@ -573,7 +569,7 @@ public sealed class TilePreviewer(
 
     private TileFieldPreview CombineField(TileField field, Func<string, TileFieldPreview> input)
     {
-        var combination = combinations[field.Combination.Key];
+        var combination = combinations.Find(field.Combination.Key);
         var inputs = combination.Inputs(field.Combination.Parameter, field.Combination.Fields)
             .Select(label => input(label))
             .Select(preview => new CombinationInput(preview.Label, preview.Value))

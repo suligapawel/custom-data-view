@@ -12,5 +12,13 @@ public sealed class ObjectCombination : Combination
     public override string Description => "Grupuje pola w obiekt, którego kluczami są etykiety pól.";
 
     public override JsonNode Combine(string parameter, IReadOnlyList<CombinationInput> inputs)
-        => throw new NotSupportedException();
+    {
+        var result = new JsonObject();
+        foreach (var input in inputs)
+        {
+            result[input.Label] = input.Value?.DeepClone();
+        }
+
+        return result;
+    }
 }

@@ -40,6 +40,7 @@ public static class DependencyInjection
         services.AddSingleton<ICombination, JoinCombination>();
         services.AddSingleton<ICombination, ObjectCombination>();
         services.AddSingleton<ICombination, TemplateCombination>();
+        services.AddSingleton<CombinationService>();
         return services;
     }
 }

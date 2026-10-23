@@ -4,6 +4,7 @@ using CustomDataView.Application.Tiles.Inputs;
 using CustomDataView.Domain.Dictionaries;
 using CustomDataView.Domain.Entities;
 using CustomDataView.Domain.Repositories;
+using CustomDataView.Domain.Services;
 using CustomDataView.Domain.Services.Transformations;
 using CustomDataView.Domain.ValueObjects;
 
@@ -13,7 +14,8 @@ public sealed class TileReferencesValidator(
     IConnectionRepository connections,
     ITileRepository tiles,
     TileContracts contracts,
-    IEnumerable<ITransformation> transformations)
+    IEnumerable<ITransformation> transformations,
+    CombinationService combinations)
 {
     private readonly HashSet<string> catalog =
         transformations.Select(transformation => transformation.Key).ToHashSet(StringComparer.Ordinal);
@@ -104,7 +106,7 @@ public sealed class TileReferencesValidator(
         var childrenAreValid = ValidateChildren(definition, tileId, TileOf, errors);
         if (errors.Count == 0 && childrenAreValid)
         {
-            TileBindingsValidator.Validate(definition, TileOf, ConnectionOf, contracts, errors);
+            TileBindingsValidator.Validate(definition, TileOf, ConnectionOf, contracts, combinations, errors);
         }
 
         return errors;

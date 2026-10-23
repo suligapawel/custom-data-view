@@ -93,6 +93,46 @@ public class FieldCombinationTests : TileApiTests
         Assert.That(Value(preview, "Miasto"), Is.EqualTo("Kraków"));
     }
 
+    [Test(Description = $"{Dir} - #6")]
+    public async Task Given_ObjectBoundToChildDataInput_When_UserPreviewsTile_Then_ChildShowsMembersOfObject()
+    {
+        var mapId = await CreateTile(new JsonObject
+        {
+            ["name"] = "Mapa",
+            ["display"] = "details",
+            ["sources"] = new JsonArray(new JsonObject { ["key"] = "point", ["kind"] = "input" }),
+            ["fields"] = new JsonArray(
+                new JsonObject { ["source"] = "point", ["path"] = "$.Lat", ["label"] = "Szerokość" },
+                new JsonObject { ["source"] = "point", ["path"] = "$.Lon", ["label"] = "Długość" })
+        });
+        var tile = Address(Combined("Punkt", "object", fields: ["Lat", "Lon"], hidden: true));
+        tile["children"] = new JsonArray(new JsonObject { ["key"] = "map", ["tileId"] = mapId, ["position"] = 0 });
+        tile["bindings"] = new JsonArray(new JsonObject
+        {
+            ["from"] = "parent",
+            ["to"] = "map",
+            ["map"] = new JsonArray(new JsonObject { ["field"] = "Punkt", ["input"] = "point" })
+        });
+        var id = await CreateTile(tile);
+        Factory.ExternalApi.Respond = async (_, cancellationToken) =>
+        {
+            await Task.Delay(50, cancellationToken);
+            return Json(PlaceResponse);
+        };
+
+        var preview = await Preview(id);
+
+        Assert.That(
+            JsonNode.DeepEquals(Field(preview, "Punkt")["value"], JsonNode.Parse("""{"Lat": 50.06, "Lon": 19.95}""")),
+            Is.True,
+            preview.ToJsonString());
+        var map = preview["children"]![0]!["tile"]!;
+        Assert.That(
+            map["fields"]!.AsArray().Select(field => (field!["label"]!.GetValue<string>(), field["value"]?.GetValue<decimal>())),
+            Is.EqualTo(new (string, decimal?)[] { ("Szerokość", 50.06m), ("Długość", 19.95m) }),
+            preview.ToJsonString());
+    }
+
     private void RespondWithPlace(Action<JsonObject> change)
     {
         var place = JsonNode.Parse(PlaceResponse)!.AsObject();
