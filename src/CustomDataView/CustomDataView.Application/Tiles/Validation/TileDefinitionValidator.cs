@@ -1,4 +1,5 @@
 using CustomDataView.Application.Tiles.Inputs;
+using CustomDataView.Application.Tiles.Preview;
 using CustomDataView.Domain.Dictionaries;
 using CustomDataView.Domain.Policies;
 using CustomDataView.Domain.Services;
@@ -67,6 +68,7 @@ public static class TileDefinitionValidator
         {
             ValidateRoles(input, errors);
             ValidateItems(input, sources, errors);
+            ValidatePagination(input, errors);
         }
 
         ValidateChildren(input, sources, errors);
@@ -275,6 +277,52 @@ public static class TileDefinitionValidator
                     $"fields[{index}].source",
                     ["Pole spoza źródła elementów musi być ukryte i służy tylko jako źródło wiązania."]);
             }
+        }
+    }
+
+    private static void ValidatePagination(TileInput input, Dictionary<string, string[]> errors)
+    {
+        var pagination = input.Pagination;
+        if (input.Display != TileDisplays.PaginationTable)
+        {
+            if (pagination is not null)
+            {
+                errors["pagination"] = [$"Stronicowanie jest dostępne tylko w kafelku typu '{TileDisplays.PaginationTable}'."];
+            }
+
+            return;
+        }
+
+        if (pagination is null)
+        {
+            errors["pagination"] = [$"Kafelek typu '{TileDisplays.PaginationTable}' wymaga stronicowania (pagination)."];
+            return;
+        }
+
+        if (pagination.PageSize is not (>= 1 and <= TilePages.MaxPageSize))
+        {
+            errors["pagination.pageSize"] = [$"Rozmiar strony jest wymagany i musi wynosić od 1 do {TilePages.MaxPageSize}."];
+        }
+
+        var definition = input.ToDefinition().Pagination;
+        if (definition.PageNumberParameter.Length > TileNodeKeys.MaxLength || definition.PageSizeParameter.Length > TileNodeKeys.MaxLength)
+        {
+            errors["pagination"] = [$"Nazwy parametrów stronicowania mogą mieć najwyżej {TileNodeKeys.MaxLength} znaków."];
+        }
+
+        if (definition.PageNumberParameter == definition.PageSizeParameter)
+        {
+            errors["pagination.pageSizeParameter"] = ["Parametry numeru i rozmiaru strony muszą mieć różne nazwy."];
+        }
+
+        if (definition.TotalPath is not null && (!JsonPathParser.TryParse(definition.TotalPath, out var path) || path.IsCollection))
+        {
+            errors["pagination.totalPath"] = ["Ścieżka łącznej liczby elementów musi być poprawną ścieżką JSONPath bez wildcardu i filtra."];
+        }
+
+        if (input.Items is not null && input.Sources.Any(source => source.Key == input.Items.Source && source.Kind != TileSourceKinds.Connection))
+        {
+            errors["pagination"] = ["Źródłem elementów tabeli ze stronicowaniem musi być połączenie."];
         }
     }
 

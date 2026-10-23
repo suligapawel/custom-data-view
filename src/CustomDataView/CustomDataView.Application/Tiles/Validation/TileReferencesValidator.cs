@@ -58,6 +58,24 @@ public sealed class TileReferencesValidator(
             }
         }
 
+        if (definition.Pagination is { } pagination
+            && definition.Sources.FirstOrDefault(source => source.Key == definition.Items?.Source)?.ConnectionId is { } pagedConnectionId
+            && ConnectionOf(pagedConnectionId) is { } pagedConnection)
+        {
+            var declared = TileConnectionParameters.Names(pagedConnection.Definition);
+            if (!declared.Contains(pagination.PageNumberParameter))
+            {
+                errors["pagination.pageNumberParameter"] =
+                    [$"Parametr '{pagination.PageNumberParameter}' nie jest zadeklarowany w połączeniu źródła elementów."];
+            }
+
+            if (!declared.Contains(pagination.PageSizeParameter))
+            {
+                errors["pagination.pageSizeParameter"] =
+                    [$"Parametr '{pagination.PageSizeParameter}' nie jest zadeklarowany w połączeniu źródła elementów."];
+            }
+        }
+
         var childrenAreValid = ValidateChildren(definition, tileId, TileOf, errors);
         if (errors.Count == 0 && childrenAreValid)
         {

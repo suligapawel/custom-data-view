@@ -109,6 +109,65 @@ public class PaginationTableTests : TileApiTests
         Assert.That(preview["pagination"]!["pageSize"]?.GetValue<int>(), Is.EqualTo(5));
     }
 
+    [TestCase("missing", "pagination")]
+    [TestCase("page-size-zero", "pagination.pageSize")]
+    [TestCase("page-size-101", "pagination.pageSize")]
+    [TestCase("undeclared-page-number", "pagination.pageNumberParameter")]
+    [TestCase("same-names", "pagination.pageSizeParameter")]
+    [TestCase("total-with-wildcard", "pagination.totalPath")]
+    [TestCase("input-source", "pagination")]
+    [Test(Description = $"{Dir} - #13")]
+    public async Task Given_InvalidPagination_When_UserSavesTile_Then_SaveIsRejected(string invalid, string errorKey)
+    {
+        var tile = Cities();
+        var pagination = tile["pagination"]!.AsObject();
+        switch (invalid)
+        {
+            case "missing":
+                tile.Remove("pagination");
+                break;
+            case "page-size-zero":
+                pagination["pageSize"] = 0;
+                break;
+            case "page-size-101":
+                pagination["pageSize"] = 101;
+                break;
+            case "undeclared-page-number":
+                pagination["pageNumberParameter"] = "offset";
+                break;
+            case "same-names":
+                pagination["pageNumberParameter"] = "page";
+                pagination["pageSizeParameter"] = "page";
+                break;
+            case "total-with-wildcard":
+                pagination["totalPath"] = "$.cities[*].id";
+                break;
+            case "input-source":
+                tile["sources"] = new JsonArray(new JsonObject { ["key"] = "cities", ["kind"] = "input" });
+                break;
+        }
+
+        await AssertRejected(tile, errorKey);
+    }
+
+    [Test(Description = $"{Dir} - #14")]
+    public async Task Given_TableWithPagination_When_UserSavesTile_Then_SaveIsRejected()
+    {
+        var tile = Cities();
+        tile["display"] = "table";
+
+        await AssertRejected(tile, "pagination");
+    }
+
+    private async Task AssertRejected(JsonObject tile, string errorKey)
+    {
+        var response = await Client.PostAsJsonAsync(TilesUrl, tile);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        var problem = await response.Content.ReadFromJsonAsync<JsonObject>();
+        Assert.That(problem["errors"]!.AsObject().Select(error => error.Key), Does.Contain(errorKey), problem.ToJsonString());
+    }
+
     private JsonObject Cities()
         => new()
         {
