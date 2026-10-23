@@ -254,6 +254,70 @@ public class PostgresTileRepositoryTests
     }
 
     [Test]
+    public void Given_PaginationTableWithActionAndTabsWithTitledTab_When_TheyAreSavedAndUpdated_Then_DefinitionsRoundTrip()
+    {
+        var target = new Tile(Guid.NewGuid(), Definition("Klient", [new TileField("customer", "$.id", "ID", [])]));
+        var results = new Tile(Guid.NewGuid(), new TileDefinition(
+            "Wyniki",
+            TileDisplays.PaginationTable,
+            [new TileSource("customer", TileSourceKinds.Connection, customerConnectionId)],
+            new TileItems("customer", "$.items[*]", "ID"),
+            [new TileField("customer", "$.id", "ID", [])])
+        {
+            Pagination = new TilePagination("pageNumber", "pageSize", 10, "$.total"),
+            Actions =
+            [
+                new TileAction("details", "Szczegóły", TileActionTypes.Button, target.Id, TileActionScopes.Item, [new TileActionMapping("ID", "customer_id", null)]),
+                new TileAction("self", "Odśwież", TileActionTypes.Link, Guid.Empty, TileActionScopes.Tile, [])
+            ]
+        });
+        results = results with
+        {
+            Definition = results.Definition with { Actions = [results.Definition.Actions[0], results.Definition.Actions[1] with { TileId = results.Id }] }
+        };
+        var tabs = new Tile(Guid.NewGuid(), new TileDefinition("Filtry", TileDisplays.Tabs, [], null, [])
+        {
+            Children = [new TileChild("results", results.Id, 0, null, TileChildScopes.Tile, TileChildLoads.Lazy, "Wyniki")]
+        });
+        repository.Add(target);
+        repository.Add(results);
+        repository.Add(tabs);
+
+        Assert.That(Json(repository.Get(results.Id)), Is.EqualTo(Json(results)));
+        Assert.That(Json(repository.Get(tabs.Id)), Is.EqualTo(Json(tabs)));
+        Assert.That(repository.GetActionReferences(target.Id), Is.EqualTo(new[] { new TileReference(results.Id, "Wyniki") }));
+        Assert.That(repository.GetActionReferences(results.Id), Is.Empty);
+        Assert.That(() => repository.Delete(target.Id), Throws.InstanceOf<PostgresException>());
+
+        var updated = results with { Definition = results.Definition with { Pagination = new TilePagination("page", "limit", 5, null), Actions = [] } };
+        repository.Update(updated);
+
+        Assert.That(Json(repository.Get(results.Id)), Is.EqualTo(Json(updated)));
+        Assert.That(repository.GetActionReferences(target.Id), Is.Empty);
+    }
+
+    [Test]
+    public void Given_GrandparentBindingFromDescendantPath_When_FieldUsesAreLoaded_Then_GrandparentUseIsReturned()
+    {
+        var form = new Tile(Guid.NewGuid(), Definition("Klient", [new TileField("customer", "$.id", "ID", [])]));
+        var tabs = new Tile(Guid.NewGuid(), new TileDefinition("Filtry", TileDisplays.Tabs, [], null, [])
+        {
+            Children = [new TileChild("byId", form.Id, 0, null, TileChildScopes.Tile, TileChildLoads.Eager, "Po ID")]
+        });
+        var search = new Tile(Guid.NewGuid(), Definition("Szukaj", [new TileField("rate", "$.rate", "Kurs", [])]) with
+        {
+            Children = [new TileChild("filters", tabs.Id, 0, null, TileChildScopes.Tile, TileChildLoads.Eager)],
+            Bindings = [new TileBinding("filters/byId", "rate", [new TileBindingMapping("ID", "currency", null, null)])]
+        });
+        repository.Add(form);
+        repository.Add(tabs);
+        repository.Add(search);
+
+        Assert.That(repository.GetFieldUses(form.Id), Is.EqualTo(new[] { new TileFieldUse(new TileReference(search.Id, "Szukaj"), "ID") }));
+        Assert.That(repository.GetFieldUses(tabs.Id), Is.Empty);
+    }
+
+    [Test]
     public void Given_TileWithLabelsDifferingInCaseAndSpaces_When_ItIsSaved_Then_DatabaseRejectsIt()
     {
         var tile = new Tile(Guid.NewGuid(), Definition("Klient",

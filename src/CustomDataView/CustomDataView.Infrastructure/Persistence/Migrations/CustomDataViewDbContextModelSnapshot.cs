@@ -150,6 +150,104 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileActionMappingRow", b =>
+                {
+                    b.Property<Guid>("TileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tile_id");
+
+                    b.Property<string>("ActionKey")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("action_key");
+
+                    b.Property<string>("TargetKind")
+                        .HasMaxLength(9)
+                        .HasColumnType("character varying(9)")
+                        .HasColumnName("target_kind");
+
+                    b.Property<string>("TargetName")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("target_name");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.Property<string>("SourceField")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("source_field");
+
+                    b.HasKey("TileId", "ActionKey", "TargetKind", "TargetName")
+                        .HasName("pk_tile_action_mappings");
+
+                    b.ToTable("tile_action_mappings", "custom_data_view", t =>
+                        {
+                            t.HasCheckConstraint("ck_tile_action_mappings_position", "position >= 0");
+
+                            t.HasCheckConstraint("ck_tile_action_mappings_target_kind", "target_kind IN ('parameter', 'input')");
+                        });
+                });
+
+            modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileActionRow", b =>
+                {
+                    b.Property<Guid>("TileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tile_id");
+
+                    b.Property<string>("Key")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("key");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("label");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("character varying(4)")
+                        .HasColumnName("scope");
+
+                    b.Property<Guid>("TargetTileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("target_tile_id");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(6)
+                        .HasColumnType("character varying(6)")
+                        .HasColumnName("type");
+
+                    b.HasKey("TileId", "Key")
+                        .HasName("pk_tile_actions");
+
+                    b.HasAlternateKey("TileId", "Position")
+                        .HasName("uq_tile_actions_tile_id_position");
+
+                    b.HasIndex("TargetTileId")
+                        .HasDatabaseName("ix_tile_actions_target_tile_id");
+
+                    b.ToTable("tile_actions", "custom_data_view", t =>
+                        {
+                            t.HasCheckConstraint("ck_tile_actions_position", "position >= 0");
+
+                            t.HasCheckConstraint("ck_tile_actions_scope", "scope IN ('tile', 'item')");
+
+                            t.HasCheckConstraint("ck_tile_actions_type", "type IN ('button', 'link')");
+                        });
+                });
+
             modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileBindingRow", b =>
                 {
                     b.Property<Guid>("TileId")
@@ -157,8 +255,7 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                         .HasColumnName("tile_id");
 
                     b.Property<string>("TargetNode")
-                        .HasMaxLength(110)
-                        .HasColumnType("character varying(110)")
+                        .HasColumnType("text")
                         .HasColumnName("target_node");
 
                     b.Property<string>("TargetKind")
@@ -183,8 +280,7 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("SourceNode")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
+                        .HasColumnType("text")
                         .HasColumnName("source_node");
 
                     b.Property<string>("SourceScope")
@@ -226,6 +322,11 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
                         .HasColumnName("css_class");
+
+                    b.Property<string>("Label")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("label");
 
                     b.Property<string>("Load")
                         .IsRequired()
@@ -434,8 +535,8 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("Display")
                         .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("display");
 
                     b.Property<string>("ItemsKeyLabel")
@@ -458,6 +559,24 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("name");
 
+                    b.Property<string>("PaginationPageNumberParameter")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("pagination_page_number_parameter");
+
+                    b.Property<int?>("PaginationPageSize")
+                        .HasColumnType("integer")
+                        .HasColumnName("pagination_page_size");
+
+                    b.Property<string>("PaginationPageSizeParameter")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("pagination_page_size_parameter");
+
+                    b.Property<string>("PaginationTotalPath")
+                        .HasColumnType("text")
+                        .HasColumnName("pagination_total_path");
+
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamptz")
@@ -472,9 +591,11 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
 
                     b.ToTable("tiles", "custom_data_view", t =>
                         {
-                            t.HasCheckConstraint("ck_tiles_display", "display IN ('table', 'list', 'details', 'summary', 'form')");
+                            t.HasCheckConstraint("ck_tiles_display", "display IN ('table', 'list', 'details', 'summary', 'form', 'tabs', 'pagination_table')");
 
-                            t.HasCheckConstraint("ck_tiles_items", "(display IN ('table', 'list')) = (items_source_key IS NOT NULL AND items_path IS NOT NULL AND items_key_label IS NOT NULL) AND (display IN ('table', 'list') OR (items_source_key IS NULL AND items_path IS NULL AND items_key_label IS NULL))");
+                            t.HasCheckConstraint("ck_tiles_items", "(display IN ('table', 'list', 'pagination_table')) = (items_source_key IS NOT NULL AND items_path IS NOT NULL AND items_key_label IS NOT NULL) AND (display IN ('table', 'list', 'pagination_table') OR (items_source_key IS NULL AND items_path IS NULL AND items_key_label IS NULL))");
+
+                            t.HasCheckConstraint("ck_tiles_pagination", "(display = 'pagination_table') = (pagination_page_number_parameter IS NOT NULL AND pagination_page_size_parameter IS NOT NULL AND pagination_page_size IS NOT NULL) AND (display = 'pagination_table' OR (pagination_page_number_parameter IS NULL AND pagination_page_size_parameter IS NULL AND pagination_page_size IS NULL AND pagination_total_path IS NULL)) AND (pagination_page_size IS NULL OR pagination_page_size BETWEEN 1 AND 100)");
                         });
                 });
 
@@ -550,6 +671,33 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_connection_query_parameters_connection_id");
+                });
+
+            modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileActionMappingRow", b =>
+                {
+                    b.HasOne("CustomDataView.Infrastructure.Persistence.Rows.TileActionRow", null)
+                        .WithMany("Mappings")
+                        .HasForeignKey("TileId", "ActionKey")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_tile_action_mappings_action");
+                });
+
+            modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileActionRow", b =>
+                {
+                    b.HasOne("CustomDataView.Infrastructure.Persistence.Rows.TileRow", null)
+                        .WithMany()
+                        .HasForeignKey("TargetTileId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("fk_tile_actions_target_tile_id");
+
+                    b.HasOne("CustomDataView.Infrastructure.Persistence.Rows.TileRow", null)
+                        .WithMany("Actions")
+                        .HasForeignKey("TileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_tile_actions_tile_id");
                 });
 
             modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileBindingRow", b =>
@@ -642,6 +790,11 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                     b.Navigation("QueryParameters");
                 });
 
+            modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileActionRow", b =>
+                {
+                    b.Navigation("Mappings");
+                });
+
             modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileFieldRow", b =>
                 {
                     b.Navigation("Transformations");
@@ -649,6 +802,8 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileRow", b =>
                 {
+                    b.Navigation("Actions");
+
                     b.Navigation("Bindings");
 
                     b.Navigation("Children");
