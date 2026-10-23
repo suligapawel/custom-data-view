@@ -443,6 +443,15 @@ public static class TileDefinitionValidator
     {
         if (field.Combine is not null)
         {
+            if (field.Source is not null || field.Path is not null)
+            {
+                errors[key] = ["Pole ma albo źródło i ścieżkę, albo kombinator."];
+            }
+            else if (string.IsNullOrWhiteSpace(field.Combine.Key))
+            {
+                errors[$"{key}.combine.key"] = ["Klucz kombinatora jest wymagany."];
+            }
+
             ValidateTransformations(field, key, errors);
             return;
         }

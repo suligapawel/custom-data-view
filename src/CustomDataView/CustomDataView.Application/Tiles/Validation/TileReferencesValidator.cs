@@ -4,7 +4,9 @@ using CustomDataView.Application.Tiles.Inputs;
 using CustomDataView.Domain.Dictionaries;
 using CustomDataView.Domain.Entities;
 using CustomDataView.Domain.Repositories;
+using CustomDataView.Domain.Policies;
 using CustomDataView.Domain.Services;
+using CustomDataView.Domain.Services.Combinations;
 using CustomDataView.Domain.Services.Transformations;
 using CustomDataView.Domain.ValueObjects;
 
@@ -60,6 +62,14 @@ public sealed class TileReferencesValidator(
             }
         }
 
+        for (var index = 0; index < definition.Fields.Count; index++)
+        {
+            if (definition.Fields[index].IsCombined)
+            {
+                ValidateCombination(definition, definition.Fields[index], $"fields[{index}]", errors);
+            }
+        }
+
         if (definition.Pagination is { } pagination
             && definition.Sources.FirstOrDefault(source => source.Key == definition.Items?.Source)?.ConnectionId is { } pagedConnectionId
             && ConnectionOf(pagedConnectionId) is { } pagedConnection)
@@ -110,6 +120,58 @@ public sealed class TileReferencesValidator(
         }
 
         return errors;
+    }
+
+    private void ValidateCombination(TileDefinition definition, TileField field, string key, Dictionary<string, string[]> errors)
+    {
+        var combination = combinations.Find(field.Combination.Key);
+        if (combination is null)
+        {
+            errors[$"{key}.combine.key"] = [$"Kombinator '{field.Combination.Key}' nie istnieje w katalogu."];
+            return;
+        }
+
+        foreach (var error in combination.Validate(field.Combination.Parameter, field.Combination.Fields))
+        {
+            errors.TryAdd($"{key}.combine.{error.Target}", [error.Message]);
+        }
+
+        var inputErrors = combination.Inputs(field.Combination.Parameter, field.Combination.Fields)
+            .Select(label => InputError(definition, field, combination, label))
+            .Where(error => error is not null)
+            .ToArray();
+        if (inputErrors.Length > 0)
+        {
+            errors[$"{key}.combine"] = inputErrors;
+        }
+
+        if (!combination.AcceptsTransformations && field.Transformations.Count > 0)
+        {
+            errors[$"{key}.transformations"] = [$"Pole z kombinatorem '{combination.Key}' nie przyjmuje transformacji."];
+        }
+    }
+
+    private static string InputError(TileDefinition definition, TileField field, ICombination combination, string label)
+    {
+        if (TileLabels.AreEqual(label, field.Label))
+        {
+            return $"Pole '{label}' nie może składać się z samego siebie.";
+        }
+
+        var input = definition.Fields.FirstOrDefault(candidate => TileLabels.AreEqual(candidate.Label, label));
+        if (input is null)
+        {
+            return $"Pole '{label}' nie istnieje w kafelku.";
+        }
+
+        if (input.IsCombined)
+        {
+            return $"Pole '{label}' jest polem złożonym i nie może być wejściem kombinatora.";
+        }
+
+        return !combination.AcceptsCollections && JsonPathParser.TryParse(input.Path, out var path) && path.IsCollection
+            ? $"Pole '{label}' zwraca listę, której kombinator '{combination.Key}' nie przyjmuje."
+            : null;
     }
 
     private bool ValidateChildren(

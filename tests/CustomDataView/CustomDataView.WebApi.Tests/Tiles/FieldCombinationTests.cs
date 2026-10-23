@@ -260,6 +260,50 @@ public class FieldCombinationTests : TileApiTests
         }
     }
 
+    [TestCase("unknown-key", "fields[5].combine.key")]
+    [TestCase("source-and-combine", "fields[5]")]
+    [TestCase("unknown-field", "fields[5].combine")]
+    [TestCase("self", "fields[5].combine")]
+    [TestCase("combined-input", "fields[6].combine")]
+    [TestCase("single-coalesce", "fields[6].combine.fields")]
+    [TestCase("unclosed-brace", "fields[5].combine.parameter")]
+    [TestCase("no-label", "fields[5].combine.parameter")]
+    [TestCase("template-with-fields", "fields[5].combine.fields")]
+    [TestCase("object-with-parameter", "fields[5].combine.parameter")]
+    [TestCase("object-with-transformation", "fields[5].transformations")]
+    [TestCase("template-with-list", "fields[6].combine")]
+    [Test(Description = $"{Dir} - #11")]
+    public async Task Given_InvalidCombinedField_When_UserSavesTile_Then_SaveIsRejectedWithCombinedFieldError(string problem, string error)
+    {
+        JsonObject[] fields = problem switch
+        {
+            "unknown-key" => [Combined("X", "concat", fields: ["Ulica"])],
+            "source-and-combine" => [Combined("X", "join", fields: ["Ulica"])],
+            "unknown-field" => [Combined("X", "join", fields: ["Kod pocztowy"])],
+            "self" => [Combined("X", "join", fields: ["X"])],
+            "combined-input" => [Combined("Y", "join", fields: ["Ulica"]), Combined("X", "join", fields: ["Y"])],
+            "single-coalesce" => [PlaceField("$.email", "Email"), Combined("X", "coalesce", fields: ["Email"])],
+            "unclosed-brace" => [Combined("X", "template", "{Ulica} {Nr")],
+            "no-label" => [Combined("X", "template", "Adres")],
+            "template-with-fields" => [Combined("X", "template", "{Ulica}", ["Nr"])],
+            "object-with-parameter" => [Combined("X", "object", "x", ["Lat"])],
+            "object-with-transformation" => [Combined("X", "object", fields: ["Lat"], transformations: [Transformation("uppercase")])],
+            _ => [PlaceField("$.tags[*]", "Tagi"), Combined("X", "template", "{Tagi}")]
+        };
+        var tile = Address(fields);
+        if (problem == "source-and-combine")
+        {
+            tile["fields"]![5]!["source"] = "api";
+            tile["fields"]![5]!["path"] = "$.street";
+        }
+
+        var response = await Client.PostAsJsonAsync(TilesUrl, tile);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        var problemDetails = await response.Content.ReadFromJsonAsync<JsonObject>();
+        Assert.That(problemDetails!["errors"]!.AsObject().Select(pair => pair.Key), Is.EqualTo(new[] { error }), problemDetails.ToJsonString());
+    }
+
     private async Task<Guid> CreateWeatherTile()
     {
         var weatherConnectionId = await CreateConnection(new

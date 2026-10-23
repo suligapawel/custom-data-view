@@ -23,6 +23,21 @@ public sealed class TemplateCombination : Combination
 
     public override int? MaxFields => 0;
 
+    public override bool AcceptsCollections => false;
+
+    public override IReadOnlyList<CombinationError> Validate(string parameter, IReadOnlyList<string> fields)
+    {
+        var errors = base.Validate(parameter, fields).ToList();
+        if (parameter is not null && (!TemplatePattern.TryParse(parameter, out var pattern) || pattern.Labels.Count == 0))
+        {
+            errors.Add(new CombinationError(
+                CombinationError.ParameterTarget,
+                "Wzorzec musi zawierać co najmniej jedną etykietę pola w klamrach; dosłowne klamry zapisuje się jako {{ i }}."));
+        }
+
+        return errors;
+    }
+
     public override IReadOnlyList<string> Inputs(string parameter, IReadOnlyList<string> fields)
         => TemplatePattern.TryParse(parameter, out var pattern) ? pattern.Labels.Distinct(StringComparer.OrdinalIgnoreCase).ToList() : [];
 

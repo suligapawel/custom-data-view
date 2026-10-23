@@ -17,7 +17,13 @@ public interface ICombination
 
     int? MaxFields { get; }
 
+    bool AcceptsCollections { get; }
+
+    bool AcceptsTransformations { get; }
+
     IReadOnlyList<string> Inputs(string parameter, IReadOnlyList<string> fields);
+
+    IReadOnlyList<CombinationError> Validate(string parameter, IReadOnlyList<string> fields);
 
     JsonNode Combine(string parameter, IReadOnlyList<CombinationInput> inputs);
 }
