@@ -42,6 +42,11 @@ public sealed class TilePreviewer(
         TilePreviewValues values,
         CancellationToken cancellationToken)
     {
+        if (definition.Display == TileDisplays.Form)
+        {
+            return new TilePreview(id, definition.Name, definition.Display, TileFormValues.Preview(definition.FormFields, values.Form(string.Empty)));
+        }
+
         var instance = new TileInstance(definition, values);
         var order = BindingGraph.Order(
             definition.Sources.Select(source => source.Key).ToList(),

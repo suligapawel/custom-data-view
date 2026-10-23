@@ -10,6 +10,6 @@ public sealed class GetTilesHandler(ITileRepository repository)
 {
     public IReadOnlyList<TileSummaryDto> Handle(GetTiles query)
         => repository.GetAll()
-            .Select(tile => new TileSummaryDto(tile.Id, tile.Definition.Name, tile.Definition.Fields.Count))
+            .Select(tile => new TileSummaryDto(tile.Id, tile.Definition.Name, tile.Definition.Fields.Count + tile.Definition.FormFields.Count))
             .ToList();
 }

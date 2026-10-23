@@ -17,16 +17,12 @@ public static class TileDefinitionValidator
             errors["name"] = [$"Nazwa kafelka jest wymagana i może mieć najwyżej {MaxTextLength} znaków."];
         }
 
-        var displayIsValid = TileDisplays.All.Contains(input.Display) && input.Display != TileDisplays.Form;
+        var displayIsValid = TileDisplays.All.Contains(input.Display);
         if (!displayIsValid)
         {
-            errors["display"] =
-            [
-                $"Typ wyświetlania jest wymagany i musi mieć jedną z wartości: {string.Join(", ", TileDisplays.All.Where(display => display != TileDisplays.Form))}."
-            ];
+            errors["display"] = [$"Typ wyświetlania jest wymagany i musi mieć jedną z wartości: {string.Join(", ", TileDisplays.All)}."];
         }
 
-        var sources = ValidateSources(input.Sources, errors);
         if (input.Fields.Count == 0)
         {
             errors["fields"] = ["Kafelek musi mieć co najmniej jedno pole."];
@@ -35,11 +31,27 @@ public static class TileDefinitionValidator
         var labels = new HashSet<string>();
         for (var index = 0; index < input.Fields.Count; index++)
         {
-            ValidateField(input.Fields[index], $"fields[{index}]", sources, errors);
-            if (IsValidText(input.Fields[index].Label) && !labels.Add(TileLabels.Normalize(input.Fields[index].Label)))
+            var label = input.Fields[index].Label;
+            if (!IsValidText(label))
+            {
+                errors[$"fields[{index}].label"] = [$"Etykieta pola jest wymagana i może mieć najwyżej {MaxTextLength} znaków."];
+            }
+            else if (!labels.Add(TileLabels.Normalize(label)))
             {
                 errors[$"fields[{index}].label"] = ["Etykieta pola musi być unikalna w kafelku."];
             }
+        }
+
+        if (input.IsForm)
+        {
+            ValidateForm(input, errors);
+            return errors;
+        }
+
+        var sources = ValidateSources(input.Sources, errors);
+        for (var index = 0; index < input.Fields.Count; index++)
+        {
+            ValidateField(input.Fields[index], $"fields[{index}]", sources, errors);
         }
 
         if (displayIsValid)
@@ -49,8 +61,44 @@ public static class TileDefinitionValidator
         }
 
         TileBindingsValidator.Validate(input, errors);
-
         return errors;
+    }
+
+    private static void ValidateForm(TileInput input, Dictionary<string, string[]> errors)
+    {
+        if (input.Sources.Count > 0)
+        {
+            errors["sources"] = ["Formularz nie ma źródeł danych."];
+        }
+
+        if (input.Items is not null)
+        {
+            errors["items"] = ["Formularz nie ma elementów."];
+        }
+
+        if (input.Bindings.Count > 0)
+        {
+            errors["bindings"] = ["Formularz nie ma wiązań."];
+        }
+
+        for (var index = 0; index < input.Fields.Count; index++)
+        {
+            var field = input.Fields[index];
+            var key = $"fields[{index}]";
+            if (field.Source is not null || field.Path is not null || field.Transformations.Count > 0 || field.Hidden || field.Role is not null)
+            {
+                errors[key] = ["Pole formularza ma tylko etykietę, typ, wymaganie i wartość domyślną."];
+            }
+
+            if (!TileFormFieldTypes.All.Contains(field.Type))
+            {
+                errors[$"{key}.type"] = [$"Typ pola formularza jest wymagany i musi mieć jedną z wartości: {string.Join(", ", TileFormFieldTypes.All)}."];
+            }
+            else if (field.Default is not null && !TileFormFieldTypes.Matches(field.Type, field.Default))
+            {
+                errors[$"{key}.default"] = [$"Wartość domyślna musi być zgodna z typem '{field.Type}'."];
+            }
+        }
     }
 
     private static void ValidateRoles(TileInput input, Dictionary<string, string[]> errors)
@@ -162,11 +210,6 @@ public static class TileDefinitionValidator
 
     private static void ValidateField(TileFieldInput field, string key, HashSet<string> sources, Dictionary<string, string[]> errors)
     {
-        if (!IsValidText(field.Label))
-        {
-            errors[$"{key}.label"] = [$"Etykieta pola jest wymagana i może mieć najwyżej {MaxTextLength} znaków."];
-        }
-
         if (string.IsNullOrWhiteSpace(field.Source))
         {
             errors[$"{key}.source"] = ["Źródło pola jest wymagane."];

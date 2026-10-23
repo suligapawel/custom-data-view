@@ -6,7 +6,8 @@ namespace CustomDataView.WebApi.Requests;
 public sealed record TileDraftPreviewRequest(
     TileRequest Tile,
     Dictionary<string, JsonElement> Parameters,
-    Dictionary<string, JsonElement> Inputs)
+    Dictionary<string, JsonElement> Inputs,
+    Dictionary<string, Dictionary<string, JsonElement>> Forms)
 {
     public IDictionary<string, string[]> Validate(TileReferencesValidator referencesValidator)
     {

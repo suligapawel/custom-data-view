@@ -1,3 +1,5 @@
+using System.Text.Json.Nodes;
+
 namespace CustomDataView.Application.Tiles.Inputs;
 
 public sealed record TileFieldInput(
@@ -6,4 +8,11 @@ public sealed record TileFieldInput(
     string Label,
     IReadOnlyList<TransformationStepInput> Transformations,
     bool Hidden = false,
-    string Role = null);
+    string Role = null)
+{
+    public string Type { get; init; }
+
+    public bool Required { get; init; }
+
+    public JsonNode Default { get; init; }
+}

@@ -31,7 +31,12 @@ public sealed record TileRequest(
                     field.Label,
                     (field.Transformations ?? []).Select(ToInput).ToList(),
                     field.Hidden ?? false,
-                    field.Role))
+                    field.Role)
+                {
+                    Type = field.Type,
+                    Required = field.Required ?? false,
+                    Default = field.Default is { } value ? JsonNode.Parse(value.GetRawText()) : null
+                })
                 .ToList())
         {
             Bindings = (Bindings ?? [])
@@ -65,6 +70,9 @@ public sealed record TileFieldRequest(
     string Label,
     IReadOnlyList<TransformationStepRequest> Transformations,
     bool? Hidden,
-    string Role);
+    string Role,
+    string Type,
+    bool? Required,
+    JsonElement? Default);
 
 public sealed record TransformationStepRequest(string Key, Dictionary<string, JsonElement> Parameters);

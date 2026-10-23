@@ -113,7 +113,7 @@ public static class TileEndpoints
 
                     var query = new PreviewTileDraft(
                         request.Tile.ToDefinition(),
-                        TilePreviewRequest.ValuesOf(request.Parameters, request.Inputs));
+                        TilePreviewRequest.ValuesOf(request.Parameters, request.Inputs, request.Forms));
                     return Results.Ok(await bus.InvokeAsync<TilePreview>(query, cancellationToken));
                 });
             return endpoints;

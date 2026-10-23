@@ -330,6 +330,61 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileFormFieldRow", b =>
+                {
+                    b.Property<Guid>("TileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tile_id");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.Property<string>("DefaultValue")
+                        .HasColumnType("json")
+                        .HasColumnName("default_value");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("label");
+
+                    b.Property<string>("NormalizedLabel")
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("normalized_label")
+                        .HasComputedColumnSql("lower(btrim(label))", true);
+
+                    b.Property<bool>("Required")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("required");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("type");
+
+                    b.HasKey("TileId", "Position")
+                        .HasName("pk_tile_form_fields");
+
+                    b.HasIndex("TileId", "NormalizedLabel")
+                        .IsUnique()
+                        .HasDatabaseName("ux_tile_form_fields_tile_id_normalized_label");
+
+                    b.ToTable("tile_form_fields", "custom_data_view", t =>
+                        {
+                            t.HasCheckConstraint("ck_tile_form_fields_position", "position >= 0");
+
+                            t.HasCheckConstraint("ck_tile_form_fields_type", "type IN ('text', 'number', 'boolean', 'date')");
+                        });
+                });
+
             modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileRow", b =>
                 {
                     b.Property<Guid>("Id")
@@ -576,6 +631,16 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_tile_field_transformations_field");
                 });
 
+            modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileFormFieldRow", b =>
+                {
+                    b.HasOne("CustomDataView.Infrastructure.Persistence.Rows.TileRow", null)
+                        .WithMany("FormFields")
+                        .HasForeignKey("TileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_tile_form_fields_tile_id");
+                });
+
             modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileSourceRow", b =>
                 {
                     b.HasOne("CustomDataView.Infrastructure.Persistence.Rows.ConnectionRow", null)
@@ -633,6 +698,8 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                     b.Navigation("Bindings");
 
                     b.Navigation("Fields");
+
+                    b.Navigation("FormFields");
 
                     b.Navigation("Sources");
                 });

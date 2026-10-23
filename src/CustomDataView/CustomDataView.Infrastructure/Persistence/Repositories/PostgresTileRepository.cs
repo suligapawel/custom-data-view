@@ -30,7 +30,8 @@ public sealed class PostgresTileRepository(
             ItemsKeyLabel = tile.Definition.Items?.Key,
             Sources = ToSourceRows(tile),
             Fields = ToFieldRows(tile),
-            Bindings = ToBindingRows(tile)
+            Bindings = ToBindingRows(tile),
+            FormFields = ToFormFieldRows(tile)
         });
         context.SaveChanges();
     }
@@ -67,10 +68,12 @@ public sealed class PostgresTileRepository(
                 .SetProperty(stored => stored.ItemsKeyLabel, tile.Definition.Items == null ? null : tile.Definition.Items.Key)
                 .SetProperty(stored => stored.UpdatedAt, stored => DateTime.UtcNow));
         context.TileBindings.Where(binding => binding.TileId == tile.Id).ExecuteDelete();
+        context.TileFormFields.Where(field => field.TileId == tile.Id).ExecuteDelete();
         context.TileSources.Where(source => source.TileId == tile.Id).ExecuteDelete();
         context.TileSources.AddRange(ToSourceRows(tile));
         context.TileFields.AddRange(ToFieldRows(tile));
         context.TileBindings.AddRange(ToBindingRows(tile));
+        context.TileFormFields.AddRange(ToFormFieldRows(tile));
         context.SaveChanges();
         transaction.Commit();
     }
@@ -113,6 +116,7 @@ public sealed class PostgresTileRepository(
             .AsNoTracking()
             .Include(tile => tile.Sources.OrderBy(source => source.Position))
             .Include(tile => tile.Bindings.OrderBy(binding => binding.Position))
+            .Include(tile => tile.FormFields.OrderBy(field => field.Position))
             .Include(tile => tile.Fields.OrderBy(field => field.Position))
             .ThenInclude(field => field.Transformations.OrderBy(transformation => transformation.Position))
             .ThenInclude(transformation => transformation.Parameters.OrderBy(parameter => parameter.Name))
@@ -127,6 +131,19 @@ public sealed class PostgresTileRepository(
                 Position = position,
                 Kind = source.Kind,
                 ConnectionId = source.ConnectionId
+            })
+            .ToList();
+
+    private static List<TileFormFieldRow> ToFormFieldRows(Tile tile)
+        => tile.Definition.FormFields
+            .Select((field, position) => new TileFormFieldRow
+            {
+                TileId = tile.Id,
+                Position = position,
+                Label = field.Label,
+                Type = field.Type,
+                Required = field.Required,
+                DefaultValue = field.Default?.ToJsonString()
             })
             .ToList();
 
@@ -208,7 +225,14 @@ public sealed class PostgresTileRepository(
                     field.Role))
                 .ToList())
         {
-            Bindings = ToBindings(tile.Bindings)
+            Bindings = ToBindings(tile.Bindings),
+            FormFields = tile.FormFields
+                .Select(field => new TileFormField(
+                    field.Label,
+                    field.Type,
+                    field.Required,
+                    field.DefaultValue is null ? null : JsonNode.Parse(field.DefaultValue)))
+                .ToList()
         });
 
     private TransformationStep ToStep(TileFieldTransformationRow step)

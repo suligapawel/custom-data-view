@@ -7,5 +7,7 @@ public sealed record TileDefinition(
     TileItems Items,
     IReadOnlyList<TileField> Fields)
 {
+    public IReadOnlyList<TileFormField> FormFields { get; init; } = [];
+
     public IReadOnlyList<TileBinding> Bindings { get; init; } = [];
 }

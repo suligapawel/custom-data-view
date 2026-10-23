@@ -8,6 +8,6 @@ public sealed record TileDto(
     string Display,
     IReadOnlyList<TileSourceDto> Sources,
     TileItemsDto Items,
-    IReadOnlyList<TileFieldDto> Fields,
+    IReadOnlyList<object> Fields,
     IReadOnlyList<TileBindingDto> Bindings,
     TileContract Contract);

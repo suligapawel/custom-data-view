@@ -223,6 +223,24 @@ public class PostgresTileRepositoryTests
     }
 
     [Test]
+    public void Given_FormTile_When_ItIsLoaded_Then_FormFieldsWithTypesAndDefaultsAreKept()
+    {
+        var form = new Tile(Guid.NewGuid(), new TileDefinition("Filtry", TileDisplays.Form, [], null, [])
+        {
+            FormFields =
+            [
+                new TileFormField("Kraj", TileFormFieldTypes.Text, true, null),
+                new TileFormField("Limit", TileFormFieldTypes.Number, false, JsonValue.Create(20)),
+                new TileFormField("Aktywne", TileFormFieldTypes.Boolean, false, JsonValue.Create(true))
+            ]
+        });
+
+        repository.Add(form);
+
+        Assert.That(Json(repository.Get(form.Id)), Is.EqualTo(Json(form)));
+    }
+
+    [Test]
     public void Given_TileWithLabelsDifferingInCaseAndSpaces_When_ItIsSaved_Then_DatabaseRejectsIt()
     {
         var tile = new Tile(Guid.NewGuid(), Definition("Klient",

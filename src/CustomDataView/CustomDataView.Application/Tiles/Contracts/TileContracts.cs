@@ -32,7 +32,9 @@ public sealed class TileContracts(IConnectionRepository connections)
                 .Where(source => source.Kind == TileSourceKinds.Input && !BoundInputs(definition, source.Key).Contains(source.Key))
                 .Select(source => source.Key)
                 .ToList(),
-            new TileContractOutputs(definition.Fields.Select(field => field.Label).ToList(), definition.Items is not null));
+            new TileContractOutputs(
+                [.. definition.FormFields.Select(field => field.Label), .. definition.Fields.Select(field => field.Label)],
+                definition.Items is not null));
     }
 
     private static HashSet<string> BoundInputs(TileDefinition definition, string node)

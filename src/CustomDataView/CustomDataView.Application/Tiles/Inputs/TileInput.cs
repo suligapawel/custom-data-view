@@ -1,3 +1,4 @@
+using CustomDataView.Domain.Dictionaries;
 using CustomDataView.Domain.ValueObjects;
 
 namespace CustomDataView.Application.Tiles.Inputs;
@@ -11,7 +12,18 @@ public sealed record TileInput(
 {
     public IReadOnlyList<TileBindingInput> Bindings { get; init; } = [];
 
+    public bool IsForm => Display == TileDisplays.Form;
+
     public TileDefinition ToDefinition()
+        => IsForm ? ToFormDefinition() : ToDataDefinition();
+
+    private TileDefinition ToFormDefinition()
+        => new TileDefinition(Name, Display, [], null, [])
+        {
+            FormFields = Fields.Select(field => new TileFormField(field.Label, field.Type, field.Required, field.Default)).ToList()
+        };
+
+    private TileDefinition ToDataDefinition()
         => new TileDefinition(
             Name,
             Display,

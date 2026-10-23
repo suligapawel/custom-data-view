@@ -20,15 +20,16 @@ public sealed class GetTileHandler(ITileRepository repository, TileContracts con
             definition.Display,
             definition.Sources.Select(source => new TileSourceDto(source.Key, source.Kind, source.ConnectionId)).ToList(),
             definition.Items is null ? null : new TileItemsDto(definition.Items.Source, definition.Items.Path, definition.Items.Key),
-            definition.Fields
-                .Select(field => new TileFieldDto(
+            [
+                .. definition.FormFields.Select(field => new TileFormFieldDto(field.Label, field.Type, field.Required, field.Default)),
+                .. definition.Fields.Select(field => new TileFieldDto(
                     field.Source,
                     field.Path,
                     field.Label,
                     field.Transformations.Select(step => new TransformationStepDto(step.Key, step.Parameters)).ToList(),
                     field.Hidden,
                     field.Role))
-                .ToList(),
+            ],
             definition.Bindings
                 .Select(binding => new TileBindingDto(
                     binding.From,
