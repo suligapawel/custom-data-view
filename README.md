@@ -51,6 +51,11 @@ Pełna lista kroków przed wdrożeniem jest w `docs/foundation/pre-deployment.md
 
 - **Źródła** kafelka: `connection` (pobiera dane połączeniem) albo `input` (gotowy JSON od rodzica lub z żądania).
   Pole wskazuje źródło (`source`); etykieta pola jest unikalna w kafelku (bez wielkości liter i białych znaków).
+- **Pola złożone** zamiast `source` i `path` mają kombinator z katalogu (`GET /api/custom-data-view/combinations`):
+  `"combine": { "key", "parameter", "fields" }`. Kombinatory: `join` (separator, pomija brak wartości, rozkłada
+  listy), `template` (wzorzec z etykietami w klamrach, np. `"{Ulica} {Nr}, {Miasto}"`), `object` (obiekt z kluczami
+  równymi etykietom) i `coalesce` (pierwsza wartość różna od `null`). Wejściami są inne pola kafelka po transformacjach,
+  zwykle ukryte; w kafelku z elementami — pola elementu.
 - **Dzieci** to osadzenia innych kafelków (`key`, `tileId`, `position`, `cssClass`, `scope`: `tile`/`item`,
   `load`: `eager`/`lazy`), najwyżej 3 poziomy. Każde dziecko ma własny `display`; pola rodzica wyświetlają się przed
   dziećmi. Kafelek złożony pełni rolę widoku — osobnych widoków nie ma.
@@ -192,7 +197,7 @@ z żądania. `GET .../preview` przyjmuje tylko płaskie `parameters` w adresie.
 | `awaiting_load` | `lazy` albo przekroczony limit (`inputs`) |
 | `error` | `dependency_failed` (z przyczyną: węzeł, pole, kod) albo `invalid_binding` |
 
-Błędy pól: `source_unavailable`, `path_not_found`, `transformation_failed`, `invalid_parameters` (brak albo zły typ
+Błędy pól: `source_unavailable`, `path_not_found`, `transformation_failed`, `combination_failed`, `invalid_parameters` (brak albo zły typ
 parametru połączenia, ze szczegółami i informacją, czy wartość pochodzi z wiązania), `dependency_failed`,
 `invalid_binding`, `awaiting_input`, a w formularzu `invalid_value`. Podgląd zawsze zwraca 200.
 

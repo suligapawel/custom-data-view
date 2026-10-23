@@ -11,7 +11,9 @@ wiele-do-jednego. Nagłówki nie są przechowywane: są stałe i predefiniowane 
 Kafelek (`tiles`) ma typ wyświetlania i opcjonalne elementy (`items_*`), listę źródeł danych (`tile_sources`:
 połączenie albo wejście danych), uporządkowaną listę pól (`tile_fields`) — każde pole wskazuje źródło, ścieżkę JSONPath,
 unikalną etykietę, rolę, flagę ukrycia oraz uporządkowany łańcuch transformacji (`tile_field_transformations`,
-każda z najwyżej jednym parametrem tekstowym; transformacja wskazuje pole etykietą). Kafelek `form` ma zamiast nich pola formularza
+każda z najwyżej jednym parametrem tekstowym; transformacja wskazuje pole etykietą). Pole złożone zamiast źródła
+i ścieżki ma kombinator (`tile_field_combinations`) z listą etykiet pól wejściowych (`tile_field_combination_fields`).
+Kafelek `form` ma zamiast nich pola formularza
 (`tile_form_fields`). Kafelek może osadzać inne kafelki (`tile_children`) i definiować wiązania wewnętrzne
 (`tile_bindings`, jeden wiersz na mapowanie) oraz akcje prowadzące do innych kafelków (`tile_actions`
 z mapowaniami w `tile_action_mappings`). Kafelki nie przechowują wartości parametrów połączeń — przychodzą one
@@ -108,8 +110,8 @@ PK: `(tile_id, key)`. UNIQUE `uq_tile_sources_tile_id_position` na `(tile_id, po
 |------------------|--------------|--------------------------------------------------|----------------------------------------------|
 | tile_id          | uuid         | PK, NOT NULL, FK → tiles.id ON DELETE CASCADE    | Kafelek                                      |
 | position         | integer      | PK, NOT NULL, CHECK (position >= 0)              | Pozycja pola na liście (od 0); tożsamość pola |
-| source_key       | varchar(50)  | NOT NULL, FK (z tile_id) → tile_sources          | Źródło zasilające pole                       |
-| path             | text         | NOT NULL                                         | Ścieżka JSONPath (podzbiór składni z PRD 3.3) |
+| source_key       | varchar(50)  | NULL, FK (z tile_id) → tile_sources              | Źródło zasilające pole; NULL = pole złożone  |
+| path             | text         | NULL                                             | Ścieżka JSONPath (podzbiór składni z PRD 3.3); NULL = pole złożone |
 | label            | varchar(100) | NOT NULL                                         | Etykieta pola; unikalna w kafelku            |
 | normalized_label | varchar(100) | NOT NULL, GENERATED ALWAYS AS (lower(btrim(label))) STORED | Etykieta do porównań bez rozróżniania wielkości liter |
 | role             | varchar(10)  | NULL, CHECK (role IN ('title', 'subtitle', 'badge', 'primary', 'secondary')) | Rola pola; NULL = brak |
@@ -117,7 +119,9 @@ PK: `(tile_id, key)`. UNIQUE `uq_tile_sources_tile_id_position` na `(tile_id, po
 
 PK: `(tile_id, position)`. FK: `(tile_id, source_key)` → `tile_sources (tile_id, key)` `ON DELETE CASCADE`.
 UNIQUE INDEX `ux_tile_fields_tile_id_normalized_label` na `(tile_id, normalized_label)`. UNIQUE
-`uq_tile_fields_tile_id_label` na `(tile_id, label)` — cel FK z `tile_field_transformations`.
+`uq_tile_fields_tile_id_label` na `(tile_id, label)` — cel FK z `tile_field_transformations`
+i `tile_field_combinations`. CHECK `ck_tile_fields_source`: `(source_key IS NULL) = (path IS NULL)`. To, że pole ma
+albo źródło i ścieżkę, albo wiersz w `tile_field_combinations`, sprawdza aplikacja.
 
 ### custom_data_view.tile_field_transformations
 
@@ -131,6 +135,30 @@ UNIQUE INDEX `ux_tile_fields_tile_id_normalized_label` na `(tile_id, normalized_
 
 PK: `(tile_id, field_label, position)`. FK: `(tile_id, field_label)` → `tile_fields (tile_id, label)`
 `ON DELETE CASCADE`.
+
+### custom_data_view.tile_field_combinations
+
+| Column      | Type         | Constraints                      | Description                                     |
+|-------------|--------------|----------------------------------|-------------------------------------------------|
+| tile_id     | uuid         | PK, NOT NULL, FK (z field_label) | Kafelek                                         |
+| field_label | varchar(100) | PK, NOT NULL, FK (z tile_id)     | Etykieta pola złożonego                         |
+| key         | varchar(50)  | NOT NULL                         | Klucz kombinatora z katalogu w kodzie           |
+| parameter   | text         | NULL                             | Parametr kombinatora jako tekst; NULL = brak    |
+
+PK: `(tile_id, field_label)`. FK `fk_tile_field_combinations_field`: `(tile_id, field_label)` →
+`tile_fields (tile_id, label)` `ON DELETE CASCADE`.
+
+### custom_data_view.tile_field_combination_fields
+
+| Column      | Type         | Constraints                         | Description                                  |
+|-------------|--------------|-------------------------------------|----------------------------------------------|
+| tile_id     | uuid         | PK, NOT NULL, FK (z field_label)    | Kafelek                                      |
+| field_label | varchar(100) | PK, NOT NULL, FK (z tile_id)        | Etykieta pola złożonego                      |
+| position    | integer      | PK, NOT NULL, CHECK (position >= 0) | Kolejność pola wejściowego (od 0)            |
+| input_label | varchar(100) | NOT NULL                            | Etykieta pola wejściowego tego kafelka       |
+
+PK: `(tile_id, field_label, position)`. FK `fk_tile_field_combination_fields_combination`: `(tile_id, field_label)` →
+`tile_field_combinations (tile_id, field_label)` `ON DELETE CASCADE`. `input_label` nie ma FK (decyzja 31).
 
 ### custom_data_view.tile_form_fields
 
@@ -222,6 +250,8 @@ PK: `(tile_id, action_key, target_kind, target_name)` — każde wejście celu n
 | tile_fields                 | tiles       | many-to-one | tile_fields.tile_id → tiles.id                             |
 | tile_fields                 | tile_sources | many-to-one | (tile_id, source_key) → tile_sources (tile_id, key)       |
 | tile_field_transformations  | tile_fields | many-to-one | (tile_id, field_label) → tile_fields (tile_id, label)      |
+| tile_field_combinations     | tile_fields | one-to-one  | (tile_id, field_label) → tile_fields (tile_id, label)      |
+| tile_field_combination_fields | tile_field_combinations | many-to-one | (tile_id, field_label) → tile_field_combinations (tile_id, field_label) |
 | tile_form_fields            | tiles       | many-to-one | tile_form_fields.tile_id → tiles.id                        |
 | tile_children               | tiles       | many-to-one | tile_children.parent_tile_id → tiles.id                    |
 | tile_children               | tiles       | many-to-one | tile_children.child_tile_id → tiles.id                     |
@@ -248,7 +278,8 @@ Wszystkie klucze obce: `ON DELETE CASCADE`, z wyjątkiem `tile_sources.connectio
   TEMP-021).
 - `ix_tiles_created_at_id` (`tiles(created_at, id)`) — lista kafelków w kolejności dodania (TEMP-017).
 - `pk_tile_sources`, `pk_tile_fields` (`(tile_id, position)`), `pk_tile_field_transformations`
-  (`(tile_id, field_label, position)`), `pk_tile_form_fields`, `pk_tile_children`, `pk_tile_bindings` —
+  (`(tile_id, field_label, position)`), `pk_tile_field_combinations`, `pk_tile_field_combination_fields`,
+  `pk_tile_form_fields`, `pk_tile_children`, `pk_tile_bindings` —
   wczytanie definicji kafelka (`WHERE tile_id = @id ORDER BY …`) i kaskadowe usuwanie; wiodąca kolumna `tile_id`
   (`parent_tile_id`) obsługuje FK.
 - `ix_tile_fields_tile_id_source_key` (`tile_fields(tile_id, source_key)`) — obsługa FK pól do źródeł.
@@ -279,8 +310,8 @@ Wszystkie klucze obce: `ON DELETE CASCADE`, z wyjątkiem `tile_sources.connectio
   wiersza głównego, `ExecuteDelete` wierszy podrzędnych i `SaveChanges` nowych wierszy w jednej transakcji
   (decyzje 5 i 16). Usunięcie to `ExecuteDelete`, a kaskady i `RESTRICT` wykonuje baza.
 - Schemat tworzą migracje EF Core w `Persistence/Migrations/` z tabelą historii
-  `custom_data_view.__ef_migrations_history`. Migracja `Initial` tworzy cały schemat od zera, a `AddTabsPaginationAndActions` dodaje
-  zakładki, stronicowanie i akcje (TEMP-041 … TEMP-043); schemat z dawnych
+  `custom_data_view.__ef_migrations_history`. Migracja `Initial` tworzy cały schemat od zera, `AddTabsPaginationAndActions` dodaje
+  zakładki, stronicowanie i akcje (TEMP-041 … TEMP-043), a `AddFieldCombinations` pola złożone (TEMP-044); schemat z dawnych
   migracji SQL nie jest migrowany (dane trzeba odtworzyć przez API). Uruchamianie migracji na bazie wymaga zgody
   dewelopera; testy repozytoriów stosują je na bazie testowej.
 
@@ -370,6 +401,11 @@ Wszystkie klucze obce: `ON DELETE CASCADE`, z wyjątkiem `tile_sources.connectio
 30. **Ścieżki osadzeń bez limitu** (TEMP-041). `source_node` i `target_node` w `tile_bindings` są `text`; ścieżkę
     `from` do potomka rozwiązuje repozytorium przy blokadzie `field_in_use` (wiązania ze znakiem `/` w `source_node`
     i drzewo `tile_children`).
+31. **Kombinatory pól jak transformacje** (TEMP-044). Klucz i parametr kombinatora są tekstem bez FK, bo katalog żyje
+    w kodzie. Pola wejściowe to osobne wiersze, bez kolumn JSON. Etykiety wejść nie mają FK do `tile_fields`:
+    walidator przy zapisie odrzuca nieznaną etykietę, a zmiana etykiety pola wejściowego odrzuca zapis. Pole złożone
+    nie ma źródła, więc edycja kafelka usuwa pola jawnie (`ExecuteDelete` na `tile_fields`), a nie kaskadowo przez
+    źródła.
 
 ## Przenoszenie danych ze starego schematu
 
