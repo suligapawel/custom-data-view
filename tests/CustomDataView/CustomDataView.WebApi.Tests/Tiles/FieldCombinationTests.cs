@@ -226,6 +226,40 @@ public class FieldCombinationTests : TileApiTests
         Factory.ExternalApi.Respond = (_, _) => Task.FromResult(Json(place.ToJsonString()));
     }
 
+    [TestCase("unavailable-source", "Ulica", "source_unavailable")]
+    [TestCase("missing-path", "Miasto", "path_not_found")]
+    [Test(Description = $"{Dir} - #10")]
+    public async Task Given_FailingInputField_When_UserPreviewsTile_Then_CombinedFieldHasDependencyErrorAndOtherFieldsRemain(
+        string situation,
+        string field,
+        string cause)
+    {
+        var tile = Address(Combined("Pełny adres", "template", "{Ulica} {Nr}, {Miasto}"));
+        if (situation == "missing-path")
+        {
+            tile["fields"]![2]!["path"] = "$.town";
+        }
+        else
+        {
+            Factory.ExternalApi.Respond = (_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
+        }
+
+        var id = await CreateTile(tile);
+
+        var preview = await Preview(id);
+
+        Assert.That(
+            JsonNode.DeepEquals(
+                Field(preview, "Pełny adres")["error"],
+                JsonNode.Parse($$$"""{"code": "dependency_failed", "cause": {"node": "api", "field": "{{{field}}}", "code": "{{{cause}}}"}}""")),
+            Is.True,
+            preview.ToJsonString());
+        if (situation == "missing-path")
+        {
+            Assert.That(Value(preview, "Ulica"), Is.EqualTo("Długa"));
+        }
+    }
+
     private async Task<Guid> CreateWeatherTile()
     {
         var weatherConnectionId = await CreateConnection(new
