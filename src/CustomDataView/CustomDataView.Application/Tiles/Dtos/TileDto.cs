@@ -16,4 +16,6 @@ public sealed record TileDto(
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public TilePaginationDto Pagination { get; init; }
+
+    public IReadOnlyList<TileActionDto> Actions { get; init; } = [];
 }

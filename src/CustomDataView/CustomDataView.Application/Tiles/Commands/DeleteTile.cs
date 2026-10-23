@@ -12,10 +12,13 @@ public sealed class DeleteTileHandler(ITileRepository repository)
     public void Handle(DeleteTile command)
     {
         _ = repository.Get(command.Id) ?? throw new NotFoundException(command.Id);
-        var parents = repository.GetParents(command.Id);
-        if (parents.Count > 0)
+        var references = repository.GetParents(command.Id)
+            .Concat(repository.GetActionReferences(command.Id))
+            .DistinctBy(reference => reference.Id)
+            .ToList();
+        if (references.Count > 0)
         {
-            throw new TileInUseException(command.Id, parents);
+            throw new TileInUseException(command.Id, references);
         }
 
         repository.Delete(command.Id);

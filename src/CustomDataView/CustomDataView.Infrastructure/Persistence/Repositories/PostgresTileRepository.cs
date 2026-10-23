@@ -28,7 +28,8 @@ public sealed class PostgresTileRepository(IDbContextFactory<CustomDataViewDbCon
             Fields = ToFieldRows(tile),
             Bindings = ToBindingRows(tile),
             FormFields = ToFormFieldRows(tile),
-            Children = ToChildRows(tile)
+            Children = ToChildRows(tile),
+            Actions = ToActionRows(tile)
         });
         context.SaveChanges();
     }
@@ -75,12 +76,14 @@ public sealed class PostgresTileRepository(IDbContextFactory<CustomDataViewDbCon
         context.TileBindings.Where(binding => binding.TileId == tile.Id).ExecuteDelete();
         context.TileFormFields.Where(field => field.TileId == tile.Id).ExecuteDelete();
         context.TileChildren.Where(child => child.ParentTileId == tile.Id).ExecuteDelete();
+        context.TileActions.Where(action => action.TileId == tile.Id).ExecuteDelete();
         context.TileSources.Where(source => source.TileId == tile.Id).ExecuteDelete();
         context.TileSources.AddRange(ToSourceRows(tile));
         context.TileFields.AddRange(ToFieldRows(tile));
         context.TileBindings.AddRange(ToBindingRows(tile));
         context.TileFormFields.AddRange(ToFormFieldRows(tile));
         context.TileChildren.AddRange(ToChildRows(tile));
+        context.TileActions.AddRange(ToActionRows(tile));
         context.SaveChanges();
         transaction.Commit();
     }
@@ -124,6 +127,18 @@ public sealed class PostgresTileRepository(IDbContextFactory<CustomDataViewDbCon
         return context.Tiles
             .AsNoTracking()
             .Where(tile => tile.Children.Any(child => child.ChildTileId == tileId))
+            .OrderBy(tile => tile.CreatedAt)
+            .ThenBy(tile => tile.Id)
+            .Select(tile => new TileReference(tile.Id, tile.Name))
+            .ToList();
+    }
+
+    public IReadOnlyList<TileReference> GetActionReferences(Guid tileId)
+    {
+        using var context = contextFactory.CreateDbContext();
+        return context.Tiles
+            .AsNoTracking()
+            .Where(tile => tile.Id != tileId && tile.Actions.Any(action => action.TargetTileId == tileId))
             .OrderBy(tile => tile.CreatedAt)
             .ThenBy(tile => tile.Id)
             .Select(tile => new TileReference(tile.Id, tile.Name))
@@ -188,6 +203,8 @@ public sealed class PostgresTileRepository(IDbContextFactory<CustomDataViewDbCon
             .Include(tile => tile.Bindings.OrderBy(binding => binding.Position))
             .Include(tile => tile.FormFields.OrderBy(field => field.Position))
             .Include(tile => tile.Children.OrderBy(child => child.Position))
+            .Include(tile => tile.Actions.OrderBy(action => action.Position))
+            .ThenInclude(action => action.Mappings.OrderBy(mapping => mapping.Position))
             .Include(tile => tile.Fields.OrderBy(field => field.Position))
             .ThenInclude(field => field.Transformations.OrderBy(transformation => transformation.Position))
             .AsSplitQuery();
@@ -216,6 +233,31 @@ public sealed class PostgresTileRepository(IDbContextFactory<CustomDataViewDbCon
                 Scope = child.Scope,
                 Load = child.Load,
                 Label = child.Label
+            })
+            .ToList();
+
+    private static List<TileActionRow> ToActionRows(Tile tile)
+        => tile.Definition.Actions
+            .Select((action, position) => new TileActionRow
+            {
+                TileId = tile.Id,
+                Key = action.Key,
+                Position = position,
+                Label = action.Label,
+                Type = action.Type,
+                TargetTileId = action.TileId,
+                Scope = action.Scope,
+                Mappings = action.Map
+                    .Select((mapping, mappingPosition) => new TileActionMappingRow
+                    {
+                        TileId = tile.Id,
+                        ActionKey = action.Key,
+                        TargetKind = mapping.Parameter is null ? BindingTargetKinds.Input : BindingTargetKinds.Parameter,
+                        TargetName = mapping.Parameter ?? mapping.Input,
+                        SourceField = mapping.Field,
+                        Position = mappingPosition
+                    })
+                    .ToList()
             })
             .ToList();
 
@@ -309,6 +351,19 @@ public sealed class PostgresTileRepository(IDbContextFactory<CustomDataViewDbCon
                     tile.PaginationPageSize.Value,
                     tile.PaginationTotalPath),
             Bindings = ToBindings(tile.Bindings),
+            Actions = tile.Actions
+                .Select(action => new TileAction(
+                    action.Key,
+                    action.Label,
+                    action.Type,
+                    action.TargetTileId,
+                    action.Scope,
+                    action.Mappings
+                        .Select(mapping => mapping.TargetKind == BindingTargetKinds.Parameter
+                            ? new TileActionMapping(mapping.SourceField, mapping.TargetName, null)
+                            : new TileActionMapping(mapping.SourceField, null, mapping.TargetName))
+                        .ToList()))
+                .ToList(),
             Children = tile.Children
                 .Select(child => new TileChild(child.Key, child.ChildTileId, child.Position, child.CssClass, child.Scope, child.Load, child.Label))
                 .ToList(),

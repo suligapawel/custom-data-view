@@ -191,6 +191,19 @@ public class TileActionTests : TileApiTests
         Assert.That(problem["errors"]!.AsObject().Select(error => error.Key), Does.Contain(errorKey), problem.ToJsonString());
     }
 
+    [Test(Description = $"{Dir} - #21")]
+    public async Task Given_ResultsWithButtonToCity_When_UserDeletesCity_Then_DeleteIsBlockedWithResults()
+    {
+        var resultsId = await CreateTile(Results());
+
+        var response = await Client.DeleteAsync($"{TilesUrl}/{cityTileId}");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+        var problem = await response.Content.ReadFromJsonAsync<JsonObject>();
+        Assert.That(problem["code"]?.GetValue<string>(), Is.EqualTo("tile_in_use"), problem.ToJsonString());
+        Assert.That(problem["tiles"]!.AsArray().Select(tile => tile!["id"]!.GetValue<Guid>()), Is.EqualTo(new[] { resultsId }));
+    }
+
     private JsonObject Results()
         => new()
         {

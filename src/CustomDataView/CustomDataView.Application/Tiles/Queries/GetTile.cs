@@ -45,7 +45,16 @@ public sealed class GetTileHandler(ITileRepository repository, TileContracts con
         {
             Pagination = definition.Pagination is { } pagination
                 ? new TilePaginationDto(pagination.PageNumberParameter, pagination.PageSizeParameter, pagination.PageSize, pagination.TotalPath)
-                : null
+                : null,
+            Actions = definition.Actions
+                .Select(action => new TileActionDto(
+                    action.Key,
+                    action.Label,
+                    action.Type,
+                    action.TileId,
+                    action.Scope,
+                    action.Map.Select(mapping => new TileActionMappingDto(mapping.Field, mapping.Parameter, mapping.Input)).ToList()))
+                .ToList()
         };
     }
 }

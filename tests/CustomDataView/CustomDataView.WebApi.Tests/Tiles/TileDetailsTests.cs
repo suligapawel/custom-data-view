@@ -95,7 +95,8 @@ public class TileDetailsTests : TileApiTests
                     ["contract"] = JsonNode.Parse("""
                                                   {"parameters": [{"name": "currency", "required": false}], "inputs": [],
                                                    "outputs": {"fields": ["Kurs EUR"], "items": false}}
-                                                  """)
+                                                  """),
+                    ["actions"] = new JsonArray()
                 }),
             Is.True,
             tile.ToJsonString());

@@ -45,6 +45,12 @@ public sealed class TestTileRepository : ITileRepository
             .Select(tile => new TileReference(tile.Id, tile.Definition.Name))
             .ToList();
 
+    public IReadOnlyList<TileReference> GetActionReferences(Guid tileId)
+        => tiles
+            .Where(tile => tile.Id != tileId && tile.Definition.Actions.Any(action => action.TileId == tileId))
+            .Select(tile => new TileReference(tile.Id, tile.Definition.Name))
+            .ToList();
+
     public IReadOnlyList<TileFieldUse> GetFieldUses(Guid tileId)
         => tiles
             .SelectMany(tile => tile.Definition.Bindings

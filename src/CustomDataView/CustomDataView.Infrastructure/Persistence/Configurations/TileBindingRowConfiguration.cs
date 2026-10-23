@@ -18,10 +18,10 @@ public sealed class TileBindingRowConfiguration : IEntityTypeConfiguration<TileB
         builder.HasKey(binding => new { binding.TileId, binding.TargetNode, binding.TargetKind, binding.TargetName })
             .HasName("pk_tile_bindings");
         builder.Property(binding => binding.TileId).HasColumnName("tile_id");
-        builder.Property(binding => binding.TargetNode).HasColumnName("target_node").HasMaxLength(110);
+        builder.Property(binding => binding.TargetNode).HasColumnName("target_node").HasColumnType("text");
         builder.Property(binding => binding.TargetKind).HasColumnName("target_kind").HasMaxLength(9);
         builder.Property(binding => binding.TargetName).HasColumnName("target_name").HasMaxLength(50);
-        builder.Property(binding => binding.SourceNode).HasColumnName("source_node").HasMaxLength(50).IsRequired();
+        builder.Property(binding => binding.SourceNode).HasColumnName("source_node").HasColumnType("text").IsRequired();
         builder.Property(binding => binding.SourceField).HasColumnName("source_field").HasMaxLength(100).IsRequired();
         builder.Property(binding => binding.SourceScope).HasColumnName("source_scope").HasMaxLength(8);
         builder.Property(binding => binding.Position).HasColumnName("position");
