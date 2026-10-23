@@ -370,6 +370,24 @@ public class FieldCombinationTests : TileApiTests
         Assert.That(Field(await Preview(id), "Pełny adres")["value"]?.GetValue<string>(), Is.EqualTo("Długa 5, Kraków"));
     }
 
+    [Test(Description = $"{Dir} - #14")]
+    public async Task Given_CombinedFieldBoundByParent_When_UserRemovesIt_Then_EditIsBlockedWithFieldInUse()
+    {
+        var weatherTileId = await CreateWeatherTile();
+        var address = Address(Combined("Współrzędne", "template", "{Lat},{Lon}"));
+        var addressId = await CreateTile(address);
+        var panelId = await CreateTile(Panel(addressId, weatherTileId));
+        address["fields"]!.AsArray().RemoveAt(5);
+
+        var response = await Client.PutAsJsonAsync($"{TilesUrl}/{addressId}", address);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+        var conflict = await response.Content.ReadFromJsonAsync<JsonObject>();
+        Assert.That(conflict!["code"]?.GetValue<string>(), Is.EqualTo("field_in_use"));
+        Assert.That(conflict["fields"]!.AsArray().Select(field => field!.GetValue<string>()), Is.EqualTo(new[] { "Współrzędne" }));
+        Assert.That(conflict["tiles"]!.AsArray().Select(tile => tile!["id"]!.GetValue<Guid>()), Is.EqualTo(new[] { panelId }));
+    }
+
     private async Task<Guid> CreateWeatherTile()
     {
         var weatherConnectionId = await CreateConnection(new
@@ -387,6 +405,24 @@ public class FieldCombinationTests : TileApiTests
             ["fields"] = new JsonArray(new JsonObject { ["source"] = "weather", ["path"] = "$.temp", ["label"] = "Temperatura" })
         });
     }
+
+    private JsonObject Panel(Guid addressId, Guid weatherTileId)
+        => new()
+        {
+            ["name"] = "Panel",
+            ["display"] = "details",
+            ["sources"] = new JsonArray(new JsonObject { ["key"] = "api", ["kind"] = "connection", ["connectionId"] = placeConnectionId }),
+            ["fields"] = new JsonArray(new JsonObject { ["source"] = "api", ["path"] = "$.city", ["label"] = "Miasto" }),
+            ["children"] = new JsonArray(
+                new JsonObject { ["key"] = "address", ["tileId"] = addressId, ["position"] = 0 },
+                new JsonObject { ["key"] = "weather", ["tileId"] = weatherTileId, ["position"] = 1 }),
+            ["bindings"] = new JsonArray(new JsonObject
+            {
+                ["from"] = "address",
+                ["to"] = "weather",
+                ["map"] = new JsonArray(new JsonObject { ["field"] = "Współrzędne", ["parameter"] = "latlon" })
+            })
+        };
 
     private string LatLonOfWeatherRequest()
         => HttpUtility.ParseQueryString(new Uri(Factory.ExternalApi.Requests.Single(request => request.Url.Contains("/weather")).Url).Query)["latlon"];
