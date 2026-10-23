@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace CustomDataView.Application.Tiles.Dtos;
 
 public sealed record TileFieldDto(
@@ -6,4 +8,8 @@ public sealed record TileFieldDto(
     string Label,
     IReadOnlyList<TransformationStepDto> Transformations,
     bool Hidden,
-    string Role);
+    string Role)
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public TileFieldCombinationDto Combine { get; init; }
+}

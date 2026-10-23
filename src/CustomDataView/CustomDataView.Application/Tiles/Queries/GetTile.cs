@@ -28,7 +28,12 @@ public sealed class GetTileHandler(ITileRepository repository, TileContracts con
                     field.Label,
                     field.Transformations.Select(step => new TransformationStepDto(step.Key, step.Parameter)).ToList(),
                     field.Hidden,
-                    field.Role))
+                    field.Role)
+                {
+                    Combine = field.Combination is { } combination
+                        ? new TileFieldCombinationDto(combination.Key, combination.Parameter, combination.Fields)
+                        : null
+                })
             ],
             definition.Children
                 .Select(child => new TileChildDto(child.Key, child.TileId, child.Position, child.CssClass, child.Scope, child.Load, child.Label))

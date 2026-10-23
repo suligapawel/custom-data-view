@@ -388,6 +388,23 @@ public class FieldCombinationTests : TileApiTests
         Assert.That(conflict["tiles"]!.AsArray().Select(tile => tile!["id"]!.GetValue<Guid>()), Is.EqualTo(new[] { panelId }));
     }
 
+    [Test(Description = $"{Dir} - #15")]
+    public async Task Given_TileWithJoinField_When_UserReadsDetails_Then_FieldHasCombinationAndContractExposesIt()
+    {
+        var id = await CreateTile(Address(Combined("Miejsce", "join", ", ", ["Ulica", "Miasto"])));
+
+        var tile = await GetTile(id);
+
+        var field = tile["fields"]![5]!;
+        Assert.That(
+            JsonNode.DeepEquals(field["combine"], JsonNode.Parse("""{"key": "join", "parameter": ", ", "fields": ["Ulica", "Miasto"]}""")),
+            Is.True,
+            tile.ToJsonString());
+        Assert.That(field["source"], Is.Null);
+        Assert.That(field["path"], Is.Null);
+        Assert.That(tile["contract"]!["outputs"]!["fields"]!.AsArray().Select(label => label!.GetValue<string>()), Does.Contain("Miejsce"));
+    }
+
     private async Task<Guid> CreateWeatherTile()
     {
         var weatherConnectionId = await CreateConnection(new
