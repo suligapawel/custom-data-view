@@ -77,6 +77,7 @@ public sealed class PostgresTileRepository(IDbContextFactory<CustomDataViewDbCon
         context.TileFormFields.Where(field => field.TileId == tile.Id).ExecuteDelete();
         context.TileChildren.Where(child => child.ParentTileId == tile.Id).ExecuteDelete();
         context.TileActions.Where(action => action.TileId == tile.Id).ExecuteDelete();
+        context.TileFields.Where(field => field.TileId == tile.Id).ExecuteDelete();
         context.TileSources.Where(source => source.TileId == tile.Id).ExecuteDelete();
         context.TileSources.AddRange(ToSourceRows(tile));
         context.TileFields.AddRange(ToFieldRows(tile));
@@ -207,6 +208,9 @@ public sealed class PostgresTileRepository(IDbContextFactory<CustomDataViewDbCon
             .ThenInclude(action => action.Mappings.OrderBy(mapping => mapping.Position))
             .Include(tile => tile.Fields.OrderBy(field => field.Position))
             .ThenInclude(field => field.Transformations.OrderBy(transformation => transformation.Position))
+            .Include(tile => tile.Fields.OrderBy(field => field.Position))
+            .ThenInclude(field => field.Combination)
+            .ThenInclude(combination => combination.Fields.OrderBy(input => input.Position))
             .AsSplitQuery();
 
     private static List<TileSourceRow> ToSourceRows(Tile tile)
@@ -323,7 +327,25 @@ public sealed class PostgresTileRepository(IDbContextFactory<CustomDataViewDbCon
                         Key = step.Key,
                         Parameter = step.Parameter
                     })
-                    .ToList()
+                    .ToList(),
+                Combination = field.Combination is { } combination
+                    ? new TileFieldCombinationRow
+                    {
+                        TileId = tile.Id,
+                        FieldLabel = field.Label,
+                        Key = combination.Key,
+                        Parameter = combination.Parameter,
+                        Fields = combination.Fields
+                            .Select((input, position) => new TileFieldCombinationFieldRow
+                            {
+                                TileId = tile.Id,
+                                FieldLabel = field.Label,
+                                Position = position,
+                                InputLabel = input
+                            })
+                            .ToList()
+                    }
+                    : null
             })
             .ToList();
 
@@ -340,7 +362,12 @@ public sealed class PostgresTileRepository(IDbContextFactory<CustomDataViewDbCon
                     field.Label,
                     field.Transformations.Select(step => new TransformationStep(step.Key, step.Parameter)).ToList(),
                     field.Hidden,
-                    field.Role))
+                    field.Role)
+                {
+                    Combination = field.Combination is { } combination
+                        ? new TileFieldCombination(combination.Key, combination.Parameter, combination.Fields.Select(input => input.InputLabel).ToList())
+                        : null
+                })
                 .ToList())
         {
             Pagination = tile.PaginationPageSize is null

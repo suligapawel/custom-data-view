@@ -336,6 +336,7 @@ public class PostgresTileRepositoryTests
             TileDisplays.Details,
             fields
                 .Select(field => field.Source)
+                .Where(source => source is not null)
                 .Distinct()
                 .Select(source => new TileSource(
                     source,
@@ -344,6 +345,40 @@ public class PostgresTileRepositoryTests
                 .ToList(),
             null,
             fields);
+
+    [Test]
+    public void Given_TileWithCombinedFields_When_ItIsSavedAndUpdated_Then_CombinationsRoundTrip()
+    {
+        var tile = new Tile(Guid.NewGuid(), Definition("Adres",
+        [
+            new TileField("customer", "$.street", "Ulica", [], Hidden: true),
+            new TileField("customer", "$.city", "Miasto", [], Hidden: true),
+            new TileField(null, null, "Miejsce", [new TransformationStep("uppercase")])
+            {
+                Combination = new TileFieldCombination("join", ", ", ["Ulica", "Miasto"])
+            },
+            new TileField(null, null, "Adres", []) { Combination = new TileFieldCombination("template", "{Ulica}, {Miasto}", []) }
+        ]));
+
+        repository.Add(tile);
+
+        Assert.That(Json(repository.Get(tile.Id)), Is.EqualTo(Json(tile)));
+
+        var updated = tile with
+        {
+            Definition = tile.Definition with
+            {
+                Fields =
+                [
+                    tile.Definition.Fields[0],
+                    new TileField(null, null, "Punkt", []) { Combination = new TileFieldCombination("object", null, ["Ulica"]) }
+                ]
+            }
+        };
+        repository.Update(updated);
+
+        Assert.That(Json(repository.Get(tile.Id)), Is.EqualTo(Json(updated)));
+    }
 
     private static string Json(Tile tile) => JsonSerializer.Serialize(tile);
 

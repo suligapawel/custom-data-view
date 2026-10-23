@@ -365,6 +365,63 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileFieldCombinationFieldRow", b =>
+                {
+                    b.Property<Guid>("TileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tile_id");
+
+                    b.Property<string>("FieldLabel")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("field_label");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.Property<string>("InputLabel")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("input_label");
+
+                    b.HasKey("TileId", "FieldLabel", "Position")
+                        .HasName("pk_tile_field_combination_fields");
+
+                    b.ToTable("tile_field_combination_fields", "custom_data_view", t =>
+                        {
+                            t.HasCheckConstraint("ck_tile_field_combination_fields_position", "position >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileFieldCombinationRow", b =>
+                {
+                    b.Property<Guid>("TileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tile_id");
+
+                    b.Property<string>("FieldLabel")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("field_label");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("key");
+
+                    b.Property<string>("Parameter")
+                        .HasColumnType("text")
+                        .HasColumnName("parameter");
+
+                    b.HasKey("TileId", "FieldLabel")
+                        .HasName("pk_tile_field_combinations");
+
+                    b.ToTable("tile_field_combinations", "custom_data_view");
+                });
+
             modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileFieldRow", b =>
                 {
                     b.Property<Guid>("TileId")
@@ -396,7 +453,6 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                         .HasComputedColumnSql("lower(btrim(label))", true);
 
                     b.Property<string>("Path")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("path");
 
@@ -406,7 +462,6 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                         .HasColumnName("role");
 
                     b.Property<string>("SourceKey")
-                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("source_key");
@@ -429,6 +484,8 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("ck_tile_fields_position", "position >= 0");
 
                             t.HasCheckConstraint("ck_tile_fields_role", "role IN ('title', 'subtitle', 'badge', 'primary', 'secondary')");
+
+                            t.HasCheckConstraint("ck_tile_fields_source", "(source_key IS NULL) = (path IS NULL)");
                         });
                 });
 
@@ -727,6 +784,27 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_tile_children_parent_tile_id");
                 });
 
+            modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileFieldCombinationFieldRow", b =>
+                {
+                    b.HasOne("CustomDataView.Infrastructure.Persistence.Rows.TileFieldCombinationRow", null)
+                        .WithMany("Fields")
+                        .HasForeignKey("TileId", "FieldLabel")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_tile_field_combination_fields_combination");
+                });
+
+            modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileFieldCombinationRow", b =>
+                {
+                    b.HasOne("CustomDataView.Infrastructure.Persistence.Rows.TileFieldRow", null)
+                        .WithOne("Combination")
+                        .HasForeignKey("CustomDataView.Infrastructure.Persistence.Rows.TileFieldCombinationRow", "TileId", "FieldLabel")
+                        .HasPrincipalKey("CustomDataView.Infrastructure.Persistence.Rows.TileFieldRow", "TileId", "Label")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_tile_field_combinations_field");
+                });
+
             modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileFieldRow", b =>
                 {
                     b.HasOne("CustomDataView.Infrastructure.Persistence.Rows.TileRow", null)
@@ -740,7 +818,6 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("TileId", "SourceKey")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
                         .HasConstraintName("fk_tile_fields_source");
                 });
 
@@ -795,8 +872,15 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                     b.Navigation("Mappings");
                 });
 
+            modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileFieldCombinationRow", b =>
+                {
+                    b.Navigation("Fields");
+                });
+
             modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileFieldRow", b =>
                 {
+                    b.Navigation("Combination");
+
                     b.Navigation("Transformations");
                 });
 

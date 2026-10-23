@@ -19,4 +19,6 @@ public sealed class TileFieldRow
     public string Role { get; set; }
 
     public List<TileFieldTransformationRow> Transformations { get; set; } = [];
+
+    public TileFieldCombinationRow Combination { get; set; }
 }

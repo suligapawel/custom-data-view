@@ -12,12 +12,13 @@ public sealed class TileFieldRowConfiguration : IEntityTypeConfiguration<TileFie
         {
             table.HasCheckConstraint("ck_tile_fields_position", "position >= 0");
             table.HasCheckConstraint("ck_tile_fields_role", "role IN ('title', 'subtitle', 'badge', 'primary', 'secondary')");
+            table.HasCheckConstraint("ck_tile_fields_source", "(source_key IS NULL) = (path IS NULL)");
         });
         builder.HasKey(field => new { field.TileId, field.Position }).HasName("pk_tile_fields");
         builder.Property(field => field.TileId).HasColumnName("tile_id");
         builder.Property(field => field.Position).HasColumnName("position").ValueGeneratedNever();
-        builder.Property(field => field.SourceKey).HasColumnName("source_key").HasMaxLength(50).IsRequired();
-        builder.Property(field => field.Path).HasColumnName("path").HasColumnType("text").IsRequired();
+        builder.Property(field => field.SourceKey).HasColumnName("source_key").HasMaxLength(50);
+        builder.Property(field => field.Path).HasColumnName("path").HasColumnType("text");
         builder.Property(field => field.Label).HasColumnName("label").HasMaxLength(100).IsRequired();
         builder.Property(field => field.NormalizedLabel)
             .HasColumnName("normalized_label")
@@ -41,6 +42,12 @@ public sealed class TileFieldRowConfiguration : IEntityTypeConfiguration<TileFie
             .HasPrincipalKey(field => new { field.TileId, field.Label })
             .HasForeignKey(transformation => new { transformation.TileId, transformation.FieldLabel })
             .HasConstraintName("fk_tile_field_transformations_field")
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne(field => field.Combination)
+            .WithOne()
+            .HasPrincipalKey<TileFieldRow>(field => new { field.TileId, field.Label })
+            .HasForeignKey<TileFieldCombinationRow>(combination => new { combination.TileId, combination.FieldLabel })
+            .HasConstraintName("fk_tile_field_combinations_field")
             .OnDelete(DeleteBehavior.Cascade);
     }
 }
