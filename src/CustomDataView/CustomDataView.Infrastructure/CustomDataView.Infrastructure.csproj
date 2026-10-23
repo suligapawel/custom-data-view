@@ -22,4 +22,8 @@
     <ProjectReference Include="..\CustomDataView.Application\CustomDataView.Application.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Persistence\Migrations\" />
+  </ItemGroup>
+
 </Project>
