@@ -50,7 +50,12 @@ public sealed record TileInput(
                         .Select(step => new TransformationStep(step.Key, TransformationParameterValues.ToText(step.Parameter)))
                         .ToList(),
                     field.Hidden,
-                    string.IsNullOrWhiteSpace(field.Role) ? null : field.Role))
+                    string.IsNullOrWhiteSpace(field.Role) ? null : field.Role)
+                {
+                    Combination = field.Combine is { } combine
+                        ? new TileFieldCombination(combine.Key, TransformationParameterValues.ToText(combine.Parameter), combine.Fields ?? [])
+                        : null
+                })
                 .ToList())
         {
             Pagination = Pagination is null

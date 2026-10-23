@@ -6,4 +6,9 @@ public sealed record TileField(
     string Label,
     IReadOnlyList<TransformationStep> Transformations,
     bool Hidden = false,
-    string Role = null);
+    string Role = null)
+{
+    public TileFieldCombination Combination { get; init; }
+
+    public bool IsCombined => Combination is not null;
+}

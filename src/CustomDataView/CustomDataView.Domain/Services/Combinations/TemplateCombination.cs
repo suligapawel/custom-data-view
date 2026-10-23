@@ -1,4 +1,7 @@
+using System.Text;
+using System.Text.Json.Nodes;
 using CustomDataView.Domain.Dictionaries;
+using CustomDataView.Domain.Policies;
 using CustomDataView.Domain.ValueObjects;
 
 namespace CustomDataView.Domain.Services.Combinations;
@@ -19,4 +22,21 @@ public sealed class TemplateCombination : Combination
     public override int MinFields => 0;
 
     public override int? MaxFields => 0;
+
+    public override IReadOnlyList<string> Inputs(string parameter, IReadOnlyList<string> fields)
+        => TemplatePattern.TryParse(parameter, out var pattern) ? pattern.Labels.Distinct(StringComparer.OrdinalIgnoreCase).ToList() : [];
+
+    public override JsonNode Combine(string parameter, IReadOnlyList<CombinationInput> inputs)
+    {
+        TemplatePattern.TryParse(parameter, out var pattern);
+        var text = new StringBuilder();
+        foreach (var part in pattern.Parts)
+        {
+            text.Append(part.IsLabel
+                ? CombinationValue.ToText(Key, inputs.First(input => TileLabels.AreEqual(input.Label, part.Text)).Value)
+                : part.Text);
+        }
+
+        return JsonValue.Create(text.ToString());
+    }
 }

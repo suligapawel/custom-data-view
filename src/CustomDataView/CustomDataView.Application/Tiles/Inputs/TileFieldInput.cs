@@ -15,4 +15,6 @@ public sealed record TileFieldInput(
     public bool Required { get; init; }
 
     public JsonNode Default { get; init; }
+
+    public TileFieldCombinationInput Combine { get; init; }
 }

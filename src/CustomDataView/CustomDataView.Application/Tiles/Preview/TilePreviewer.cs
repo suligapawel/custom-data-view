@@ -11,6 +11,7 @@ using CustomDataView.Domain.Entities;
 using CustomDataView.Domain.Policies;
 using CustomDataView.Domain.Repositories;
 using CustomDataView.Domain.Services;
+using CustomDataView.Domain.Services.Combinations;
 using CustomDataView.Domain.Services.Transformations;
 using CustomDataView.Domain.ValueObjects;
 
@@ -22,9 +23,13 @@ public sealed class TilePreviewer(
     IConnectionFactory factory,
     ITransformationService transformations,
     TileContracts contracts,
-    TimeProvider time)
+    TimeProvider time,
+    IEnumerable<ICombination> combinations)
 {
     public const int MaxItemInstances = 50;
+
+    private readonly Dictionary<string, ICombination> combinations =
+        combinations.ToDictionary(combination => combination.Key, StringComparer.Ordinal);
 
     public async Task<TilePreview> Preview(Guid id, TilePreviewValues values, CancellationToken cancellationToken)
     {
@@ -54,7 +59,7 @@ public sealed class TilePreviewer(
             return new TilePreview(id, definition.Name, definition.Display, TileFormValues.Preview(definition.FormFields, context.Values.Form(address)));
         }
 
-        var instance = new TileInstance(definition, delivered, address);
+        var instance = new TileInstance(definition, delivered, address, this);
         var nodes = definition.Sources.Select(source => source.Key).Concat(definition.Children.Select(child => child.Key)).ToList();
         var edges = TileBindingsValidator.Edges(definition).ToList();
         if (definition.Items is not null)
@@ -225,7 +230,7 @@ public sealed class TilePreviewer(
 
     private async Task ExecuteItemChild(TileInstance instance, TileChild child, PreviewContext context)
     {
-        if (instance.Items(PreviewField) is { } items)
+        if (instance.Items() is { } items)
         {
             await Task.WhenAll(items.Select(item => ExecuteChild(instance, child, item, context)));
         }
@@ -292,10 +297,10 @@ public sealed class TilePreviewer(
             var field = definition.Fields.First(candidate => TileLabels.AreEqual(candidate.Label, mapping.Field));
             if (definition.Items is null || field.Source != definition.Items.Source)
             {
-                return Value(instance.Field(field, PreviewField), field.Source, instance.Address);
+                return Value(instance.Field(field), field.Source, instance.Address);
             }
 
-            var items = instance.Items(PreviewField);
+            var items = instance.Items();
             if (items is null)
             {
                 return BoundValue.Failed(new TileFieldErrorCause(field.Source, field.Label, instance.Result(field.Source).Error.Code));
@@ -470,7 +475,7 @@ public sealed class TilePreviewer(
                 definition,
                 TileActionScopes.Tile,
                 targets,
-                label => instance.Field(definition.Fields.First(field => TileLabels.AreEqual(field.Label, label)), PreviewField))
+                label => instance.Field(definition.Fields.First(field => TileLabels.AreEqual(field.Label, label))))
         };
         if (definition.Display == TileDisplays.Tabs)
         {
@@ -479,11 +484,11 @@ public sealed class TilePreviewer(
 
         if (definition.Items is null)
         {
-            return preview with { Fields = definition.Fields.Select(field => instance.Field(field, PreviewField)).ToList() };
+            return preview with { Fields = definition.Fields.Select(field => instance.Field(field)).ToList() };
         }
 
         preview = preview with { ItemKey = definition.Items.Key };
-        var items = instance.Items(PreviewField);
+        var items = instance.Items();
         if (items is null)
         {
             return preview with { ItemsError = instance.Result(definition.Items.Source).Error };
@@ -565,7 +570,19 @@ public sealed class TilePreviewer(
         return new TileFieldPreview(field.Label, path.IsCollection ? new JsonArray(values) : values.Single(), null, field.Hidden);
     }
 
-    private sealed class TileInstance(TileDefinition definition, TileValues delivered, string address)
+    private TileFieldPreview CombineField(TileField field, Func<string, TileFieldPreview> input)
+    {
+        var combination = combinations[field.Combination.Key];
+        var inputs = combination.Inputs(field.Combination.Parameter, field.Combination.Fields)
+            .Select(label => input(label))
+            .Select(preview => new CombinationInput(preview.Label, preview.Value))
+            .ToList();
+        var value = combination.Combine(field.Combination.Parameter, inputs);
+        var result = transformations.Apply(TransformationValue.FromJson(value), field.Transformations);
+        return new TileFieldPreview(field.Label, TransformationValue.ToJson(result.Value), null, field.Hidden);
+    }
+
+    private sealed class TileInstance(TileDefinition definition, TileValues delivered, string address, TilePreviewer previewer)
     {
         private readonly ConcurrentDictionary<string, SourceResult> results = new(StringComparer.Ordinal);
         private readonly ConcurrentDictionary<TileField, TileFieldPreview> fields = new();
@@ -590,10 +607,12 @@ public sealed class TilePreviewer(
 
         public TileEmbeddingPreview Embedding(TileChild child, ItemInstance item) => embeddings[(child.Key, item?.Index ?? -1)];
 
-        public TileFieldPreview Field(TileField field, Func<TileField, SourceResult, TileFieldPreview> preview)
-            => fields.GetOrAdd(field, candidate => preview(candidate, results[candidate.Source]));
+        public TileFieldPreview Field(TileField field)
+            => fields.GetOrAdd(field, candidate => candidate.IsCombined
+                ? previewer.CombineField(candidate, label => Field(Definition.Fields.First(input => TileLabels.AreEqual(input.Label, label))))
+                : previewer.PreviewField(candidate, results[candidate.Source]));
 
-        public IReadOnlyList<ItemInstance> Items(Func<TileField, JsonNode, TileFieldPreview> preview)
+        public IReadOnlyList<ItemInstance> Items()
         {
             lock (itemsLock)
             {
@@ -614,7 +633,7 @@ public sealed class TilePreviewer(
                 return items = path.Evaluate(source.Body)
                     .Select((element, index) =>
                     {
-                        var values = itemFields.Select(field => preview(field, element)).ToList();
+                        var values = itemFields.Select(field => previewer.PreviewField(field, element)).ToList();
                         var key = values.First(value => TileLabels.AreEqual(value.Label, Definition.Items.Key)).Value;
                         return new ItemInstance(index, key, values);
                     })

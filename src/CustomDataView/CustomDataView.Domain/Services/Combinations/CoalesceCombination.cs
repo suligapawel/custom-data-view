@@ -1,3 +1,6 @@
+using System.Text.Json.Nodes;
+using CustomDataView.Domain.ValueObjects;
+
 namespace CustomDataView.Domain.Services.Combinations;
 
 public sealed class CoalesceCombination : Combination
@@ -9,4 +12,7 @@ public sealed class CoalesceCombination : Combination
     public override string Description => "Zwraca pierwszą wartość pól różną od braku wartości.";
 
     public override int MinFields => 2;
+
+    public override JsonNode Combine(string parameter, IReadOnlyList<CombinationInput> inputs)
+        => throw new NotSupportedException();
 }

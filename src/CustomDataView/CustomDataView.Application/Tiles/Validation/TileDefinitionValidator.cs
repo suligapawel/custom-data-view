@@ -441,6 +441,12 @@ public static class TileDefinitionValidator
 
     private static void ValidateField(TileFieldInput field, string key, HashSet<string> sources, Dictionary<string, string[]> errors)
     {
+        if (field.Combine is not null)
+        {
+            ValidateTransformations(field, key, errors);
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(field.Source))
         {
             errors[$"{key}.source"] = ["Źródło pola jest wymagane."];
@@ -455,6 +461,11 @@ public static class TileDefinitionValidator
             errors[$"{key}.path"] = [$"Ścieżka pola {key} jest wymagana i musi być poprawną ścieżką JSONPath."];
         }
 
+        ValidateTransformations(field, key, errors);
+    }
+
+    private static void ValidateTransformations(TileFieldInput field, string key, Dictionary<string, string[]> errors)
+    {
         for (var position = 0; position < field.Transformations.Count; position++)
         {
             if (!TransformationParameterValues.IsStorable(field.Transformations[position].Parameter))

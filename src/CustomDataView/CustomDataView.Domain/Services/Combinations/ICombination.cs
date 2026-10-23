@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using CustomDataView.Domain.ValueObjects;
 
 namespace CustomDataView.Domain.Services.Combinations;
@@ -15,4 +16,8 @@ public interface ICombination
     int MinFields { get; }
 
     int? MaxFields { get; }
+
+    IReadOnlyList<string> Inputs(string parameter, IReadOnlyList<string> fields);
+
+    JsonNode Combine(string parameter, IReadOnlyList<CombinationInput> inputs);
 }

@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using CustomDataView.Domain.Dictionaries;
 using CustomDataView.Domain.ValueObjects;
 
@@ -15,4 +16,7 @@ public sealed class JoinCombination : Combination
     public override string Description => "Łączy wartości pól w kolejności listy separatorem; pomija brak wartości i rozkłada listy.";
 
     public override CombinationParameterDescriptor Parameter => SeparatorParameter;
+
+    public override JsonNode Combine(string parameter, IReadOnlyList<CombinationInput> inputs)
+        => throw new NotSupportedException();
 }

@@ -38,7 +38,13 @@ public sealed record TileRequest(
                 {
                     Type = field.Type,
                     Required = field.Required ?? false,
-                    Default = field.Default is { } value ? JsonNode.Parse(value.GetRawText()) : null
+                    Default = field.Default is { } value ? JsonNode.Parse(value.GetRawText()) : null,
+                    Combine = field.Combine is { } combine
+                        ? new TileFieldCombinationInput(
+                            combine.Key,
+                            combine.Parameter is { } parameter ? JsonNode.Parse(parameter.GetRawText()) : null,
+                            combine.Fields ?? [])
+                        : null
                 })
                 .ToList())
         {
@@ -104,6 +110,9 @@ public sealed record TileFieldRequest(
     string Role,
     string Type,
     bool? Required,
-    JsonElement? Default);
+    JsonElement? Default,
+    TileFieldCombinationRequest Combine);
+
+public sealed record TileFieldCombinationRequest(string Key, JsonElement? Parameter, IReadOnlyList<string> Fields);
 
 public sealed record TransformationStepRequest(string Key, JsonElement? Parameter);
