@@ -68,6 +68,23 @@ public class TabsTileTests : TileApiTests
         Assert.That(results["tile"]!["items"]![0]!["key"]?.GetValue<int>(), Is.EqualTo(1));
     }
 
+    [Test(Description = $"{Dir} - #3")]
+    public async Task Given_RequiredFormFieldInTab_When_UserPreviewsSearchWithoutCity_Then_ResultsAwaitFormValue()
+    {
+        await Client.PutAsJsonAsync($"{TilesUrl}/{nameFormId}", Form("Nazwa miasta", "Miasto", true));
+        var id = await CreateTile(Search(await CreateTile(Filters(lazyCountry: false))));
+
+        var preview = await Preview(id, new { });
+
+        var results = preview["children"]![1]!;
+        Assert.That(results["state"]?.GetValue<string>(), Is.EqualTo("awaiting_input"), results.ToJsonString());
+        Assert.That(
+            JsonNode.DeepEquals(results["pending"], JsonNode.Parse("""[{"from": "filters/byName", "field": "Miasto", "parameter": "name"}]""")),
+            Is.True,
+            results.ToJsonString());
+        Assert.That(Factory.ExternalApi.Requests, Is.Empty);
+    }
+
     private JsonObject Search(Guid filtersId)
         => new()
         {
