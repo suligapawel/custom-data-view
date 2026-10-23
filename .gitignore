@@ -8,3 +8,4 @@ riderModule.iml
 .claude/
 .codex/
 node_modules/
+*.DotSettings.user
