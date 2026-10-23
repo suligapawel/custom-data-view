@@ -85,14 +85,12 @@ Then  zapis zostaje odrzucony z błędem walidacji wskazującym dziecko
 
 #### Scenario #6
 
-Cykle zawierania i limit trzech poziomów
+Cykle zawierania (limit poziomów zniesiony w TEMP-041)
 
 ```
 Given kafelek "Dostawa" zawiera kafelek "Przewoźnik"
 When  użytkownik edytuje kafelek "Przewoźnik", dodając dziecko "Dostawa"
 Then  zapis zostaje odrzucony z błędem cyklu zawierania
-When  użytkownik zapisuje kafelek "Pulpit" z dzieckiem "Klient i dostawa" (razem 4 poziomy)
-Then  zapis zostaje odrzucony z błędem przekroczenia 3 poziomów
 ```
 
 #### Scenario #7

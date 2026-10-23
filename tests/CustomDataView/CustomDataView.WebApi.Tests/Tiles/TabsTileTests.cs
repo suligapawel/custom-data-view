@@ -173,6 +173,30 @@ public class TabsTileTests : TileApiTests
         await AssertRejected(search, errorKey);
     }
 
+    [Test(Description = $"{Dir} - #7")]
+    public async Task Given_ChainOfFourLevels_When_UserSavesTopTileAndThenCreatesCycle_Then_TopIsSavedAndCycleIsRejected()
+    {
+        var filtersId = await CreateTile(Filters());
+        var searchId = await CreateTile(Search(filtersId));
+        var top = new JsonObject
+        {
+            ["name"] = "Pulpit",
+            ["display"] = "tabs",
+            ["children"] = new JsonArray(new JsonObject { ["key"] = "search", ["label"] = "Szukaj", ["tileId"] = searchId, ["position"] = 0 })
+        };
+
+        var saved = await Client.PostAsJsonAsync(TilesUrl, top);
+
+        Assert.That(saved.StatusCode, Is.EqualTo(HttpStatusCode.Created), await saved.Content.ReadAsStringAsync());
+        var topId = (await saved.Content.ReadFromJsonAsync<CreatedTile>()).Id;
+        var cycle = Filters();
+        cycle["children"]!.AsArray().Add(new JsonObject { ["key"] = "top", ["label"] = "Pulpit", ["tileId"] = topId, ["position"] = 2 });
+        var response = await Client.PutAsJsonAsync($"{TilesUrl}/{filtersId}", cycle);
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        var problem = await response.Content.ReadFromJsonAsync<JsonObject>();
+        Assert.That(problem["errors"]!.AsObject().Select(error => error.Key), Does.Contain("children[2].tileId"), problem.ToJsonString());
+    }
+
     private async Task AssertRejected(JsonObject tile, string errorKey)
     {
         var response = await Client.PostAsJsonAsync(TilesUrl, tile);

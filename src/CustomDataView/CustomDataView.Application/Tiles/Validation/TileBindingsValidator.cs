@@ -10,8 +10,6 @@ namespace CustomDataView.Application.Tiles.Validation;
 
 public static class TileBindingsValidator
 {
-    public const int MaxPathSegments = 2;
-
     public static void ValidateShape(TileInput input, Dictionary<string, string[]> errors)
     {
         var pairs = new HashSet<(string, string)>();
@@ -27,10 +25,6 @@ public static class TileBindingsValidator
             if (string.IsNullOrWhiteSpace(binding.To))
             {
                 errors[$"{key}.to"] = ["Węzeł docelowy wiązania jest wymagany."];
-            }
-            else if (binding.To.Split(TileNodeKeys.PathSeparator).Length > MaxPathSegments)
-            {
-                errors[$"{key}.to"] = [$"Ścieżka osadzeń w kafelku może mieć najwyżej {MaxPathSegments} segmenty."];
             }
             else if (binding.To.Split(TileNodeKeys.PathSeparator)[0] == binding.From?.Split(TileNodeKeys.PathSeparator)[0])
             {
@@ -133,8 +127,7 @@ public static class TileBindingsValidator
                 }
                 else
                 {
-                    var intermediate = segments.Length > 1 ? tileOf(toChild.TileId) : null;
-                    ValidateTileTarget(target.Value, intermediate, segments, mapping, contracts, mappingKey, errors);
+                    ValidateTileTarget(target.Value, segments, mapping, contracts, mappingKey, errors);
                 }
 
                 var name = mapping.Parameter ?? mapping.Input;
@@ -207,22 +200,27 @@ public static class TileBindingsValidator
         return tile;
     }
 
-    private static (TileChild Child, TileDefinition Tile)? Target(TileChild child, string[] segments, Func<Guid, TileDefinition> tileOf)
+    private static (TileChild Child, TileDefinition Tile, IReadOnlyList<TileDefinition> Intermediates)? Target(
+        TileChild child,
+        string[] segments,
+        Func<Guid, TileDefinition> tileOf)
     {
         var tile = tileOf(child.TileId);
-        if (tile is null)
+        var intermediates = new List<TileDefinition>();
+        foreach (var segment in segments.Skip(1))
         {
-            return null;
+            var descendant = tile?.Children.FirstOrDefault(candidate => candidate.Key == segment);
+            if (descendant is null)
+            {
+                return null;
+            }
+
+            intermediates.Add(tile);
+            child = descendant;
+            tile = tileOf(descendant.TileId);
         }
 
-        if (segments.Length == 1)
-        {
-            return (child, tile);
-        }
-
-        var descendant = tile.Children.FirstOrDefault(candidate => candidate.Key == segments[1]);
-        var descendantTile = descendant is null ? null : tileOf(descendant.TileId);
-        return descendantTile is null ? null : (descendant, descendantTile);
+        return tile is null ? null : (child, tile, intermediates);
     }
 
     private static void ValidateField(
@@ -305,8 +303,7 @@ public static class TileBindingsValidator
     }
 
     private static void ValidateTileTarget(
-        (TileChild Child, TileDefinition Tile) target,
-        TileDefinition intermediate,
+        (TileChild Child, TileDefinition Tile, IReadOnlyList<TileDefinition> Intermediates) target,
         string[] segments,
         TileBindingMapping mapping,
         TileContracts contracts,
@@ -325,13 +322,18 @@ public static class TileBindingsValidator
         }
 
         var name = mapping.Parameter ?? mapping.Input;
-        if (intermediate is not null && intermediate.Bindings
-                .Where(binding => binding.To == segments[1])
+        for (var index = 0; index < target.Intermediates.Count; index++)
+        {
+            var rest = string.Join(TileNodeKeys.PathSeparator, segments.Skip(index + 1));
+            if (target.Intermediates[index].Bindings
+                .Where(binding => binding.To == rest)
                 .SelectMany(binding => binding.Map)
                 .Any(bound => (bound.Parameter ?? bound.Input) == name))
-        {
-            errors[$"{key}.{(mapping.Parameter is null ? "input" : "parameter")}"] =
-                [$"Wejście '{name}' kafelka '{string.Join('/', segments)}' jest już związane przez kafelek '{segments[0]}'."];
+            {
+                errors[$"{key}.{(mapping.Parameter is null ? "input" : "parameter")}"] =
+                    [$"Wejście '{name}' kafelka '{string.Join(TileNodeKeys.PathSeparator, segments)}' jest już związane przez kafelek '{string.Join(TileNodeKeys.PathSeparator, segments.Take(index + 1))}'."];
+                break;
+            }
         }
     }
 }

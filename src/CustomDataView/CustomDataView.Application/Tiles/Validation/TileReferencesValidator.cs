@@ -15,8 +15,6 @@ public sealed class TileReferencesValidator(
     TileContracts contracts,
     IEnumerable<ITransformation> transformations)
 {
-    public const int MaxLevels = 3;
-
     private readonly HashSet<string> catalog =
         transformations.Select(transformation => transformation.Key).ToHashSet(StringComparer.Ordinal);
 
@@ -96,30 +94,10 @@ public sealed class TileReferencesValidator(
             }
         }
 
-        if (valid && Levels(definition, tileOf, []) + (tileId is { } saved ? LevelsAbove(saved, []) : 0) > MaxLevels)
-        {
-            errors["children"] = [$"Kafelki mogą być zagnieżdżone najwyżej na {MaxLevels} poziomach."];
-            valid = false;
-        }
-
         return valid;
     }
 
     private static bool Contains(TileDefinition tile, Guid id, Func<Guid, TileDefinition> tileOf, HashSet<Guid> visited)
         => tile.Children.Any(child => child.TileId == id
             || (visited.Add(child.TileId) && tileOf(child.TileId) is { } descendant && Contains(descendant, id, tileOf, visited)));
-
-    private static int Levels(TileDefinition tile, Func<Guid, TileDefinition> tileOf, HashSet<Guid> visited)
-        => 1 + tile.Children
-            .Where(child => visited.Add(child.TileId))
-            .Select(child => tileOf(child.TileId) is { } descendant ? Levels(descendant, tileOf, [.. visited]) : 0)
-            .DefaultIfEmpty(0)
-            .Max();
-
-    private int LevelsAbove(Guid tileId, HashSet<Guid> visited)
-        => tiles.GetParents(tileId)
-            .Where(parent => visited.Add(parent.Id))
-            .Select(parent => 1 + LevelsAbove(parent.Id, visited))
-            .DefaultIfEmpty(0)
-            .Max();
 }

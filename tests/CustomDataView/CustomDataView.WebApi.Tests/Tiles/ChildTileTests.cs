@@ -176,19 +176,14 @@ public class ChildTileTests : TileApiTests
     }
 
     [Test(Description = "scenario_TEMP-036 - #6")]
-    public async Task Given_NestedTiles_When_UserCreatesCycleOrFourthLevel_Then_SaveIsRejected()
+    public async Task Given_NestedTiles_When_UserCreatesCycle_Then_SaveIsRejected()
     {
         var carrier = DataTile("Przewoźnik", ("carrier", carrierConnectionId), Data("carrier", "$.name", "Nazwa przewoźnika"));
         carrier["children"] = new JsonArray(Child("shipping", shippingTileId, 0));
-        var customerAndShippingId = await CreateTile(CustomerAndShipping(shippingTileId));
-        var dashboard = DataTile("Pulpit", ("client", clientConnectionId), Data("client", "$.name", "Nazwa"));
-        dashboard["children"] = new JsonArray(Child("main", customerAndShippingId, 0));
 
         var cycle = await Client.PutAsJsonAsync($"{TilesUrl}/{carrierTileId}", carrier);
-        var tooDeep = await Client.PostAsJsonAsync(TilesUrl, dashboard);
 
         await AssertRejected(cycle, "children[0].tileId");
-        await AssertRejected(tooDeep, "children");
     }
 
     [TestCase("parameter-outside-contract", "bindings[1].map[0].parameter")]
@@ -196,7 +191,7 @@ public class ChildTileTests : TileApiTests
     [TestCase("missing-grandchild", "bindings[0].to")]
     [TestCase("bound-by-intermediate", "bindings[0].map[0].parameter")]
     [TestCase("parent-to-source", "bindings[0].to")]
-    [TestCase("path-too-long", "bindings[0].to")]
+    [TestCase("missing-great-grandchild", "bindings[0].to")]
     [Test(Description = "scenario_TEMP-036 - #7")]
     public async Task Given_TileWithInvalidChildBinding_When_UserSavesIt_Then_SaveIsRejectedWithBindingError(string invalid, string errorKey)
     {
@@ -218,7 +213,7 @@ public class ChildTileTests : TileApiTests
                 tile["fields"] = new JsonArray(Data("orders", "$.count", "Liczba"));
                 bindings[0] = Binding("parent", "orders", ("Liczba", "customer"));
                 break;
-            case "path-too-long":
+            case "missing-great-grandchild":
                 bindings[0]!["to"] = "shipping/carrier/x";
                 break;
         }
