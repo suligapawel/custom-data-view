@@ -125,6 +125,46 @@ public class TabsTileTests : TileApiTests
             Is.SupersetOf(new[] { "https://api.example.com/cities/weather?cityId=7", "https://api.example.com/cities/weather?cityId=9" }));
     }
 
+    [TestCase("no-tabs", "children")]
+    [TestCase("tab-without-title", "children[0].label")]
+    [TestCase("item-tab", "children[0].scope")]
+    [TestCase("own-fields", "fields")]
+    [TestCase("own-sources", "sources")]
+    [Test(Description = $"{Dir} - #5")]
+    public async Task Given_InvalidTabsTile_When_UserSavesIt_Then_SaveIsRejected(string invalid, string errorKey)
+    {
+        var tile = Filters();
+        switch (invalid)
+        {
+            case "no-tabs":
+                tile["children"] = new JsonArray();
+                break;
+            case "tab-without-title":
+                tile["children"]![0]!.AsObject().Remove("label");
+                break;
+            case "item-tab":
+                tile["children"]![0]!["scope"] = "item";
+                break;
+            case "own-fields":
+                tile["fields"] = new JsonArray(new JsonObject { ["source"] = "note", ["path"] = "$", ["label"] = "Notatka" });
+                break;
+            case "own-sources":
+                tile["sources"] = new JsonArray(new JsonObject { ["key"] = "note", ["kind"] = "input" });
+                break;
+        }
+
+        await AssertRejected(tile, errorKey);
+    }
+
+    private async Task AssertRejected(JsonObject tile, string errorKey)
+    {
+        var response = await Client.PostAsJsonAsync(TilesUrl, tile);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        var problem = await response.Content.ReadFromJsonAsync<JsonObject>();
+        Assert.That(problem["errors"]!.AsObject().Select(error => error.Key), Does.Contain(errorKey), problem.ToJsonString());
+    }
+
     private JsonObject Search(Guid filtersId)
         => new()
         {
