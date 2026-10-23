@@ -99,6 +99,36 @@ public class TileActionTests : TileApiTests
             preview.ToJsonString());
     }
 
+    [Test(Description = $"{Dir} - #19")]
+    public async Task Given_FailingFieldOrChangedTarget_When_UserPreviewsResults_Then_ButtonHasError()
+    {
+        var results = Results();
+        results["fields"]!.AsArray().Add(new JsonObject { ["source"] = "cities", ["path"] = "$.code", ["label"] = "Kod" });
+        results["actions"]![0]!["map"]![0]!["field"] = "Kod";
+        var id = await CreateTile(results);
+
+        var failed = (await Preview(id, new { }))["items"]![0]!["actions"]![0]!;
+
+        Assert.That(
+            JsonNode.DeepEquals(
+                failed["error"],
+                JsonNode.Parse("""{"code": "dependency_failed", "cause": {"node": "cities", "field": "Kod", "code": "path_not_found"}}""")),
+            Is.True,
+            failed.ToJsonString());
+        Assert.That(failed["inputs"], Is.Null);
+
+        var city = City();
+        city["sources"] = new JsonArray(new JsonObject { ["key"] = "city", ["kind"] = "connection", ["connectionId"] = searchConnectionId });
+        await Client.PutAsJsonAsync($"{TilesUrl}/{cityTileId}", city);
+        results["actions"]![0]!["map"]![0]!["field"] = "ID";
+        await Client.PutAsJsonAsync($"{TilesUrl}/{id}", results);
+
+        var invalid = (await Preview(id, new { }))["items"]![0]!["actions"]![0]!;
+
+        Assert.That(invalid["error"]!["code"]?.GetValue<string>(), Is.EqualTo("invalid_binding"), invalid.ToJsonString());
+        Assert.That(invalid["error"]!["parameters"]![0]!["name"]?.GetValue<string>(), Is.EqualTo("city_id"));
+    }
+
     private JsonObject Results()
         => new()
         {

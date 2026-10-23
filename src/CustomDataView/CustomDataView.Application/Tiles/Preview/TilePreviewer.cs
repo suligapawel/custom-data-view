@@ -462,12 +462,14 @@ public sealed class TilePreviewer(
             .OrderBy(child => child.Position)
             .Select(child => instance.Embedding(child, null))
             .ToList();
+        var targets = definition.Actions.Select(action => action.TileId).Distinct().ToDictionary(tileId => tileId, TargetContract);
         var preview = new TilePreview(id, definition.Name, definition.Display, null)
         {
             Children = children.Count > 0 ? children : null,
             Actions = Actions(
                 definition,
                 TileActionScopes.Tile,
+                targets,
                 label => instance.Field(definition.Fields.First(field => TileLabels.AreEqual(field.Label, label)), PreviewField))
         };
         if (definition.Display == TileDisplays.Tabs)
@@ -500,20 +502,27 @@ public sealed class TilePreviewer(
                 .Select(item => new TileItemPreview(item.Key?.DeepClone(), item.Fields)
                 {
                     Children = itemChildren.Count > 0 ? itemChildren.Select(child => instance.Embedding(child, item)).ToList() : null,
-                    Actions = Actions(definition, TileActionScopes.Item, label => item.Field(label))
+                    Actions = Actions(definition, TileActionScopes.Item, targets, item.Field)
                 })
                 .ToList()
         };
     }
 
-    private static IReadOnlyList<TileActionPreview> Actions(TileDefinition definition, string scope, Func<string, TileFieldPreview> field)
+    private static IReadOnlyList<TileActionPreview> Actions(
+        TileDefinition definition,
+        string scope,
+        IReadOnlyDictionary<Guid, TileContract> targets,
+        Func<string, TileFieldPreview> field)
     {
         var actions = definition.Actions
             .Where(action => action.Scope == scope)
-            .Select(action => TileActionValues.Preview(action, field))
+            .Select(action => TileActionValues.Preview(action, definition, targets[action.TileId], field))
             .ToList();
         return actions.Count > 0 ? actions : null;
     }
+
+    private TileContract TargetContract(Guid tileId)
+        => tiles.Get(tileId) is { } target ? contracts.Of(target.Definition) : new TileContract([], [], new TileContractOutputs([], false));
 
     private static TileEmbeddingPreview Embedding(
         TileChild child,
