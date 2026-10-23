@@ -432,6 +432,29 @@ public class FieldCombinationTests : TileApiTests
         Assert.That(weather["tile"]!["fields"]![0]!["value"]?.GetValue<decimal>(), Is.EqualTo(12.5m));
     }
 
+    [Test(Description = $"{Dir} - #18")]
+    public async Task Given_TileLinkMappingCombinedField_When_UserPreviewsTile_Then_LinkCarriesComposedValue()
+    {
+        var mapTileId = await CreateWeatherTile();
+        var tile = Address(Combined("Współrzędne", "template", "{Lat},{Lon}"));
+        tile["actions"] = new JsonArray(new JsonObject
+        {
+            ["key"] = "map",
+            ["label"] = "Pokaż na mapie",
+            ["type"] = "link",
+            ["scope"] = "tile",
+            ["tileId"] = mapTileId,
+            ["map"] = new JsonArray(new JsonObject { ["field"] = "Współrzędne", ["parameter"] = "latlon" })
+        });
+        var id = await CreateTile(tile);
+
+        var preview = await Preview(id);
+
+        var link = preview["actions"]![0]!;
+        Assert.That(link["type"]?.GetValue<string>(), Is.EqualTo("link"), preview.ToJsonString());
+        Assert.That(link["inputs"]!["parameters"]!["latlon"]?.GetValue<string>(), Is.EqualTo("50.06,19.95"));
+    }
+
     private async Task<Guid> CreateWeatherTile()
     {
         var weatherConnectionId = await CreateConnection(new
