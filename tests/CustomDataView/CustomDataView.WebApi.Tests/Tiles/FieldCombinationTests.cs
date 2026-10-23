@@ -455,6 +455,22 @@ public class FieldCombinationTests : TileApiTests
         Assert.That(link["inputs"]!["parameters"]!["latlon"]?.GetValue<string>(), Is.EqualTo("50.06,19.95"));
     }
 
+    [Test(Description = $"{Dir} - #19")]
+    public async Task Given_TransformationFailingOnCombinedValue_When_UserPreviewsTile_Then_FieldHasTransformationErrorAndOthersRemain()
+    {
+        var id = await CreateTile(Address(Combined("Pełny adres", "template", "{Ulica} {Nr}, {Miasto}", transformations: [Transformation("round", 2)])));
+
+        var preview = await Preview(id);
+
+        Assert.That(
+            JsonNode.DeepEquals(
+                Field(preview, "Pełny adres"),
+                JsonNode.Parse("""{"label": "Pełny adres", "error": {"code": "transformation_failed", "transformation": "round", "reason": "invalid_value"}}""")),
+            Is.True,
+            preview.ToJsonString());
+        Assert.That(Value(preview, "Ulica"), Is.EqualTo("Długa"));
+    }
+
     private async Task<Guid> CreateWeatherTile()
     {
         var weatherConnectionId = await CreateConnection(new

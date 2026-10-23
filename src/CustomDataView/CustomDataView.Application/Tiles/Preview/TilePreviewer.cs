@@ -599,7 +599,9 @@ public sealed class TilePreviewer(
         }
 
         var result = transformations.Apply(TransformationValue.FromJson(value), field.Transformations);
-        return new TileFieldPreview(field.Label, TransformationValue.ToJson(result.Value), null, field.Hidden);
+        return result.Error is { } error
+            ? new TileFieldPreview(field.Label, null, new TileFieldError(error.Code, error.Key, error.Reason), field.Hidden)
+            : new TileFieldPreview(field.Label, TransformationValue.ToJson(result.Value), null, field.Hidden);
     }
 
     private sealed class TileInstance(TileDefinition definition, TileValues delivered, string address, TilePreviewer previewer)
