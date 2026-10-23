@@ -29,6 +29,24 @@ public sealed class CustomDataViewExceptionHandler : IExceptionHandler
             return true;
         }
 
+        if (exception is TileInUseException tileInUse)
+        {
+            await Results.Conflict(new TileInUseResponse(TileInUseResponse.TileInUseCode, tileInUse.Views, tileInUse.Tiles))
+                .ExecuteAsync(httpContext);
+            return true;
+        }
+
+        if (exception is FieldInUseException fieldInUse)
+        {
+            await Results.Conflict(new FieldInUseResponse(
+                    FieldInUseResponse.FieldInUseCode,
+                    fieldInUse.Fields,
+                    fieldInUse.Views,
+                    fieldInUse.Tiles))
+                .ExecuteAsync(httpContext);
+            return true;
+        }
+
         if (exception is BadHttpRequestException badRequest)
         {
             await Results.Problem(statusCode: badRequest.StatusCode, title: "Nieprawidłowe żądanie.").ExecuteAsync(httpContext);

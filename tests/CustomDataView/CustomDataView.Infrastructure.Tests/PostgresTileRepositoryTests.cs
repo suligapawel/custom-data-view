@@ -241,6 +241,32 @@ public class PostgresTileRepositoryTests
     }
 
     [Test]
+    public void Given_TileWithChildrenAndChildBinding_When_ParentsAndFieldUsesAreLoaded_Then_ParentAndBoundFieldAreReturned()
+    {
+        var child = new Tile(Guid.NewGuid(), Definition("Klient", [new TileField("customer", "$.id", "ID", [])]));
+        var parent = new Tile(Guid.NewGuid(), Definition("Kurs klienta", [new TileField("rate", "$.rate", "Kurs", [])]) with
+        {
+            Children =
+            [
+                new TileChild("customer", child.Id, 1, "col-6", TileChildScopes.Tile, TileChildLoads.Eager),
+                new TileChild("other", child.Id, 0, null, TileChildScopes.Tile, TileChildLoads.Lazy)
+            ],
+            Bindings = [new TileBinding("customer", "rate", [new TileBindingMapping("ID", "currency", null, null)])]
+        });
+        repository.Add(child);
+
+        repository.Add(parent);
+
+        Assert.That(Json(repository.Get(parent.Id)), Is.EqualTo(Json(parent with
+        {
+            Definition = parent.Definition with { Children = [.. parent.Definition.Children.OrderBy(embedded => embedded.Position)] }
+        })));
+        Assert.That(repository.GetParents(child.Id), Is.EqualTo(new[] { new TileReference(parent.Id, "Kurs klienta") }));
+        Assert.That(repository.GetFieldUses(child.Id), Is.EqualTo(new[] { new TileFieldUse(new TileReference(parent.Id, "Kurs klienta"), "ID") }));
+        Assert.That(() => repository.Delete(child.Id), Throws.InstanceOf<PostgresException>());
+    }
+
+    [Test]
     public void Given_TileWithLabelsDifferingInCaseAndSpaces_When_ItIsSaved_Then_DatabaseRejectsIt()
     {
         var tile = new Tile(Guid.NewGuid(), Definition("Klient",

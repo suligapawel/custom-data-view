@@ -40,6 +40,21 @@ public sealed class TestTileRepository(TestViewRepository views) : ITileReposito
             .Select(tile => new TileReference(tile.Id, tile.Definition.Name))
             .ToList();
 
+    public IReadOnlyList<TileReference> GetParents(Guid tileId)
+        => tiles
+            .Where(tile => tile.Definition.Children.Any(child => child.TileId == tileId))
+            .Select(tile => new TileReference(tile.Id, tile.Definition.Name))
+            .ToList();
+
+    public IReadOnlyList<TileFieldUse> GetFieldUses(Guid tileId)
+        => tiles
+            .SelectMany(tile => tile.Definition.Bindings
+                .Where(binding => tile.Definition.Children.Any(child => child.Key == binding.From && child.TileId == tileId))
+                .SelectMany(binding => binding.Map)
+                .Select(mapping => new TileFieldUse(new TileReference(tile.Id, tile.Definition.Name), mapping.Field)))
+            .Distinct()
+            .ToList();
+
     public void Clear()
     {
         tiles.Clear();

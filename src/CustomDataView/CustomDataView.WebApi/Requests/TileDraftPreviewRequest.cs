@@ -7,7 +7,8 @@ public sealed record TileDraftPreviewRequest(
     TileRequest Tile,
     Dictionary<string, JsonElement> Parameters,
     Dictionary<string, JsonElement> Inputs,
-    Dictionary<string, Dictionary<string, JsonElement>> Forms)
+    Dictionary<string, Dictionary<string, JsonElement>> Forms,
+    Dictionary<string, TileDescendantValuesRequest> Descendants)
 {
     public IDictionary<string, string[]> Validate(TileReferencesValidator referencesValidator)
     {

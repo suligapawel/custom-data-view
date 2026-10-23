@@ -25,4 +25,6 @@ public sealed class TileRow
     public List<TileBindingRow> Bindings { get; set; } = [];
 
     public List<TileFormFieldRow> FormFields { get; set; } = [];
+
+    public List<TileChildRow> Children { get; set; } = [];
 }

@@ -7,21 +7,26 @@ namespace CustomDataView.WebApi.Requests;
 public sealed record TilePreviewRequest(
     Dictionary<string, JsonElement> Parameters,
     Dictionary<string, JsonElement> Inputs,
-    Dictionary<string, Dictionary<string, JsonElement>> Forms)
+    Dictionary<string, Dictionary<string, JsonElement>> Forms,
+    Dictionary<string, TileDescendantValuesRequest> Descendants)
 {
     public IReadOnlyDictionary<string, JsonElement> ToInput() => ValuesOf(Parameters);
 
-    public TilePreviewValues ToValues() => ValuesOf(Parameters, Inputs, Forms);
+    public TilePreviewValues ToValues() => ValuesOf(Parameters, Inputs, Forms, Descendants);
 
     public static TilePreviewValues ValuesOf(
         Dictionary<string, JsonElement> parameters,
         Dictionary<string, JsonElement> inputs,
-        Dictionary<string, Dictionary<string, JsonElement>> forms)
+        Dictionary<string, Dictionary<string, JsonElement>> forms,
+        Dictionary<string, TileDescendantValuesRequest> descendants)
         => new(ValuesOf(parameters), ValuesOf(inputs))
         {
             Forms = (forms ?? []).ToDictionary(
                 form => form.Key,
-                form => (IReadOnlyDictionary<string, JsonElement>)(form.Value ?? new Dictionary<string, JsonElement>()))
+                form => (IReadOnlyDictionary<string, JsonElement>)(form.Value ?? new Dictionary<string, JsonElement>())),
+            Descendants = (descendants ?? []).ToDictionary(
+                descendant => descendant.Key,
+                descendant => new TilePreviewValues(ValuesOf(descendant.Value?.Parameters), ValuesOf(descendant.Value?.Inputs)))
         };
 
     public static IReadOnlyDictionary<string, JsonElement> ValuesOf(Dictionary<string, JsonElement> parameters)
@@ -34,3 +39,5 @@ public sealed record TilePreviewRequest(
                 ? JsonSerializer.SerializeToElement(pair.Value.ToString())
                 : JsonSerializer.SerializeToElement(pair.Value.ToArray()));
 }
+
+public sealed record TileDescendantValuesRequest(Dictionary<string, JsonElement> Parameters, Dictionary<string, JsonElement> Inputs);

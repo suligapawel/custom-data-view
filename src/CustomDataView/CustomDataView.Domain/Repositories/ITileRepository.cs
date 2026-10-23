@@ -11,4 +11,6 @@ public interface ITileRepository
     void Delete(Guid id);
     IReadOnlyList<TileReference> GetUsingConnection(Guid connectionId);
     IReadOnlyList<TileReference> GetReferences(IReadOnlyCollection<Guid> ids);
+    IReadOnlyList<TileReference> GetParents(Guid tileId);
+    IReadOnlyList<TileFieldUse> GetFieldUses(Guid tileId);
 }

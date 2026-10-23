@@ -9,5 +9,6 @@ public sealed record TileDto(
     IReadOnlyList<TileSourceDto> Sources,
     TileItemsDto Items,
     IReadOnlyList<object> Fields,
+    IReadOnlyList<TileChildDto> Children,
     IReadOnlyList<TileBindingDto> Bindings,
     TileContract Contract);

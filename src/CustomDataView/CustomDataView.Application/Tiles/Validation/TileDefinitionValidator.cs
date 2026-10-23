@@ -8,6 +8,7 @@ namespace CustomDataView.Application.Tiles.Validation;
 public static class TileDefinitionValidator
 {
     private const int MaxTextLength = 100;
+    private const int MaxCssClassLength = 200;
 
     public static IDictionary<string, string[]> Validate(TileInput input)
     {
@@ -60,7 +61,8 @@ public static class TileDefinitionValidator
             ValidateItems(input, sources, errors);
         }
 
-        TileBindingsValidator.Validate(input, errors);
+        ValidateChildren(input, sources, errors);
+        TileBindingsValidator.ValidateShape(input, errors);
         return errors;
     }
 
@@ -81,6 +83,11 @@ public static class TileDefinitionValidator
             errors["bindings"] = ["Formularz nie ma wiązań."];
         }
 
+        if (input.Children.Count > 0)
+        {
+            errors["children"] = ["Formularz nie ma dzieci."];
+        }
+
         for (var index = 0; index < input.Fields.Count; index++)
         {
             var field = input.Fields[index];
@@ -97,6 +104,61 @@ public static class TileDefinitionValidator
             else if (field.Default is not null && !TileFormFieldTypes.Matches(field.Type, field.Default))
             {
                 errors[$"{key}.default"] = [$"Wartość domyślna musi być zgodna z typem '{field.Type}'."];
+            }
+        }
+    }
+
+    private static void ValidateChildren(TileInput input, HashSet<string> sources, Dictionary<string, string[]> errors)
+    {
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+        var positions = new HashSet<int>();
+        for (var index = 0; index < input.Children.Count; index++)
+        {
+            var child = input.Children[index];
+            var key = $"children[{index}]";
+            if (!TileNodeKeys.IsValid(child.Key))
+            {
+                errors[$"{key}.key"] =
+                [
+                    $"Klucz dziecka jest wymagany, może mieć najwyżej {TileNodeKeys.MaxLength} znaków, nie może zawierać znaku '/' ani być słowem '{TileNodeKeys.Parent}'."
+                ];
+            }
+            else if (sources.Contains(child.Key) || !keys.Add(child.Key))
+            {
+                errors[$"{key}.key"] = [$"Klucz '{child.Key}' występuje w kafelku więcej niż raz (źródła i dzieci mają wspólne klucze)."];
+            }
+
+            if (child.TileId is null)
+            {
+                errors[$"{key}.tileId"] = ["Kafelek dziecka jest wymagany."];
+            }
+
+            if (child.Position is null or < 0)
+            {
+                errors[$"{key}.position"] = ["Pozycja dziecka jest wymagana i nie może być mniejsza niż 0."];
+            }
+            else if (!positions.Add(child.Position.Value))
+            {
+                errors[$"{key}.position"] = [$"Pozycja {child.Position} występuje w kafelku więcej niż raz."];
+            }
+
+            if (child.Scope is not null && !TileChildScopes.All.Contains(child.Scope))
+            {
+                errors[$"{key}.scope"] = [$"Zakres dziecka musi mieć jedną z wartości: {string.Join(", ", TileChildScopes.All)}."];
+            }
+            else if (child.Scope == TileChildScopes.Item && input.Items is null)
+            {
+                errors[$"{key}.scope"] = ["Zakres 'item' jest dozwolony tylko u rodzica z elementami."];
+            }
+
+            if (child.Load is not null && !TileChildLoads.All.Contains(child.Load))
+            {
+                errors[$"{key}.load"] = [$"Ładowanie dziecka musi mieć jedną z wartości: {string.Join(", ", TileChildLoads.All)}."];
+            }
+
+            if (child.CssClass?.Trim().Length > MaxCssClassLength)
+            {
+                errors[$"{key}.cssClass"] = [$"Klasa CSS może mieć najwyżej {MaxCssClassLength} znaków."];
             }
         }
     }

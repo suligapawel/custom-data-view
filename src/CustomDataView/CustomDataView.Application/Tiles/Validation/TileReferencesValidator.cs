@@ -1,5 +1,7 @@
 using CustomDataView.Application.Exceptions;
+using CustomDataView.Application.Tiles.Contracts;
 using CustomDataView.Application.Tiles.Inputs;
+using CustomDataView.Domain.Dictionaries;
 using CustomDataView.Domain.Entities;
 using CustomDataView.Domain.Repositories;
 using CustomDataView.Domain.Services.Transformations;
@@ -7,14 +9,20 @@ using CustomDataView.Domain.ValueObjects;
 
 namespace CustomDataView.Application.Tiles.Validation;
 
-public sealed class TileReferencesValidator(IConnectionRepository connections, IEnumerable<ITransformation> transformations)
+public sealed class TileReferencesValidator(
+    IConnectionRepository connections,
+    ITileRepository tiles,
+    TileContracts contracts,
+    IEnumerable<ITransformation> transformations)
 {
+    public const int MaxLevels = 3;
+
     private readonly HashSet<string> catalog =
         transformations.Select(transformation => transformation.Key).ToHashSet(StringComparer.Ordinal);
 
-    public void EnsureValid(TileDefinition definition)
+    public void EnsureValid(TileDefinition definition, Guid? tileId = null)
     {
-        var errors = Validate(definition);
+        var errors = Validate(definition, tileId);
         if (errors.Count > 0)
         {
             throw new ValidationException(errors);
@@ -23,17 +31,17 @@ public sealed class TileReferencesValidator(IConnectionRepository connections, I
 
     public IDictionary<string, string[]> Validate(TileInput input) => Validate(input.ToDefinition());
 
-    public IDictionary<string, string[]> Validate(TileDefinition definition)
+    public IDictionary<string, string[]> Validate(TileDefinition definition, Guid? tileId = null)
     {
         var errors = new Dictionary<string, string[]>();
-        var existing = definition.Sources
-            .Where(source => source.ConnectionId is not null)
-            .Select(source => source.ConnectionId.Value)
-            .Distinct()
-            .ToDictionary(id => id, connections.Get);
+        var connectionCache = new Dictionary<Guid, Connection>();
+        var tileCache = new Dictionary<Guid, TileDefinition>();
+        Connection ConnectionOf(Guid id) => connectionCache.TryGetValue(id, out var cached) ? cached : connectionCache[id] = connections.Get(id);
+        TileDefinition TileOf(Guid id) => tileCache.TryGetValue(id, out var cached) ? cached : tileCache[id] = tiles.Get(id)?.Definition;
+
         for (var index = 0; index < definition.Sources.Count; index++)
         {
-            if (definition.Sources[index].ConnectionId is { } connectionId && existing[connectionId] is null)
+            if (definition.Sources[index].ConnectionId is { } connectionId && ConnectionOf(connectionId) is null)
             {
                 errors[$"sources[{index}].connectionId"] = [$"Połączenie '{connectionId}' nie istnieje."];
             }
@@ -52,34 +60,66 @@ public sealed class TileReferencesValidator(IConnectionRepository connections, I
             }
         }
 
-        ValidateBoundParameters(definition, existing, errors);
+        var childrenAreValid = ValidateChildren(definition, tileId, TileOf, errors);
+        if (errors.Count == 0 && childrenAreValid)
+        {
+            TileBindingsValidator.Validate(definition, TileOf, ConnectionOf, contracts, errors);
+        }
+
         return errors;
     }
 
-    private static void ValidateBoundParameters(
+    private bool ValidateChildren(
         TileDefinition definition,
-        IReadOnlyDictionary<Guid, Connection> existing,
+        Guid? tileId,
+        Func<Guid, TileDefinition> tileOf,
         Dictionary<string, string[]> errors)
     {
-        for (var index = 0; index < definition.Bindings.Count; index++)
+        var valid = true;
+        for (var index = 0; index < definition.Children.Count; index++)
         {
-            var binding = definition.Bindings[index];
-            var target = definition.Sources.FirstOrDefault(source => source.Key == binding.To);
-            if (target?.ConnectionId is not { } connectionId || existing.GetValueOrDefault(connectionId) is not { } connection)
+            var child = definition.Children[index];
+            var tile = tileOf(child.TileId);
+            if (tile is null)
             {
-                continue;
+                errors[$"children[{index}].tileId"] = [$"Kafelek '{child.TileId}' nie istnieje."];
+                valid = false;
             }
-
-            var declared = TileConnectionParameters.Names(connection.Definition);
-            for (var position = 0; position < binding.Map.Count; position++)
+            else if (tile.Display == TileDisplays.Form && child.Scope != TileChildScopes.Tile)
             {
-                var parameter = binding.Map[position].Parameter;
-                if (parameter is not null && !declared.Contains(parameter))
-                {
-                    errors[$"bindings[{index}].map[{position}].parameter"] =
-                        [$"Parametr '{parameter}' nie jest zadeklarowany w połączeniu źródła '{binding.To}'."];
-                }
+                errors[$"children[{index}].scope"] = ["Formularz może być osadzony tylko z zakresem 'tile'."];
+            }
+            else if (tileId is { } id && (child.TileId == id || Contains(tile, id, tileOf, [])))
+            {
+                errors[$"children[{index}].tileId"] = ["Osadzenie tworzy cykl zawierania kafelków."];
+                valid = false;
             }
         }
+
+        if (valid && Levels(definition, tileOf, []) + (tileId is { } saved ? LevelsAbove(saved, []) : 0) > MaxLevels)
+        {
+            errors["children"] = [$"Kafelki mogą być zagnieżdżone najwyżej na {MaxLevels} poziomach."];
+            valid = false;
+        }
+
+        return valid;
     }
+
+    private static bool Contains(TileDefinition tile, Guid id, Func<Guid, TileDefinition> tileOf, HashSet<Guid> visited)
+        => tile.Children.Any(child => child.TileId == id
+            || (visited.Add(child.TileId) && tileOf(child.TileId) is { } descendant && Contains(descendant, id, tileOf, visited)));
+
+    private static int Levels(TileDefinition tile, Func<Guid, TileDefinition> tileOf, HashSet<Guid> visited)
+        => 1 + tile.Children
+            .Where(child => visited.Add(child.TileId))
+            .Select(child => tileOf(child.TileId) is { } descendant ? Levels(descendant, tileOf, [.. visited]) : 0)
+            .DefaultIfEmpty(0)
+            .Max();
+
+    private int LevelsAbove(Guid tileId, HashSet<Guid> visited)
+        => tiles.GetParents(tileId)
+            .Where(parent => visited.Add(parent.Id))
+            .Select(parent => 1 + LevelsAbove(parent.Id, visited))
+            .DefaultIfEmpty(0)
+            .Max();
 }

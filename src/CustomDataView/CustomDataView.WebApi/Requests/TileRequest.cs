@@ -12,6 +12,7 @@ public sealed record TileRequest(
     IReadOnlyList<TileSourceRequest> Sources,
     TileItemsRequest Items,
     IReadOnlyList<TileFieldRequest> Fields,
+    IReadOnlyList<TileChildRequest> Children,
     IReadOnlyList<TileBindingRequest> Bindings)
 {
     public IDictionary<string, string[]> Validate() => TileDefinitionValidator.Validate(ToInput());
@@ -39,6 +40,9 @@ public sealed record TileRequest(
                 })
                 .ToList())
         {
+            Children = (Children ?? [])
+                .Select(child => new TileChildInput(child.Key, child.TileId, child.Position, child.CssClass, child.Scope, child.Load))
+                .ToList(),
             Bindings = (Bindings ?? [])
                 .Select(binding => new TileBindingInput(
                     binding.From,
@@ -59,6 +63,8 @@ public sealed record TileRequest(
 public sealed record TileSourceRequest(string Key, string Kind, Guid? ConnectionId);
 
 public sealed record TileItemsRequest(string Source, string Path, string Key);
+
+public sealed record TileChildRequest(string Key, Guid? TileId, int? Position, string CssClass, string Scope, string Load);
 
 public sealed record TileBindingRequest(string From, string To, IReadOnlyList<TileBindingMappingRequest> Map);
 

@@ -9,5 +9,7 @@ public sealed record TileDefinition(
 {
     public IReadOnlyList<TileFormField> FormFields { get; init; } = [];
 
+    public IReadOnlyList<TileChild> Children { get; init; } = [];
+
     public IReadOnlyList<TileBinding> Bindings { get; init; } = [];
 }

@@ -31,7 +31,8 @@ public sealed class PostgresTileRepository(
             Sources = ToSourceRows(tile),
             Fields = ToFieldRows(tile),
             Bindings = ToBindingRows(tile),
-            FormFields = ToFormFieldRows(tile)
+            FormFields = ToFormFieldRows(tile),
+            Children = ToChildRows(tile)
         });
         context.SaveChanges();
     }
@@ -69,11 +70,13 @@ public sealed class PostgresTileRepository(
                 .SetProperty(stored => stored.UpdatedAt, stored => DateTime.UtcNow));
         context.TileBindings.Where(binding => binding.TileId == tile.Id).ExecuteDelete();
         context.TileFormFields.Where(field => field.TileId == tile.Id).ExecuteDelete();
+        context.TileChildren.Where(child => child.ParentTileId == tile.Id).ExecuteDelete();
         context.TileSources.Where(source => source.TileId == tile.Id).ExecuteDelete();
         context.TileSources.AddRange(ToSourceRows(tile));
         context.TileFields.AddRange(ToFieldRows(tile));
         context.TileBindings.AddRange(ToBindingRows(tile));
         context.TileFormFields.AddRange(ToFormFieldRows(tile));
+        context.TileChildren.AddRange(ToChildRows(tile));
         context.SaveChanges();
         transaction.Commit();
     }
@@ -111,12 +114,42 @@ public sealed class PostgresTileRepository(
             .ToList();
     }
 
+    public IReadOnlyList<TileReference> GetParents(Guid tileId)
+    {
+        using var context = contextFactory.CreateDbContext();
+        return context.Tiles
+            .AsNoTracking()
+            .Where(tile => tile.Children.Any(child => child.ChildTileId == tileId))
+            .OrderBy(tile => tile.CreatedAt)
+            .ThenBy(tile => tile.Id)
+            .Select(tile => new TileReference(tile.Id, tile.Name))
+            .ToList();
+    }
+
+    public IReadOnlyList<TileFieldUse> GetFieldUses(Guid tileId)
+    {
+        using var context = contextFactory.CreateDbContext();
+        return context.TileBindings
+            .AsNoTracking()
+            .Join(
+                context.TileChildren.Where(child => child.ChildTileId == tileId),
+                binding => new { TileId = binding.TileId, Key = binding.SourceNode },
+                child => new { TileId = child.ParentTileId, Key = child.Key },
+                (binding, child) => binding)
+            .Join(context.Tiles, binding => binding.TileId, tile => tile.Id, (binding, tile) => new { binding.SourceField, tile.Id, tile.Name })
+            .Distinct()
+            .AsEnumerable()
+            .Select(use => new TileFieldUse(new TileReference(use.Id, use.Name), use.SourceField))
+            .ToList();
+    }
+
     private static IQueryable<TileRow> WithFields(CustomDataViewDbContext context)
         => context.Tiles
             .AsNoTracking()
             .Include(tile => tile.Sources.OrderBy(source => source.Position))
             .Include(tile => tile.Bindings.OrderBy(binding => binding.Position))
             .Include(tile => tile.FormFields.OrderBy(field => field.Position))
+            .Include(tile => tile.Children.OrderBy(child => child.Position))
             .Include(tile => tile.Fields.OrderBy(field => field.Position))
             .ThenInclude(field => field.Transformations.OrderBy(transformation => transformation.Position))
             .ThenInclude(transformation => transformation.Parameters.OrderBy(parameter => parameter.Name))
@@ -131,6 +164,20 @@ public sealed class PostgresTileRepository(
                 Position = position,
                 Kind = source.Kind,
                 ConnectionId = source.ConnectionId
+            })
+            .ToList();
+
+    private static List<TileChildRow> ToChildRows(Tile tile)
+        => tile.Definition.Children
+            .Select(child => new TileChildRow
+            {
+                ParentTileId = tile.Id,
+                Key = child.Key,
+                ChildTileId = child.TileId,
+                Position = child.Position,
+                CssClass = child.CssClass,
+                Scope = child.Scope,
+                Load = child.Load
             })
             .ToList();
 
@@ -226,6 +273,9 @@ public sealed class PostgresTileRepository(
                 .ToList())
         {
             Bindings = ToBindings(tile.Bindings),
+            Children = tile.Children
+                .Select(child => new TileChild(child.Key, child.ChildTileId, child.Position, child.CssClass, child.Scope, child.Load))
+                .ToList(),
             FormFields = tile.FormFields
                 .Select(field => new TileFormField(
                     field.Label,

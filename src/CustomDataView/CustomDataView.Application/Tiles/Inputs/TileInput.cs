@@ -10,6 +10,8 @@ public sealed record TileInput(
     TileItemsInput Items,
     IReadOnlyList<TileFieldInput> Fields)
 {
+    public IReadOnlyList<TileChildInput> Children { get; init; } = [];
+
     public IReadOnlyList<TileBindingInput> Bindings { get; init; } = [];
 
     public bool IsForm => Display == TileDisplays.Form;
@@ -41,6 +43,15 @@ public sealed record TileInput(
                     string.IsNullOrWhiteSpace(field.Role) ? null : field.Role))
                 .ToList())
         {
+            Children = Children
+                .Select(child => new TileChild(
+                    child.Key,
+                    child.TileId ?? Guid.Empty,
+                    child.Position ?? 0,
+                    string.IsNullOrWhiteSpace(child.CssClass) ? null : child.CssClass.Trim(),
+                    child.Scope ?? TileChildScopes.Tile,
+                    child.Load ?? TileChildLoads.Eager))
+                .ToList(),
             Bindings = Bindings
                 .Select(binding => new TileBinding(
                     binding.From,

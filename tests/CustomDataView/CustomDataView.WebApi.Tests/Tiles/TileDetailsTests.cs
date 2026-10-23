@@ -90,6 +90,7 @@ public class TileDetailsTests : TileApiTests
                         ["hidden"] = false,
                         ["role"] = null
                     }),
+                    ["children"] = new JsonArray(),
                     ["bindings"] = new JsonArray(),
                     ["contract"] = JsonNode.Parse("""
                                                   {"parameters": [{"name": "currency", "required": false}], "inputs": [],

@@ -1,51 +1,44 @@
+using CustomDataView.Application.Tiles.Contracts;
 using CustomDataView.Application.Tiles.Inputs;
 using CustomDataView.Domain.Dictionaries;
+using CustomDataView.Domain.Entities;
 using CustomDataView.Domain.Policies;
 using CustomDataView.Domain.Services;
+using CustomDataView.Domain.ValueObjects;
 
 namespace CustomDataView.Application.Tiles.Validation;
 
 public static class TileBindingsValidator
 {
-    public static void Validate(TileInput input, Dictionary<string, string[]> errors)
+    public const int MaxPathSegments = 2;
+
+    public static void ValidateShape(TileInput input, Dictionary<string, string[]> errors)
     {
-        var sources = input.Sources
-            .Where(source => TileNodeKeys.IsValid(source.Key))
-            .GroupBy(source => source.Key, StringComparer.Ordinal)
-            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
         var pairs = new HashSet<(string, string)>();
-        var targets = new HashSet<(string, string, string)>();
         for (var index = 0; index < input.Bindings.Count; index++)
         {
             var binding = input.Bindings[index];
             var key = $"bindings[{index}]";
-            var nodesAreValid = true;
-            if (!sources.ContainsKey(binding.From ?? string.Empty))
+            if (string.IsNullOrWhiteSpace(binding.From))
             {
-                errors[$"{key}.from"] = [$"Węzeł '{binding.From}' nie istnieje w kafelku."];
-                nodesAreValid = false;
+                errors[$"{key}.from"] = ["Węzeł źródłowy wiązania jest wymagany."];
             }
 
-            if (!sources.ContainsKey(binding.To ?? string.Empty))
+            if (string.IsNullOrWhiteSpace(binding.To))
             {
-                errors[$"{key}.to"] = [$"Węzeł '{binding.To}' nie istnieje w kafelku."];
-                nodesAreValid = false;
+                errors[$"{key}.to"] = ["Węzeł docelowy wiązania jest wymagany."];
+            }
+            else if (binding.To.Split(TileNodeKeys.PathSeparator).Length > MaxPathSegments)
+            {
+                errors[$"{key}.to"] = [$"Ścieżka osadzeń w kafelku może mieć najwyżej {MaxPathSegments} segmenty."];
             }
             else if (binding.To == binding.From)
             {
                 errors[$"{key}.to"] = ["Węzeł docelowy musi być różny od źródłowego."];
-                nodesAreValid = false;
             }
-
-            if (nodesAreValid && !pairs.Add((binding.From, binding.To)))
+            else if (!pairs.Add((binding.From, binding.To)))
             {
                 errors[key] = [$"Wiązanie '{binding.From}' → '{binding.To}' występuje w kafelku więcej niż raz."];
-            }
-
-            if (nodesAreValid && (sources[binding.From].Kind != TileSourceKinds.Connection || sources[binding.To].Kind != TileSourceKinds.Connection))
-            {
-                errors[$"{key}.to"] = ["Wiązanie źródło → źródło łączy tylko źródła rodzaju 'connection'."];
-                nodesAreValid = false;
             }
 
             if (binding.Map.Count == 0)
@@ -55,56 +48,250 @@ public static class TileBindingsValidator
 
             for (var position = 0; position < binding.Map.Count; position++)
             {
-                ValidateMapping(input, binding, binding.Map[position], $"{key}.map[{position}]", nodesAreValid, targets, errors);
+                var mapping = binding.Map[position];
+                var mappingKey = $"{key}.map[{position}]";
+                if (string.IsNullOrWhiteSpace(mapping.Field))
+                {
+                    errors[$"{mappingKey}.field"] = ["Pole źródłowe mapowania jest wymagane."];
+                }
+
+                if (string.IsNullOrWhiteSpace(mapping.Parameter) == string.IsNullOrWhiteSpace(mapping.Input))
+                {
+                    errors[mappingKey] = ["Mapowanie wskazuje dokładnie jedno z: parametr albo wejście danych."];
+                }
+
+                if (mapping.Scope is not null && !BindingScopes.Values.Contains(mapping.Scope))
+                {
+                    errors[$"{mappingKey}.scope"] = [$"Zakres mapowania musi mieć jedną z wartości: {string.Join(", ", BindingScopes.Values)}."];
+                }
+            }
+        }
+    }
+
+    public static void Validate(
+        TileDefinition definition,
+        Func<Guid, TileDefinition> tileOf,
+        Func<Guid, Connection> connectionOf,
+        TileContracts contracts,
+        Dictionary<string, string[]> errors)
+    {
+        var sources = definition.Sources.ToDictionary(source => source.Key, StringComparer.Ordinal);
+        var children = definition.Children.ToDictionary(child => child.Key, StringComparer.Ordinal);
+        var targets = new HashSet<(string, string, string)>();
+        for (var index = 0; index < definition.Bindings.Count; index++)
+        {
+            var binding = definition.Bindings[index];
+            var key = $"bindings[{index}]";
+            var segments = binding.To.Split(TileNodeKeys.PathSeparator);
+            var fromParent = binding.From == TileNodeKeys.Parent;
+            var fromSource = sources.GetValueOrDefault(binding.From);
+            var fromChild = children.GetValueOrDefault(binding.From);
+            if (!fromParent && fromSource is null && fromChild is null)
+            {
+                errors[$"{key}.from"] = [$"Węzeł '{binding.From}' nie istnieje w kafelku."];
+                continue;
+            }
+
+            var toSource = sources.GetValueOrDefault(segments[0]);
+            var toChild = children.GetValueOrDefault(segments[0]);
+            if (toSource is null && toChild is null)
+            {
+                errors[$"{key}.to"] = [$"Węzeł '{segments[0]}' nie istnieje w kafelku."];
+                continue;
+            }
+
+            if (!IsAllowedPair(fromParent, fromSource, fromChild, toSource, segments.Length))
+            {
+                errors[$"{key}.to"] = [$"Wiązanie '{binding.From}' → '{binding.To}' łączy niedozwoloną parę węzłów."];
+                continue;
+            }
+
+            var target = toSource is null ? Target(toChild, segments, tileOf) : null;
+            if (toSource is null && target is null)
+            {
+                errors[$"{key}.to"] = [$"Ścieżka osadzeń '{binding.To}' nie istnieje."];
+                continue;
+            }
+
+            var fromTile = fromChild is null ? null : tileOf(fromChild.TileId);
+            for (var position = 0; position < binding.Map.Count; position++)
+            {
+                var mapping = binding.Map[position];
+                var mappingKey = $"{key}.map[{position}]";
+                ValidateField(definition, binding, mapping, fromSource, fromTile, contracts, mappingKey, errors);
+                ValidateScope(definition, binding, mapping, fromSource, fromTile, toChild, segments.Length, mappingKey, errors);
+                if (toSource is not null)
+                {
+                    ValidateSourceTarget(toSource, mapping, connectionOf, mappingKey, errors);
+                }
+                else
+                {
+                    var intermediate = segments.Length > 1 ? tileOf(toChild.TileId) : null;
+                    ValidateTileTarget(target.Value, intermediate, segments, mapping, contracts, mappingKey, errors);
+                }
+
+                var name = mapping.Parameter ?? mapping.Input;
+                if (!targets.Add((binding.To, mapping.Parameter is null ? "input" : "parameter", name)))
+                {
+                    errors[$"{mappingKey}.{(mapping.Parameter is null ? "input" : "parameter")}"] =
+                        [$"Wejście '{name}' węzła '{binding.To}' ma już źródło w innym mapowaniu."];
+                }
             }
         }
 
         var order = BindingGraph.Order(
-            sources.Keys.ToList(),
-            input.Bindings.Select(binding => (binding.From ?? string.Empty, binding.To ?? string.Empty)));
+            [.. sources.Keys, .. children.Keys],
+            Edges(definition));
         if (order.Cycle.Count > 0)
         {
             errors.TryAdd("bindings", [$"Wiązania tworzą cykl między węzłami: {string.Join(", ", order.Cycle)}."]);
         }
     }
 
-    private static void ValidateMapping(
-        TileInput input,
-        TileBindingInput binding,
-        TileBindingMappingInput mapping,
+    public static IEnumerable<(string From, string To)> Edges(TileDefinition definition)
+        => definition.Bindings.SelectMany(binding => binding.Map.Select(mapping => (
+            From: binding.From == TileNodeKeys.Parent
+                ? definition.Fields.FirstOrDefault(field => TileLabels.AreEqual(field.Label, mapping.Field))?.Source ?? binding.From
+                : binding.From,
+            To: binding.To.Split(TileNodeKeys.PathSeparator)[0])));
+
+    private static bool IsAllowedPair(bool fromParent, TileSource fromSource, TileChild fromChild, TileSource toSource, int segments)
+    {
+        if (toSource is not null)
+        {
+            return segments == 1
+                && toSource.Kind == TileSourceKinds.Connection
+                && ((fromSource?.Kind == TileSourceKinds.Connection) || fromChild?.Scope == TileChildScopes.Tile);
+        }
+
+        return fromParent || fromChild is not null;
+    }
+
+    private static (TileChild Child, TileDefinition Tile)? Target(TileChild child, string[] segments, Func<Guid, TileDefinition> tileOf)
+    {
+        var tile = tileOf(child.TileId);
+        if (tile is null)
+        {
+            return null;
+        }
+
+        if (segments.Length == 1)
+        {
+            return (child, tile);
+        }
+
+        var descendant = tile.Children.FirstOrDefault(candidate => candidate.Key == segments[1]);
+        var descendantTile = descendant is null ? null : tileOf(descendant.TileId);
+        return descendantTile is null ? null : (descendant, descendantTile);
+    }
+
+    private static void ValidateField(
+        TileDefinition definition,
+        TileBinding binding,
+        TileBindingMapping mapping,
+        TileSource fromSource,
+        TileDefinition fromTile,
+        TileContracts contracts,
         string key,
-        bool nodesAreValid,
-        HashSet<(string, string, string)> targets,
         Dictionary<string, string[]> errors)
     {
-        var field = input.Fields.FirstOrDefault(candidate => TileLabels.AreEqual(candidate.Label, mapping.Field));
-        if (string.IsNullOrWhiteSpace(mapping.Field) || (nodesAreValid && field?.Source != binding.From))
+        var exists = fromTile is not null
+            ? contracts.Of(fromTile).Outputs.Fields.Any(label => TileLabels.AreEqual(label, mapping.Field))
+            : definition.Fields.Any(field => TileLabels.AreEqual(field.Label, mapping.Field)
+                && (fromSource is null || field.Source == fromSource.Key));
+        if (!exists)
         {
             errors[$"{key}.field"] = [$"Pole '{mapping.Field}' nie istnieje w węźle '{binding.From}'."];
         }
-        else if (input.Items is not null && field?.Source == input.Items.Source)
+    }
+
+    private static void ValidateScope(
+        TileDefinition definition,
+        TileBinding binding,
+        TileBindingMapping mapping,
+        TileSource fromSource,
+        TileDefinition fromTile,
+        TileChild toChild,
+        int segments,
+        string key,
+        Dictionary<string, string[]> errors)
+    {
+        var fromItems = fromSource is not null
+            ? definition.Items?.Source == fromSource.Key
+            : fromTile is not null
+                ? fromTile.Items is not null
+                : definition.Items is not null && definition.Fields.Any(field =>
+                    TileLabels.AreEqual(field.Label, mapping.Field) && field.Source == definition.Items.Source);
+        if (fromSource is not null && fromItems)
         {
             errors[$"{key}.field"] = ["Pole elementu nie może zasilać wiązania źródło → źródło."];
+            return;
         }
 
-        var hasParameter = !string.IsNullOrWhiteSpace(mapping.Parameter);
-        var hasInput = !string.IsNullOrWhiteSpace(mapping.Input);
-        if (hasParameter == hasInput)
+        if (mapping.Scope is null)
         {
-            errors[key] = ["Mapowanie wskazuje dokładnie jedno z: parametr albo wejście danych."];
+            return;
         }
-        else if (hasInput)
+
+        if (!fromItems)
+        {
+            errors[$"{key}.scope"] = ["Zakres jest dozwolony tylko dla pola węzła z elementami."];
+        }
+        else if (mapping.Scope == BindingScopes.Item
+                 && (binding.From != TileNodeKeys.Parent || toChild?.Scope != TileChildScopes.Item))
+        {
+            errors[$"{key}.scope"] = ["Zakres 'item' jest dozwolony tylko dla pola rodzica i dziecka o zakresie 'item'."];
+        }
+    }
+
+    private static void ValidateSourceTarget(
+        TileSource target,
+        TileBindingMapping mapping,
+        Func<Guid, Connection> connectionOf,
+        string key,
+        Dictionary<string, string[]> errors)
+    {
+        if (mapping.Input is not null)
         {
             errors[$"{key}.input"] = ["Źródło typu 'connection' nie ma wejść danych."];
-        }
-        else if (!targets.Add((binding.To, "parameter", mapping.Parameter)))
-        {
-            errors[$"{key}.parameter"] = [$"Parametr '{mapping.Parameter}' węzła '{binding.To}' ma już źródło w innym mapowaniu."];
+            return;
         }
 
-        if (mapping.Scope is not null)
+        if (connectionOf(target.ConnectionId.Value) is { } connection
+            && !TileConnectionParameters.Names(connection.Definition).Contains(mapping.Parameter))
         {
-            errors[$"{key}.scope"] = ["Wiązanie źródło → źródło nie przyjmuje zakresu."];
+            errors[$"{key}.parameter"] = [$"Parametr '{mapping.Parameter}' nie jest zadeklarowany w połączeniu źródła '{target.Key}'."];
+        }
+    }
+
+    private static void ValidateTileTarget(
+        (TileChild Child, TileDefinition Tile) target,
+        TileDefinition intermediate,
+        string[] segments,
+        TileBindingMapping mapping,
+        TileContracts contracts,
+        string key,
+        Dictionary<string, string[]> errors)
+    {
+        var contract = contracts.Of(target.Tile);
+        if (mapping.Parameter is not null && contract.Parameters.All(parameter => parameter.Name != mapping.Parameter))
+        {
+            errors[$"{key}.parameter"] = [$"Parametr '{mapping.Parameter}' nie jest wejściem kafelka '{string.Join('/', segments)}'."];
+        }
+
+        if (mapping.Input is not null && !contract.Inputs.Contains(mapping.Input))
+        {
+            errors[$"{key}.input"] = [$"Wejście danych '{mapping.Input}' nie jest wejściem kafelka '{string.Join('/', segments)}'."];
+        }
+
+        var name = mapping.Parameter ?? mapping.Input;
+        if (intermediate is not null && intermediate.Bindings
+                .Where(binding => binding.To == segments[1])
+                .SelectMany(binding => binding.Map)
+                .Any(bound => (bound.Parameter ?? bound.Input) == name))
+        {
+            errors[$"{key}.{(mapping.Parameter is null ? "input" : "parameter")}"] =
+                [$"Wejście '{name}' kafelka '{string.Join('/', segments)}' jest już związane przez kafelek '{segments[0]}'."];
         }
     }
 }

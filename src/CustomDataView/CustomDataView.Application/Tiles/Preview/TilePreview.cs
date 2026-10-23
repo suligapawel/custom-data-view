@@ -9,4 +9,8 @@ public sealed record TilePreview(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<TileFieldPreview> Fields,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string ItemKey = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<TileItemPreview> Items = null,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TileFieldError ItemsError = null);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TileFieldError ItemsError = null)
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<TileEmbeddingPreview> Children { get; init; }
+}

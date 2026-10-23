@@ -207,6 +207,63 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileChildRow", b =>
+                {
+                    b.Property<Guid>("ParentTileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("parent_tile_id");
+
+                    b.Property<string>("Key")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("key");
+
+                    b.Property<Guid>("ChildTileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("child_tile_id");
+
+                    b.Property<string>("CssClass")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("css_class");
+
+                    b.Property<string>("Load")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)")
+                        .HasColumnName("load");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("character varying(4)")
+                        .HasColumnName("scope");
+
+                    b.HasKey("ParentTileId", "Key")
+                        .HasName("pk_tile_children");
+
+                    b.HasAlternateKey("ParentTileId", "Position")
+                        .HasName("uq_tile_children_parent_tile_id_position");
+
+                    b.HasIndex("ChildTileId")
+                        .HasDatabaseName("ix_tile_children_child_tile_id");
+
+                    b.ToTable("tile_children", "custom_data_view", t =>
+                        {
+                            t.HasCheckConstraint("ck_tile_children_load", "load IN ('eager', 'lazy')");
+
+                            t.HasCheckConstraint("ck_tile_children_not_self", "parent_tile_id <> child_tile_id");
+
+                            t.HasCheckConstraint("ck_tile_children_position", "position >= 0");
+
+                            t.HasCheckConstraint("ck_tile_children_scope", "scope IN ('tile', 'item')");
+                        });
+                });
+
             modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileFieldRow", b =>
                 {
                     b.Property<Guid>("TileId")
@@ -594,6 +651,23 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_tile_bindings_tile_id");
                 });
 
+            modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileChildRow", b =>
+                {
+                    b.HasOne("CustomDataView.Infrastructure.Persistence.Rows.TileRow", null)
+                        .WithMany()
+                        .HasForeignKey("ChildTileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_tile_children_child_tile_id");
+
+                    b.HasOne("CustomDataView.Infrastructure.Persistence.Rows.TileRow", null)
+                        .WithMany("Children")
+                        .HasForeignKey("ParentTileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_tile_children_parent_tile_id");
+                });
+
             modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileFieldRow", b =>
                 {
                     b.HasOne("CustomDataView.Infrastructure.Persistence.Rows.TileRow", null)
@@ -696,6 +770,8 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileRow", b =>
                 {
                     b.Navigation("Bindings");
+
+                    b.Navigation("Children");
 
                     b.Navigation("Fields");
 
