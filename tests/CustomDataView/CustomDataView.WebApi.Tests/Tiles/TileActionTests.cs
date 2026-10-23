@@ -61,6 +61,44 @@ public class TileActionTests : TileApiTests
         Assert.That(items[1]!["actions"]![0]!["inputs"]!["parameters"]!["city_id"]?.GetValue<int>(), Is.EqualTo(2));
     }
 
+    [Test(Description = $"{Dir} - #17")]
+    public async Task Given_ButtonInputs_When_FrontPreviewsTargetTile_Then_TargetLoadsCity()
+    {
+        var id = await CreateTile(Results());
+        var action = (await Preview(id, new { }))["items"]![0]!["actions"]![0]!;
+
+        var city = await Preview(action["tileId"]!.GetValue<Guid>(), action["inputs"]!.DeepClone());
+
+        Assert.That(Factory.ExternalApi.Requests[^1].Url, Is.EqualTo("https://api.example.com/cities/1"));
+        Assert.That(city["fields"]![0]!["value"]?.GetValue<string>(), Is.EqualTo("Kraków"));
+    }
+
+    [Test(Description = $"{Dir} - #18")]
+    public async Task Given_TileLinkToResults_When_UserPreviewsCity_Then_LinkCarriesCityName()
+    {
+        var resultsId = await CreateTile(Results());
+        var city = City();
+        city["actions"] = new JsonArray(new JsonObject
+        {
+            ["key"] = "all",
+            ["label"] = "Wszystkie miasta",
+            ["type"] = "link",
+            ["tileId"] = resultsId,
+            ["map"] = new JsonArray(new JsonObject { ["field"] = "Nazwa", ["parameter"] = "name" })
+        });
+        await Client.PutAsJsonAsync($"{TilesUrl}/{cityTileId}", city);
+
+        var preview = await Preview(cityTileId, new { parameters = new { city_id = "1" } });
+
+        Assert.That(
+            JsonNode.DeepEquals(
+                preview["actions"],
+                JsonNode.Parse("""[{"key": "all", "label": "Wszystkie miasta", "type": "link", "tileId": "TILE", "inputs": {"parameters": {"name": "Kraków"}}}]"""
+                    .Replace("TILE", resultsId.ToString()))),
+            Is.True,
+            preview.ToJsonString());
+    }
+
     private JsonObject Results()
         => new()
         {

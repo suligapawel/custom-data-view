@@ -464,7 +464,11 @@ public sealed class TilePreviewer(
             .ToList();
         var preview = new TilePreview(id, definition.Name, definition.Display, null)
         {
-            Children = children.Count > 0 ? children : null
+            Children = children.Count > 0 ? children : null,
+            Actions = Actions(
+                definition,
+                TileActionScopes.Tile,
+                label => instance.Field(definition.Fields.First(field => TileLabels.AreEqual(field.Label, label)), PreviewField))
         };
         if (definition.Display == TileDisplays.Tabs)
         {
