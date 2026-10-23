@@ -76,6 +76,31 @@ public sealed class TileReferencesValidator(
             }
         }
 
+        for (var index = 0; index < definition.Actions.Count; index++)
+        {
+            var action = definition.Actions[index];
+            if (TileOf(action.TileId) is not { } target)
+            {
+                errors[$"actions[{index}].tileId"] = [$"Kafelek '{action.TileId}' nie istnieje."];
+                continue;
+            }
+
+            var contract = contracts.Of(target);
+            for (var position = 0; position < action.Map.Count; position++)
+            {
+                var mapping = action.Map[position];
+                if (mapping.Parameter is not null && contract.Parameters.All(parameter => parameter.Name != mapping.Parameter))
+                {
+                    errors[$"actions[{index}].map[{position}].parameter"] = [$"Parametr '{mapping.Parameter}' nie jest wejściem kafelka docelowego."];
+                }
+
+                if (mapping.Input is not null && !contract.Inputs.Contains(mapping.Input))
+                {
+                    errors[$"actions[{index}].map[{position}].input"] = [$"Wejście danych '{mapping.Input}' nie jest wejściem kafelka docelowego."];
+                }
+            }
+        }
+
         var childrenAreValid = ValidateChildren(definition, tileId, TileOf, errors);
         if (errors.Count == 0 && childrenAreValid)
         {

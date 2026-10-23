@@ -129,6 +129,68 @@ public class TileActionTests : TileApiTests
         Assert.That(invalid["error"]!["parameters"]![0]!["name"]?.GetValue<string>(), Is.EqualTo("city_id"));
     }
 
+    [TestCase("missing-target", "actions[0].tileId")]
+    [TestCase("missing-field", "actions[0].map[0].field")]
+    [TestCase("parameter-outside-target", "actions[0].map[0].parameter")]
+    [TestCase("unknown-type", "actions[0].type")]
+    [TestCase("item-scope-without-items", "actions[0].scope")]
+    [TestCase("in-form", "actions")]
+    [TestCase("duplicate-key", "actions[1].key")]
+    [TestCase("no-label", "actions[0].label")]
+    [Test(Description = $"{Dir} - #20")]
+    public async Task Given_InvalidAction_When_UserSavesTile_Then_SaveIsRejected(string invalid, string errorKey)
+    {
+        var tile = Results();
+        var action = tile["actions"]![0]!.AsObject();
+        switch (invalid)
+        {
+            case "missing-target":
+                action["tileId"] = Guid.NewGuid();
+                break;
+            case "missing-field":
+                action["map"]![0]!["field"] = "Ulica";
+                break;
+            case "parameter-outside-target":
+                action["map"]![0]!["parameter"] = "region";
+                break;
+            case "unknown-type":
+                action["type"] = "menu";
+                break;
+            case "item-scope-without-items":
+                tile = City();
+                tile["actions"] = new JsonArray(new JsonObject
+                {
+                    ["key"] = "self",
+                    ["label"] = "Odśwież",
+                    ["tileId"] = cityTileId,
+                    ["scope"] = "item",
+                    ["map"] = new JsonArray()
+                });
+                break;
+            case "in-form":
+                tile = new JsonObject
+                {
+                    ["name"] = "Formularz",
+                    ["display"] = "form",
+                    ["fields"] = new JsonArray(new JsonObject { ["label"] = "Miasto", ["type"] = "text" }),
+                    ["actions"] = new JsonArray(new JsonObject { ["key"] = "go", ["label"] = "Idź", ["tileId"] = cityTileId })
+                };
+                break;
+            case "duplicate-key":
+                tile["actions"]!.AsArray().Add(action.DeepClone());
+                break;
+            case "no-label":
+                action.Remove("label");
+                break;
+        }
+
+        var response = await Client.PostAsJsonAsync(TilesUrl, tile);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        var problem = await response.Content.ReadFromJsonAsync<JsonObject>();
+        Assert.That(problem["errors"]!.AsObject().Select(error => error.Key), Does.Contain(errorKey), problem.ToJsonString());
+    }
+
     private JsonObject Results()
         => new()
         {

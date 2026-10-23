@@ -44,6 +44,11 @@ public static class TileDefinitionValidator
             }
         }
 
+        if ((input.IsForm || input.IsTabs) && input.Actions.Count > 0)
+        {
+            errors["actions"] = [$"Kafelek typu '{input.Display}' nie ma akcji."];
+        }
+
         if (input.IsForm)
         {
             ValidateForm(input, errors);
@@ -72,6 +77,7 @@ public static class TileDefinitionValidator
         }
 
         ValidateChildren(input, sources, errors);
+        ValidateActions(input, errors);
         TileBindingsValidator.ValidateShape(input, errors);
         return errors;
     }
@@ -276,6 +282,77 @@ public static class TileDefinitionValidator
                 errors.TryAdd(
                     $"fields[{index}].source",
                     ["Pole spoza źródła elementów musi być ukryte i służy tylko jako źródło wiązania."]);
+            }
+        }
+    }
+
+    private static void ValidateActions(TileInput input, Dictionary<string, string[]> errors)
+    {
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+        for (var index = 0; index < input.Actions.Count; index++)
+        {
+            var action = input.Actions[index];
+            var key = $"actions[{index}]";
+            if (!TileNodeKeys.IsValid(action.Key))
+            {
+                errors[$"{key}.key"] = [$"Klucz akcji jest wymagany, może mieć najwyżej {TileNodeKeys.MaxLength} znaków i nie może zawierać znaku '/'."];
+            }
+            else if (!keys.Add(action.Key))
+            {
+                errors[$"{key}.key"] = [$"Klucz akcji '{action.Key}' występuje w kafelku więcej niż raz."];
+            }
+
+            if (!IsValidText(action.Label))
+            {
+                errors[$"{key}.label"] = [$"Etykieta akcji jest wymagana i może mieć najwyżej {MaxTextLength} znaków."];
+            }
+
+            if (action.Type is not null && !TileActionTypes.All.Contains(action.Type))
+            {
+                errors[$"{key}.type"] = [$"Typ akcji musi mieć jedną z wartości: {string.Join(", ", TileActionTypes.All)}."];
+            }
+
+            if (action.TileId is null)
+            {
+                errors[$"{key}.tileId"] = ["Kafelek docelowy akcji jest wymagany."];
+            }
+
+            var scope = action.Scope ?? (input.Items is null ? TileActionScopes.Tile : TileActionScopes.Item);
+            if (!TileActionScopes.All.Contains(scope))
+            {
+                errors[$"{key}.scope"] = [$"Zakres akcji musi mieć jedną z wartości: {string.Join(", ", TileActionScopes.All)}."];
+                continue;
+            }
+
+            if (scope == TileActionScopes.Item && input.Items is null)
+            {
+                errors[$"{key}.scope"] = ["Zakres 'item' jest dozwolony tylko w kafelku z elementami."];
+                continue;
+            }
+
+            var targets = new HashSet<string>(StringComparer.Ordinal);
+            for (var position = 0; position < action.Map.Count; position++)
+            {
+                var mapping = action.Map[position];
+                var mappingKey = $"{key}.map[{position}]";
+                var itemField = scope == TileActionScopes.Item;
+                if (!input.Fields.Any(field => TileLabels.AreEqual(field.Label, mapping.Field)
+                        && (input.Items is null || (field.Source == input.Items.Source) == itemField)))
+                {
+                    errors[$"{mappingKey}.field"] = itemField
+                        ? [$"Pole '{mapping.Field}' nie jest polem elementu."]
+                        : [$"Pole '{mapping.Field}' nie istnieje w kafelku poza polami elementów."];
+                }
+
+                if (string.IsNullOrWhiteSpace(mapping.Parameter) == string.IsNullOrWhiteSpace(mapping.Input))
+                {
+                    errors[mappingKey] = ["Mapowanie wskazuje dokładnie jedno z: parametr albo wejście danych."];
+                }
+                else if (!targets.Add(mapping.Parameter ?? mapping.Input))
+                {
+                    errors[$"{mappingKey}.{(mapping.Parameter is null ? "input" : "parameter")}"] =
+                        [$"Wejście '{mapping.Parameter ?? mapping.Input}' ma już wartość w tej akcji."];
+                }
             }
         }
     }
