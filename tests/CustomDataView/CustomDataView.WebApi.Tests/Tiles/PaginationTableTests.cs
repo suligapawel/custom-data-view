@@ -159,6 +159,22 @@ public class PaginationTableTests : TileApiTests
         await AssertRejected(tile, "pagination");
     }
 
+    [TestCase("0")]
+    [TestCase("\"abc\"")]
+    [TestCase("1.5")]
+    [Test(Description = $"{Dir} - #15")]
+    public async Task Given_PageOutOfRange_When_FrontPreviewsTile_Then_ItemsHaveInvalidPageParameter(string page)
+    {
+        var id = await CreateTile(Cities());
+
+        var preview = await Preview(id, new JsonObject { ["parameters"] = new JsonObject { ["pageNumber"] = JsonNode.Parse(page) } });
+
+        Assert.That(preview["itemsError"]!["code"]?.GetValue<string>(), Is.EqualTo("invalid_parameters"), preview.ToJsonString());
+        Assert.That(preview["itemsError"]!["parameters"]![0]!["name"]?.GetValue<string>(), Is.EqualTo("pageNumber"));
+        Assert.That(preview["pagination"], Is.Null);
+        Assert.That(Factory.ExternalApi.Requests, Is.Empty);
+    }
+
     private async Task AssertRejected(JsonObject tile, string errorKey)
     {
         var response = await Client.PostAsJsonAsync(TilesUrl, tile);
