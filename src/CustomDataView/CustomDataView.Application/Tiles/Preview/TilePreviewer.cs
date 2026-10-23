@@ -567,10 +567,9 @@ public sealed class TilePreviewer(
         return new TileFieldPreview(field.Label, path.IsCollection ? new JsonArray(values) : values.Single(), null, field.Hidden);
     }
 
-    private TileFieldPreview CombineField(TileField field, Func<string, (TileField Field, TileFieldPreview Preview)> input)
+    private TileFieldPreview CombineField(TileDefinition definition, TileField field, Func<TileField, TileFieldPreview> preview)
     {
-        var combination = combinations.Find(field.Combination.Key);
-        var inputs = combination.Inputs(field.Combination.Parameter, field.Combination.Fields).Select(input).ToList();
+        var inputs = combinations.Inputs(definition, field).Select(input => (Field: input, Preview: preview(input))).ToList();
         if (inputs.FirstOrDefault(candidate => candidate.Preview.Error is not null) is { Field: not null } failed)
         {
             return new TileFieldPreview(
@@ -585,7 +584,7 @@ public sealed class TilePreviewer(
         JsonNode value;
         try
         {
-            value = combination.Combine(
+            value = combinations.Find(field.Combination.Key).Combine(
                 field.Combination.Parameter,
                 inputs.Select(candidate => new CombinationInput(candidate.Field.Label, candidate.Preview.Value)).ToList());
         }
@@ -631,11 +630,7 @@ public sealed class TilePreviewer(
 
         public TileFieldPreview Field(TileField field)
             => fields.GetOrAdd(field, candidate => candidate.IsCombined
-                ? previewer.CombineField(candidate, label =>
-                {
-                    var input = Definition.Fields.First(field => TileLabels.AreEqual(field.Label, label));
-                    return (input, Field(input));
-                })
+                ? previewer.CombineField(Definition, candidate, Field)
                 : previewer.PreviewField(candidate, results[candidate.Source]));
 
         public IReadOnlyList<ItemInstance> Items()
@@ -667,13 +662,7 @@ public sealed class TilePreviewer(
 
                         foreach (var field in itemFields.Where(field => field.IsCombined))
                         {
-                            values[field] = previewer.CombineField(
-                                field,
-                                label =>
-                                {
-                                    var input = values.First(pair => TileLabels.AreEqual(pair.Key.Label, label));
-                                    return (input.Key, input.Value);
-                                });
+                            values[field] = previewer.CombineField(Definition, field, input => values[input]);
                         }
 
                         var key = values.First(pair => TileLabels.AreEqual(pair.Key.Label, Definition.Items.Key)).Value.Value;
