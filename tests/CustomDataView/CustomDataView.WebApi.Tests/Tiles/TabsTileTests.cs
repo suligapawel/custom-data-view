@@ -156,6 +156,23 @@ public class TabsTileTests : TileApiTests
         await AssertRejected(tile, errorKey);
     }
 
+    [TestCase("filters/missing", "Miasto", "bindings[0].from")]
+    [TestCase("filters/byName", "Ulica", "bindings[0].map[0].field")]
+    [TestCase("results/byName", "Miasto", "bindings[0].from", "filters/byName")]
+    [TestCase("filters/byName", "Miasto", "bindings[0].to", "filters")]
+    [Test(Description = $"{Dir} - #6")]
+    public async Task Given_BindingFromInvalidDescendantPath_When_UserSavesSearch_Then_SaveIsRejected(
+        string from,
+        string field,
+        string errorKey,
+        string to = "results")
+    {
+        var search = Search(await CreateTile(Filters(lazyCountry: false)));
+        search["bindings"]![0] = Binding(from, to, field, "name");
+
+        await AssertRejected(search, errorKey);
+    }
+
     private async Task AssertRejected(JsonObject tile, string errorKey)
     {
         var response = await Client.PostAsJsonAsync(TilesUrl, tile);

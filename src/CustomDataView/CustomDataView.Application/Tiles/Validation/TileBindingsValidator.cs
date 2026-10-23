@@ -32,7 +32,7 @@ public static class TileBindingsValidator
             {
                 errors[$"{key}.to"] = [$"Ścieżka osadzeń w kafelku może mieć najwyżej {MaxPathSegments} segmenty."];
             }
-            else if (binding.To == binding.From)
+            else if (binding.To.Split(TileNodeKeys.PathSeparator)[0] == binding.From?.Split(TileNodeKeys.PathSeparator)[0])
             {
                 errors[$"{key}.to"] = ["Węzeł docelowy musi być różny od źródłowego."];
             }
