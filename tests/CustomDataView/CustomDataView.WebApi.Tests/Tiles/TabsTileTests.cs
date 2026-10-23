@@ -85,6 +85,46 @@ public class TabsTileTests : TileApiTests
         Assert.That(Factory.ExternalApi.Requests, Is.Empty);
     }
 
+    [Test(Description = $"{Dir} - #4")]
+    public async Task Given_TabsFedByParentAndByOtherTab_When_UserPreviewsSearch_Then_TabsAreLoadedWithDeliveredValues()
+    {
+        var weatherConnectionId = await CreateConnection(new
+        {
+            name = "Pogoda",
+            method = "GET",
+            url = "https://api.example.com/cities/weather",
+            queryParameters = new object[] { new { name = "cityId", required = true } }
+        });
+        var weatherTileId = await CreateTile(new JsonObject
+        {
+            ["name"] = "Pogoda",
+            ["display"] = "details",
+            ["sources"] = new JsonArray(new JsonObject { ["key"] = "weather", ["kind"] = "connection", ["connectionId"] = weatherConnectionId }),
+            ["fields"] = new JsonArray(new JsonObject { ["source"] = "weather", ["path"] = "$", ["label"] = "Pogoda" })
+        });
+        var filters = Filters(lazyCountry: false);
+        filters["children"]!.AsArray().Add(new JsonObject { ["key"] = "weather", ["label"] = "Pogoda", ["tileId"] = weatherTileId, ["position"] = 2 });
+        filters["children"]!.AsArray().Add(new JsonObject { ["key"] = "byNameWeather", ["label"] = "Pogoda miasta", ["tileId"] = weatherTileId, ["position"] = 3 });
+        filters["bindings"] = new JsonArray(Binding("byName", "byNameWeather", "Miasto", "cityId"));
+        var search = Search(await CreateTile(filters));
+        search["fields"] = new JsonArray(new JsonObject { ["source"] = "note", ["path"] = "$.city", ["label"] = "Domyślne miasto", ["hidden"] = true });
+        search["bindings"]!.AsArray().Add(Binding("parent", "filters/weather", "Domyślne miasto", "cityId"));
+        var id = await CreateTile(search);
+
+        var preview = await Preview(id, new
+        {
+            inputs = new { note = new { city = "7" } },
+            forms = new Dictionary<string, object> { ["filters/byName"] = new Dictionary<string, object> { ["Miasto"] = "9" } }
+        });
+
+        var tabs = preview["children"]![0]!["tile"]!["children"]!.AsArray();
+        Assert.That(tabs[2]!["state"]?.GetValue<string>(), Is.EqualTo("data"), tabs[2]!.ToJsonString());
+        Assert.That(tabs[3]!["state"]?.GetValue<string>(), Is.EqualTo("data"), tabs[3]!.ToJsonString());
+        Assert.That(
+            Factory.ExternalApi.Requests.Select(request => request.Url),
+            Is.SupersetOf(new[] { "https://api.example.com/cities/weather?cityId=7", "https://api.example.com/cities/weather?cityId=9" }));
+    }
+
     private JsonObject Search(Guid filtersId)
         => new()
         {
