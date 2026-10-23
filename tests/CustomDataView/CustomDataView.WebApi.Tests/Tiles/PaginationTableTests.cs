@@ -34,8 +34,8 @@ public class PaginationTableTests : TileApiTests
             queryParameters = new object[]
             {
                 new { name = "name", required = false },
-                new { name = "pageNumber", required = true },
-                new { name = "pageSize", required = true },
+                new { name = "pageNumber", required = false },
+                new { name = "pageSize", required = false },
                 new { name = "page", required = false },
                 new { name = "limit", required = false }
             }
@@ -59,6 +59,54 @@ public class PaginationTableTests : TileApiTests
                 JsonNode.Parse("""{"page": 1, "pageSize": 10, "total": 12, "pages": 2, "next": {"parameters": {"name": "Kra", "pageNumber": 2, "pageSize": 10}}}""")),
             Is.True,
             preview["pagination"]?.ToJsonString());
+    }
+
+    [Test(Description = $"{Dir} - #10")]
+    public async Task Given_NextPageValues_When_FrontPreviewsNextPage_Then_SecondPageWithPreviousIsReturned()
+    {
+        var id = await CreateTile(Cities());
+        var next = (await Preview(id, new { parameters = new { name = "Kra" } }))["pagination"]!["next"]!.DeepClone();
+
+        var preview = await Preview(id, next);
+
+        Assert.That(Factory.ExternalApi.Requests[^1].Url, Is.EqualTo("https://api.example.com/cities?name=Kra&pageNumber=2&pageSize=10"));
+        Assert.That(preview["items"]!.AsArray(), Has.Count.EqualTo(2));
+        Assert.That(
+            JsonNode.DeepEquals(
+                preview["pagination"],
+                JsonNode.Parse("""{"page": 2, "pageSize": 10, "total": 12, "pages": 2, "previous": {"parameters": {"name": "Kra", "pageNumber": 1, "pageSize": 10}}}""")),
+            Is.True,
+            preview["pagination"]?.ToJsonString());
+    }
+
+    [TestCase(10, true)]
+    [TestCase(4, false)]
+    [Test(Description = $"{Dir} - #11")]
+    public async Task Given_PaginationWithoutTotal_When_UserPreviewsFirstPage_Then_NextDependsOnFullPage(int count, bool hasNext)
+    {
+        pageCount = count;
+        var tile = Cities();
+        tile["pagination"]!.AsObject().Remove("totalPath");
+        var id = await CreateTile(tile);
+
+        var pagination = (await Preview(id, new { }))["pagination"]!;
+
+        Assert.That(pagination["next"] is not null, Is.EqualTo(hasNext), pagination.ToJsonString());
+        Assert.That(pagination["pages"], Is.Null);
+        Assert.That(pagination["total"], Is.Null);
+    }
+
+    [Test(Description = $"{Dir} - #12")]
+    public async Task Given_CustomPageParameters_When_FrontPreviewsWithPageSize_Then_ApiGetsPageAndLimit()
+    {
+        var tile = Cities();
+        tile["pagination"] = new JsonObject { ["pageNumberParameter"] = "page", ["pageSizeParameter"] = "limit", ["pageSize"] = 10 };
+        var id = await CreateTile(tile);
+
+        var preview = await Preview(id, new { parameters = new { limit = 5 } });
+
+        Assert.That(Factory.ExternalApi.Requests.Select(request => request.Url), Is.EqualTo(new[] { "https://api.example.com/cities?page=1&limit=5" }));
+        Assert.That(preview["pagination"]!["pageSize"]?.GetValue<int>(), Is.EqualTo(5));
     }
 
     private JsonObject Cities()
