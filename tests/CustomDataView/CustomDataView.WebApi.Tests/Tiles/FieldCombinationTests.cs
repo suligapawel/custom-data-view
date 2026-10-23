@@ -471,6 +471,54 @@ public class FieldCombinationTests : TileApiTests
         Assert.That(Value(preview, "Ulica"), Is.EqualTo("Długa"));
     }
 
+    [Test(Description = $"{Dir} - #20")]
+    public async Task Given_ObjectOfMissingValueAndList_When_UserPreviewsTile_Then_ObjectKeepsNullAndList()
+    {
+        var id = await CreateTile(Address(
+            PlaceField("$.email", "Email"),
+            PlaceField("$.tags[*]", "Tagi"),
+            Combined("Szczegóły", "object", fields: ["Miasto", "Email", "Tagi"])));
+
+        var preview = await Preview(id);
+
+        Assert.That(
+            JsonNode.DeepEquals(
+                Field(preview, "Szczegóły")["value"],
+                JsonNode.Parse("""{"Miasto": "Kraków", "Email": null, "Tagi": ["zabytki", null, "rynek"]}""")),
+            Is.True,
+            preview.ToJsonString());
+    }
+
+    [TestCase("table")]
+    [TestCase("pagination_table")]
+    [Test(Description = $"{Dir} - #21")]
+    public async Task Given_TableWithCombinedColumn_When_UserPreviewsTable_Then_EachRowHasItsComposedValue(string display)
+    {
+        var table = Cities(display, Combined("Miasto", "template", "{Nazwa} ({Kraj})"));
+        if (display == "pagination_table")
+        {
+            var pagedConnectionId = await CreateConnection(new
+            {
+                name = "Miasta stronicowane",
+                method = "GET",
+                url = "https://api.example.com/cities",
+                queryParameters = new object[] { new { name = "pageNumber", required = false }, new { name = "pageSize", required = false } }
+            });
+            table["sources"]![0]!["connectionId"] = pagedConnectionId;
+            table["pagination"] = new JsonObject { ["pageSize"] = 10 };
+        }
+
+        var id = await CreateTile(table);
+
+        var preview = await Preview(id);
+
+        Assert.That(
+            preview["items"]!.AsArray()
+                .Select(item => item!["fields"]!.AsArray().Single(field => field!["label"]!.GetValue<string>() == "Miasto")!["value"]?.GetValue<string>()),
+            Is.EqualTo(new[] { "Kraków (PL)", "Praga (CZ)" }),
+            preview.ToJsonString());
+    }
+
     private async Task<Guid> CreateWeatherTile()
     {
         var weatherConnectionId = await CreateConnection(new
