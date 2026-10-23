@@ -263,7 +263,7 @@ public class ChildTileTests : TileApiTests
         Assert.That(
             JsonNode.DeepEquals(
                 conflict,
-                JsonNode.Parse($$"""{"code": "tile_in_use", "views": [], "tiles": [{"id": "{{shippingTileId}}", "name": "Dostawa"}]}""")),
+                JsonNode.Parse($$"""{"code": "tile_in_use", "tiles": [{"id": "{{shippingTileId}}", "name": "Dostawa"}]}""")),
             Is.True,
             conflict.ToJsonString());
         Assert.That((await Client.GetAsync($"{TilesUrl}/{carrierTileId}")).StatusCode, Is.EqualTo(HttpStatusCode.OK));

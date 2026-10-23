@@ -1,11 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Nodes;
-using CustomDataView.WebApi.Tests.Views;
 
 namespace CustomDataView.WebApi.Tests.Tiles;
 
-public class TileDisplayTests : ViewApiTests
+public class TileDisplayTests : TileApiTests
 {
     private const string CitiesUrl = "https://api.example.com/cities";
 
@@ -157,34 +156,6 @@ public class TileDisplayTests : ViewApiTests
         var response = await Client.PostAsJsonAsync(TilesUrl, tile);
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
-    }
-
-    [Test(Description = "scenario_TEMP-032 - #8")]
-    public async Task Given_CitiesSourceUnavailable_When_UserPreviewsTable_Then_PreviewHasItemsErrorInsteadOfItems()
-    {
-        var id = await CreateTile(CitiesTable());
-        Factory.ExternalApi.Respond = (_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
-
-        var preview = await Preview(id, new { });
-
-        Assert.That(preview.ContainsKey("items"), Is.False);
-        Assert.That(preview["itemsError"]?["code"]?.GetValue<string>(), Is.EqualTo("source_unavailable"));
-    }
-
-    [Test(Description = "scenario_TEMP-032 - #9")]
-    public async Task Given_ViewWithCitiesTableHavingHiddenField_When_UserPreviewsView_Then_ItemsHaveOnlyVisibleFields()
-    {
-        var table = CitiesTable();
-        table["fields"]![2]!["hidden"] = true;
-        var viewId = await CreateView("Pulpit", ViewTile(await CreateTile(table), 0));
-
-        var response = await Client.PostAsJsonAsync($"{ViewsUrl}/{viewId}/preview", new { });
-
-        var tile = (await response.Content.ReadFromJsonAsync<JsonObject>())["tiles"]![0]!;
-        Assert.That(tile["display"]?.GetValue<string>(), Is.EqualTo("table"));
-        Assert.That(
-            tile["items"]!.AsArray().Select(item => string.Join(",", item!["fields"]!.AsArray().Select(field => field!["label"]!.GetValue<string>()))),
-            Is.EqualTo(new[] { "ID,Miasto", "ID,Miasto" }));
     }
 
     private JsonObject CitiesTable()

@@ -35,35 +35,12 @@ public sealed class TilePreviewer(
     public Task<TilePreview> Preview(TileDefinition definition, TilePreviewValues values, CancellationToken cancellationToken)
         => Preview(null, definition, values, cancellationToken);
 
-    public PreviewContext CreateContext(TilePreviewValues values, CancellationToken cancellationToken)
-        => new(values, time, cancellationToken);
-
-    public Task<TileEmbeddingPreview> PreviewEmbedding(TileChild embedding, TileValues values, PreviewContext context)
-        => PreviewChild(embedding, values, embedding.Key, context);
-
-    public static TilePreview Visible(TilePreview preview)
-        => preview with
-        {
-            Fields = preview.Fields?.Where(field => !field.Hidden).ToList(),
-            Items = preview.Items?
-                .Select(item => item with
-                {
-                    Fields = item.Fields.Where(field => !field.Hidden).ToList(),
-                    Children = item.Children?.Select(Visible).ToList()
-                })
-                .ToList(),
-            Children = preview.Children?.Select(Visible).ToList()
-        };
-
-    public static TileEmbeddingPreview Visible(TileEmbeddingPreview embedding)
-        => embedding.Tile is null ? embedding : embedding with { Tile = Visible(embedding.Tile) };
-
     private async Task<TilePreview> Preview(
         Guid? id,
         TileDefinition definition,
         TilePreviewValues values,
         CancellationToken cancellationToken)
-        => await PreviewInstance(id, definition, values.ToValues(), string.Empty, CreateContext(values, cancellationToken));
+        => await PreviewInstance(id, definition, values.ToValues(), string.Empty, new PreviewContext(values, time, cancellationToken));
 
     private async Task<TilePreview> PreviewInstance(
         Guid? id,

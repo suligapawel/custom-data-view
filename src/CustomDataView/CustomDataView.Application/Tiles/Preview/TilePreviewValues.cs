@@ -7,8 +7,6 @@ public sealed record TilePreviewValues(
     IReadOnlyDictionary<string, JsonElement> Parameters,
     IReadOnlyDictionary<string, JsonElement> Inputs)
 {
-    public static readonly TilePreviewValues Empty = new(new Dictionary<string, JsonElement>(), new Dictionary<string, JsonElement>());
-
     public IReadOnlyDictionary<string, IReadOnlyDictionary<string, JsonElement>> Forms { get; init; } =
         new Dictionary<string, IReadOnlyDictionary<string, JsonElement>>();
 

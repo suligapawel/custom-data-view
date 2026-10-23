@@ -1,3 +1,5 @@
+> Wycofane (2026-10-23): widoki usunięto na rzecz kafelków złożonych — patrz TEMP-038. Dokument zostaje jako historia.
+
 # #TEMP-024-028 — Scenariusz implementacji
 
 ## Cel

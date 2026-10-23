@@ -47,7 +47,7 @@ And   pole "Saldo" ma wartość 1234.6 i oznaczenie hidden równe true
 
 #### Scenario #4
 
-Podgląd widoku pomija pola ukryte
+Podgląd widoku pomija pola ukryte (wycofany: widoki usunięte, TEMP-038)
 
 ```
 Given użytkownik zapisał kafelek "Klient" z polem "Nazwa" i ukrytym polem "Saldo"

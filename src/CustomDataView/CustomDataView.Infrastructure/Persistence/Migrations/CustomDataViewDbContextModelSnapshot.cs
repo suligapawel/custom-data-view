@@ -544,73 +544,6 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                         });
                 });
 
-            modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.ViewRow", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamptz")
-                        .HasColumnName("created_at")
-                        .HasDefaultValueSql("now()");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("name");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamptz")
-                        .HasColumnName("updated_at")
-                        .HasDefaultValueSql("now()");
-
-                    b.HasKey("Id")
-                        .HasName("pk_views");
-
-                    b.HasIndex("CreatedAt", "Id")
-                        .HasDatabaseName("ix_views_created_at_id");
-
-                    b.ToTable("views", "custom_data_view");
-                });
-
-            modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.ViewTileRow", b =>
-                {
-                    b.Property<Guid>("ViewId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("view_id");
-
-                    b.Property<Guid>("TileId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("tile_id");
-
-                    b.Property<string>("CssClass")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("css_class");
-
-                    b.Property<int>("Position")
-                        .HasColumnType("integer")
-                        .HasColumnName("position");
-
-                    b.HasKey("ViewId", "TileId")
-                        .HasName("pk_view_tiles");
-
-                    b.HasAlternateKey("ViewId", "Position")
-                        .HasName("uq_view_tiles_view_id_position");
-
-                    b.HasIndex("TileId")
-                        .HasDatabaseName("ix_view_tiles_tile_id");
-
-                    b.ToTable("view_tiles", "custom_data_view", t =>
-                        {
-                            t.HasCheckConstraint("ck_view_tiles_position", "position >= 0");
-                        });
-                });
-
             modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.ConnectionBodyParameterRow", b =>
                 {
                     b.HasOne("CustomDataView.Infrastructure.Persistence.Rows.ConnectionRow", null)
@@ -731,23 +664,6 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_tile_sources_tile_id");
                 });
 
-            modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.ViewTileRow", b =>
-                {
-                    b.HasOne("CustomDataView.Infrastructure.Persistence.Rows.TileRow", null)
-                        .WithMany()
-                        .HasForeignKey("TileId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_view_tiles_tile_id");
-
-                    b.HasOne("CustomDataView.Infrastructure.Persistence.Rows.ViewRow", null)
-                        .WithMany("Tiles")
-                        .HasForeignKey("ViewId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_view_tiles_view_id");
-                });
-
             modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.ConnectionRow", b =>
                 {
                     b.Navigation("BodyParameters");
@@ -778,11 +694,6 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                     b.Navigation("FormFields");
 
                     b.Navigation("Sources");
-                });
-
-            modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.ViewRow", b =>
-                {
-                    b.Navigation("Tiles");
                 });
 #pragma warning restore 612, 618
         }

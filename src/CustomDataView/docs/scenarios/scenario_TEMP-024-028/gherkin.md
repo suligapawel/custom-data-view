@@ -1,3 +1,5 @@
+> Wycofane (2026-10-23): widoki usunięto na rzecz kafelków złożonych — patrz TEMP-038. Dokument zostaje jako historia.
+
 ## Feature
 
 Widoki układające kafelki w kolejności pozycji, z opcjonalną klasą CSS opisującą sposób wyświetlenia kafelka

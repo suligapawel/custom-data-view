@@ -10,8 +10,6 @@ public sealed record TilePreviewRequest(
     Dictionary<string, Dictionary<string, JsonElement>> Forms,
     Dictionary<string, TileDescendantValuesRequest> Descendants)
 {
-    public IReadOnlyDictionary<string, JsonElement> ToInput() => ValuesOf(Parameters);
-
     public TilePreviewValues ToValues() => ValuesOf(Parameters, Inputs, Forms, Descendants);
 
     public static TilePreviewValues ValuesOf(

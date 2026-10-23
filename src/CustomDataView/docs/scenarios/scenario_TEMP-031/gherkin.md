@@ -50,7 +50,7 @@ And   pole "Nazwa" ma błąd invalid_parameters, a pole "Kurs EUR" ma wartość
 
 #### Scenario #4
 
-Podgląd widoku zwraca błąd parametrów w polach, a nie w całym kafelku
+Podgląd widoku zwraca błąd parametrów w polach, a nie w całym kafelku (wycofany: widoki usunięte, TEMP-038)
 
 ```
 Given użytkownik zapisał widok "Pulpit klienta" z kafelkiem "Klient i kurs"

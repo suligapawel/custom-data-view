@@ -31,7 +31,7 @@ public sealed class CustomDataViewExceptionHandler : IExceptionHandler
 
         if (exception is TileInUseException tileInUse)
         {
-            await Results.Conflict(new TileInUseResponse(TileInUseResponse.TileInUseCode, tileInUse.Views, tileInUse.Tiles))
+            await Results.Conflict(new TileInUseResponse(TileInUseResponse.TileInUseCode, tileInUse.Tiles))
                 .ExecuteAsync(httpContext);
             return true;
         }
@@ -41,7 +41,6 @@ public sealed class CustomDataViewExceptionHandler : IExceptionHandler
             await Results.Conflict(new FieldInUseResponse(
                     FieldInUseResponse.FieldInUseCode,
                     fieldInUse.Fields,
-                    fieldInUse.Views,
                     fieldInUse.Tiles))
                 .ExecuteAsync(httpContext);
             return true;

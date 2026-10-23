@@ -42,7 +42,7 @@ public static class TestDatabase
 
     public static void Clear(NpgsqlDataSource dataSource)
     {
-        Execute(dataSource, "TRUNCATE custom_data_view.views, custom_data_view.tiles, custom_data_view.connections CASCADE");
+        Execute(dataSource, "TRUNCATE custom_data_view.tiles, custom_data_view.connections CASCADE");
     }
 
     private static void Execute(NpgsqlDataSource dataSource, string sql)

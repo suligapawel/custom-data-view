@@ -1,7 +1,6 @@
 using CustomDataView.Application.Tiles.Contracts;
 using CustomDataView.Application.Tiles.Preview;
 using CustomDataView.Application.Tiles.Validation;
-using CustomDataView.Application.Views.Validation;
 using CustomDataView.Domain.Services;
 using CustomDataView.Domain.Services.Transformations;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,7 +16,6 @@ public static class DependencyInjection
         services.AddSingleton<TilePreviewer>();
         services.AddSingleton<TileContracts>();
         services.AddSingleton(TimeProvider.System);
-        services.AddSingleton<ViewReferencesValidator>();
         return services;
     }
 

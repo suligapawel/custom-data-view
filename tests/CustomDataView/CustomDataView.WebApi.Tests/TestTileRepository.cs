@@ -3,7 +3,7 @@ using CustomDataView.Domain.Repositories;
 
 namespace CustomDataView.WebApi.Tests;
 
-public sealed class TestTileRepository(TestViewRepository views) : ITileRepository
+public sealed class TestTileRepository : ITileRepository
 {
     private readonly List<Tile> tiles = [];
 
@@ -25,7 +25,6 @@ public sealed class TestTileRepository(TestViewRepository views) : ITileReposito
     public void Delete(Guid id)
     {
         tiles.RemoveAll(tile => tile.Id == id);
-        views.RemoveTile(id);
     }
 
     public IReadOnlyList<TileReference> GetUsingConnection(Guid connectionId)

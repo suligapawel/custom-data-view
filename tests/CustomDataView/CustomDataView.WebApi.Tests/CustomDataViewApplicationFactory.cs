@@ -20,7 +20,6 @@ public class CustomDataViewApplicationFactory : WebApplicationFactory<Program>
     {
         Services.GetRequiredService<TestConnectionRepository>().Clear();
         Services.GetRequiredService<TestTileRepository>().Clear();
-        Services.GetRequiredService<TestViewRepository>().Clear();
         ExternalApi.Reset();
         Time.Reset();
         var options = Services.GetRequiredService<IOptions<ExternalApiOptions>>().Value;
@@ -42,8 +41,6 @@ public class CustomDataViewApplicationFactory : WebApplicationFactory<Program>
             services.AddSingleton<IConnectionRepository>(provider => provider.GetRequiredService<TestConnectionRepository>());
             services.AddSingleton<TestTileRepository>();
             services.AddSingleton<ITileRepository>(provider => provider.GetRequiredService<TestTileRepository>());
-            services.AddSingleton<TestViewRepository>();
-            services.AddSingleton<IViewRepository>(provider => provider.GetRequiredService<TestViewRepository>());
             services.AddHttpClient(ExternalApiClient.HttpClientName)
                 .ConfigurePrimaryHttpMessageHandler(() => ExternalApi)
                 .SetHandlerLifetime(Timeout.InfiniteTimeSpan);

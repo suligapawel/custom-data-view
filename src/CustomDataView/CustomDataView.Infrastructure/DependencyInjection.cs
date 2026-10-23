@@ -23,7 +23,6 @@ public static class DependencyInjection
             (provider, options) => options.UseNpgsql(provider.GetRequiredService<NpgsqlDataSource>(), CustomDataViewDbContext.ConfigureNpgsql));
         services.AddSingleton<IConnectionRepository, PostgresConnectionRepository>();
         services.AddSingleton<ITileRepository, PostgresTileRepository>();
-        services.AddSingleton<IViewRepository, PostgresViewRepository>();
         services.AddSingleton<IConnectionFactory, ConnectionFactory>();
         services.AddSingleton<IExternalApiClient, ExternalApiClient>();
         services.AddOptions<ExternalApiOptions>().BindConfiguration(ExternalApiOptions.SectionName);

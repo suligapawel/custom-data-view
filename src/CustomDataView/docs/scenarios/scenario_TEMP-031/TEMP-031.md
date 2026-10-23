@@ -7,4 +7,3 @@
     - Brak wymaganego parametru albo zły typ daje pola tego połączenia z błędem `invalid_parameters` ze szczegółami
       (parametr, komunikat, czy wartość pochodzi z wiązania); połączenie nie jest wywoływane.
     - Pozostałe pola kafelka zwracają dane, a podgląd kafelka (zapisanego i niezapisanego, POST i GET) ma status 200.
-    - Podgląd widoku nie zwraca już błędu całego kafelka `invalid_parameters`; błąd dotyczy pól.

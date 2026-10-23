@@ -30,10 +30,6 @@ public sealed class CustomDataViewDbContext(DbContextOptions<CustomDataViewDbCon
 
     public DbSet<TileChildRow> TileChildren => Set<TileChildRow>();
 
-    public DbSet<ViewRow> Views => Set<ViewRow>();
-
-    public DbSet<ViewTileRow> ViewTiles => Set<ViewTileRow>();
-
     public static void ConfigureNpgsql(NpgsqlDbContextOptionsBuilder npgsql)
     {
         npgsql.MigrationsHistoryTable(MigrationsHistoryTable, Schema);

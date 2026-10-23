@@ -104,7 +104,7 @@ Then  podgląd zawiera błąd elementów source_unavailable zamiast elementów
 
 #### Scenario #9
 
-Podgląd widoku zwraca elementy kafelka z kolekcją bez pól ukrytych
+Podgląd widoku zwraca elementy kafelka z kolekcją bez pól ukrytych (wycofany: widoki usunięte, TEMP-038)
 
 ```
 Given kafelek "Miasta" ma ukryte pole "Temperatura"

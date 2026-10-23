@@ -1,3 +1,5 @@
+> Wycofane (2026-10-23): widoki usunięto na rzecz kafelków złożonych — patrz TEMP-038. Dokument zostaje jako historia.
+
 - ID: TEMP-029  
   Tytuł: Podgląd widoku z danymi  
   Opis: Jako użytkownik chcę pobrać widok razem z danymi jego kafelków dla podanych parametrów, aby sprawdzić, jak

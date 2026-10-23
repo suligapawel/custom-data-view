@@ -15,7 +15,7 @@ public sealed class DeleteTileHandler(ITileRepository repository)
         var parents = repository.GetParents(command.Id);
         if (parents.Count > 0)
         {
-            throw new TileInUseException(command.Id, [], parents);
+            throw new TileInUseException(command.Id, parents);
         }
 
         repository.Delete(command.Id);

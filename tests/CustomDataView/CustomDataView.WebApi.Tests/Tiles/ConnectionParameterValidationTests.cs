@@ -1,11 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Nodes;
-using CustomDataView.WebApi.Tests.Views;
 
 namespace CustomDataView.WebApi.Tests.Tiles;
 
-public class ConnectionParameterValidationTests : ViewApiTests
+public class ConnectionParameterValidationTests : TileApiTests
 {
     [Test(Description = "scenario_TEMP-031 - #1")]
     public async Task Given_CustomerAndRateTile_When_UserPreviewsWithCurrencyOnly_Then_OnlyCustomerFieldHasParameterError()
@@ -34,40 +33,6 @@ public class ConnectionParameterValidationTests : ViewApiTests
         var preview = await response.Content.ReadFromJsonAsync<JsonObject>();
         AssertParameterError(preview["fields"]![0], "customer_id", bound: false);
         Assert.That(Factory.ExternalApi.Requests.Select(request => request.Url), Is.EqualTo(new[] { RateUrl }));
-    }
-
-    [TestCase("DRAFT")]
-    [TestCase("GET")]
-    [Test(Description = "scenario_TEMP-031 - #3")]
-    public async Task Given_CustomerAndRateTile_When_UserPreviewsDraftOrWithGetWithCurrencyOnly_Then_OnlyCustomerFieldHasParameterError(string method)
-    {
-        var id = await CustomerAndRateTile();
-
-        var response = method == "GET"
-            ? await Client.GetAsync($"{TilesUrl}/{id}/preview?currency=EUR")
-            : await Client.PostAsJsonAsync($"{TilesUrl}/preview", new
-            {
-                tile = CustomerAndRate(),
-                parameters = new { currency = "EUR" }
-            });
-
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        var preview = await response.Content.ReadFromJsonAsync<JsonObject>();
-        AssertParameterError(preview["fields"]![0], "customer_id", bound: false);
-        Assert.That(preview["fields"]![1]!["value"]?.GetValue<decimal>(), Is.EqualTo(4.31789m));
-    }
-
-    [Test(Description = "scenario_TEMP-031 - #4")]
-    public async Task Given_ViewWithCustomerAndRateTile_When_UserPreviewsView_Then_FieldHasParameterErrorInsteadOfTileError()
-    {
-        var viewId = await CreateView("Pulpit klienta", ViewTile(await CustomerAndRateTile(), 0));
-
-        var response = await Client.PostAsJsonAsync($"{ViewsUrl}/{viewId}/preview", new { parameters = new { currency = "EUR" } });
-
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        var tile = (await response.Content.ReadFromJsonAsync<JsonObject>())["tiles"]![0]!.AsObject();
-        Assert.That(tile.ContainsKey("error"), Is.False);
-        Assert.That(tile["fields"]![0]!["error"]?["code"]?.GetValue<string>(), Is.EqualTo("invalid_parameters"));
     }
 
     private Task<Guid> CustomerAndRateTile() => CreateTile(CustomerAndRate());

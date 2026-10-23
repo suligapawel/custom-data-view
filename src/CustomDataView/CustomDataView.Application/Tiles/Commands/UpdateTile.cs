@@ -25,7 +25,6 @@ public sealed class UpdateTileHandler(ITileRepository repository, TileReferences
             throw new FieldInUseException(
                 command.Id,
                 uses.Select(use => use.Field).Distinct().ToList(),
-                [],
                 uses.Select(use => use.Tile).Distinct().ToList());
         }
 
