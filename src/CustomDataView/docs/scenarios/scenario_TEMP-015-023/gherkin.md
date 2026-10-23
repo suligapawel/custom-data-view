@@ -80,11 +80,11 @@ Then  pola są w kolejności "Kurs EUR", "Nazwa", "Miasto"
 
 #### Scenario #6
 
-Nazwy kafelków i etykiety pól nie muszą być unikalne
+Nazwy kafelków nie muszą być unikalne, a etykieta może się powtarzać w różnych kafelkach (TEMP-030)
 
 ```
-Given istnieje kafelek o nazwie "Klient"
-When  użytkownik zapisuje kolejny kafelek "Klient" z dwoma polami o etykiecie "Wartość"
+Given istnieje kafelek o nazwie "Klient" z polem "Nazwa"
+When  użytkownik zapisuje kolejny kafelek "Klient" z polem "Nazwa"
 Then  kafelek zostaje zapisany
 And   lista zawiera dwa kafelki o nazwie "Klient" z różnymi identyfikatorami
 ```

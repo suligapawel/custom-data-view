@@ -97,7 +97,8 @@ public class TileDetailsTests : TileApiTests
                         ["connectionId"] = RateConnectionId,
                         ["path"] = "$.rate",
                         ["label"] = "Kurs EUR",
-                        ["transformations"] = JsonNode.Parse("""[{"key": "round", "parameters": {"decimals": 2}}]""")
+                        ["transformations"] = JsonNode.Parse("""[{"key": "round", "parameters": {"decimals": 2}}]"""),
+                        ["hidden"] = false
                     })
                 }),
             Is.True,

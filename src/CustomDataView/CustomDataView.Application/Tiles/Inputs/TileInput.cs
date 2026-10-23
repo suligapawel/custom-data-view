@@ -14,6 +14,7 @@ public sealed record TileInput(string Name, IReadOnlyList<TileFieldInput> Fields
                     field.Label,
                     field.Transformations
                         .Select(step => new TransformationStep(step.Key, step.Parameters))
-                        .ToList()))
+                        .ToList(),
+                    field.Hidden))
                 .ToList());
 }

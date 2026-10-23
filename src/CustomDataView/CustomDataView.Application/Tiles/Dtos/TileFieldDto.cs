@@ -4,4 +4,5 @@ public sealed record TileFieldDto(
     Guid ConnectionId,
     string Path,
     string Label,
-    IReadOnlyList<TransformationStepDto> Transformations);
+    IReadOnlyList<TransformationStepDto> Transformations,
+    bool Hidden);

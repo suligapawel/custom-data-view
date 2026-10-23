@@ -21,9 +21,14 @@ public static class TileDefinitionValidator
             errors["fields"] = ["Kafelek musi mieć co najmniej jedno pole."];
         }
 
+        var labels = new HashSet<string>();
         for (var index = 0; index < input.Fields.Count; index++)
         {
             ValidateField(input.Fields[index], $"fields[{index}]", errors);
+            if (IsValidText(input.Fields[index].Label) && !labels.Add(TileLabels.Normalize(input.Fields[index].Label)))
+            {
+                errors[$"fields[{index}].label"] = ["Etykieta pola musi być unikalna w kafelku."];
+            }
         }
 
         return errors;

@@ -23,6 +23,11 @@ public sealed class TileFieldPreviewJsonConverter : JsonConverter<TileFieldPrevi
             JsonSerializer.Serialize(writer, value.Error, options);
         }
 
+        if (value.Hidden)
+        {
+            writer.WriteBoolean(Name(options, nameof(TileFieldPreview.Hidden)), true);
+        }
+
         writer.WriteEndObject();
     }
 

@@ -32,7 +32,12 @@ public sealed class PreviewViewHandler(IViewRepository views, ITileRepository ti
         try
         {
             var preview = await tilePreviewer.Preview(tile.TileId, parameters, cancellationToken);
-            return new ViewTilePreview(tile.TileId, name, tile.Position, tile.CssClass, preview.Fields);
+            return new ViewTilePreview(
+                tile.TileId,
+                name,
+                tile.Position,
+                tile.CssClass,
+                preview.Fields.Where(field => !field.Hidden).ToList());
         }
         catch (ValidationException exception)
         {

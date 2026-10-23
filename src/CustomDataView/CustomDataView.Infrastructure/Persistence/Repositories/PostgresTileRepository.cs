@@ -107,6 +107,7 @@ public sealed class PostgresTileRepository(
                 ConnectionId = field.ConnectionId,
                 Path = field.Path,
                 Label = field.Label,
+                Hidden = field.Hidden,
                 Transformations = field.Transformations
                     .Select((step, position) => new TileFieldTransformationRow
                     {
@@ -137,7 +138,8 @@ public sealed class PostgresTileRepository(
                     field.ConnectionId,
                     field.Path,
                     field.Label,
-                    field.Transformations.Select(ToStep).ToList()))
+                    field.Transformations.Select(ToStep).ToList(),
+                    field.Hidden))
                 .ToList()));
 
     private TransformationStep ToStep(TileFieldTransformationRow step)

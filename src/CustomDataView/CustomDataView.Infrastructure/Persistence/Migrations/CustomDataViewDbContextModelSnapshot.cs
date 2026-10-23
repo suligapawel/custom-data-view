@@ -164,11 +164,25 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("connection_id");
 
+                    b.Property<bool>("Hidden")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("hidden");
+
                     b.Property<string>("Label")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("label");
+
+                    b.Property<string>("NormalizedLabel")
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("normalized_label")
+                        .HasComputedColumnSql("lower(btrim(label))", true);
 
                     b.Property<string>("Path")
                         .IsRequired()
@@ -180,6 +194,10 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("ConnectionId")
                         .HasDatabaseName("ix_tile_fields_connection_id");
+
+                    b.HasIndex("TileId", "NormalizedLabel")
+                        .IsUnique()
+                        .HasDatabaseName("ux_tile_fields_tile_id_normalized_label");
 
                     b.ToTable("tile_fields", "custom_data_view", t =>
                         {

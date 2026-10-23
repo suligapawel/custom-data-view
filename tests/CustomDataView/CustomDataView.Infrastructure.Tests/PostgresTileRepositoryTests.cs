@@ -60,7 +60,7 @@ public class PostgresTileRepositoryTests
         [
             new TileField(rateConnectionId, "$.rate", "Kurs EUR", []),
             new TileField(customerConnectionId, "$.name", "Nazwa", []),
-            new TileField(customerConnectionId, "$['unit-name']", "Nazwa", [])
+            new TileField(customerConnectionId, "$['unit-name']", "Dział", [], Hidden: true)
         ]));
 
         repository.Add(tile);
@@ -173,6 +173,19 @@ public class PostgresTileRepositoryTests
         repository.Add(new Tile(Guid.NewGuid(), new TileDefinition("Klient", [new TileField(customerConnectionId, "$.name", "Nazwa", [])])));
 
         Assert.Throws<PostgresException>(() => new PostgresConnectionRepository(TestDatabase.ContextFactory(dataSource)).Delete(customerConnectionId));
+    }
+
+    [Test]
+    public void Given_TileWithLabelsDifferingInCaseAndSpaces_When_ItIsSaved_Then_DatabaseRejectsIt()
+    {
+        var tile = new Tile(Guid.NewGuid(), new TileDefinition("Klient",
+        [
+            new TileField(customerConnectionId, "$.name", "Nazwa", []),
+            new TileField(customerConnectionId, "$.balance", " NAZWA ", [])
+        ]));
+
+        Assert.That(() => repository.Add(tile), Throws.InstanceOf<Microsoft.EntityFrameworkCore.DbUpdateException>());
+        Assert.That(repository.Get(tile.Id), Is.Null);
     }
 
     private static string Json(Tile tile) => JsonSerializer.Serialize(tile);

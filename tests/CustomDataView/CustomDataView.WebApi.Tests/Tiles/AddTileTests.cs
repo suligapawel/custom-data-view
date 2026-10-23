@@ -57,7 +57,7 @@ public class AddTileTests : TileApiTests
     }
 
     [Test(Description = "scenario_TEMP-015-023 - #6")]
-    public async Task Given_TileNamedCustomer_When_UserSavesAnotherCustomerTileWithRepeatedLabels_Then_BothTilesAreListed()
+    public async Task Given_TileNamedCustomer_When_UserSavesAnotherCustomerTileWithSameLabel_Then_BothTilesAreListed()
     {
         var firstId = await CreateTile(new { name = "Klient", fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa") } });
 
@@ -66,8 +66,7 @@ public class AddTileTests : TileApiTests
             name = "Klient",
             fields = new[]
             {
-                Field(CustomerConnectionId, "$.name", "Wartość"),
-                Field(CustomerConnectionId, "$.balance", "Wartość")
+                Field(CustomerConnectionId, "$.balance", "Nazwa")
             }
         });
 

@@ -12,5 +12,9 @@ public sealed class TileFieldRow
 
     public string Label { get; set; }
 
+    public string NormalizedLabel { get; set; }
+
+    public bool Hidden { get; set; }
+
     public List<TileFieldTransformationRow> Transformations { get; set; } = [];
 }

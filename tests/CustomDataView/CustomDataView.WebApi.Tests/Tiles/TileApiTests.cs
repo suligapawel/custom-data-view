@@ -70,6 +70,9 @@ public abstract class TileApiTests : ConnectionApiTests
     protected static object Field(Guid connectionId, string path, string label, params object[] transformations)
         => new { connectionId, path, label, transformations };
 
+    protected static object HiddenField(Guid connectionId, string path, string label, params object[] transformations)
+        => new { connectionId, path, label, hidden = true, transformations };
+
     protected static object Transformation(string key, object parameters = null) => new { key, parameters };
 
     protected sealed record CreatedTile(Guid Id);

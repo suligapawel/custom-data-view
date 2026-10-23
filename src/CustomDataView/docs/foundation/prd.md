@@ -100,7 +100,9 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
   Pola kafelka wyświetlają się przed dziećmi, dzieci w kolejności `position`; dzieci `scope: item` trafiają do obszaru
   elementu. Brak cykli zawierania i najwyżej 3 poziomy zagnieżdżenia (kafelek, dziecko, wnuk).
 - Wiązania w kafelku (`bindings`, opcjonalne): `from` → `to` z listą mapowań `map` (`field` — etykieta pola węzła
-  źródłowego, dokładnie jedno z `parameter` i `input`, opcjonalny `scope`). Węzły kafelka to jego źródła, osadzenia
+  źródłowego, dokładnie jedno z `parameter` i `input`, opcjonalny `scope`). Jedno wiązanie przekazuje dowolną liczbę
+  wartości: `map` może zawierać wiele mapowań (np. pola „Lat” i „Lon” do parametrów `lat` i `lon`), a jedno pole może
+  zasilać kilka parametrów lub wejść celu. Węzły kafelka to jego źródła, osadzenia
   dzieci i `parent` (pola samego kafelka); tworzą jedną przestrzeń nazw. Dozwolone pary: źródło → źródło
   (`connection` → `connection`), dziecko `scope: tile` → źródło, `parent` → dziecko lub potomek, dziecko → dziecko lub
   potomek. Cel może być wskazany ścieżką osadzeń (`shipping/carrier`, najwyżej 2 segmenty) i musi być wejściem

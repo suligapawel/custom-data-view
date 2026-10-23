@@ -4,4 +4,4 @@ using System.Text.Json.Serialization;
 namespace CustomDataView.Application.Tiles.Preview;
 
 [JsonConverter(typeof(TileFieldPreviewJsonConverter))]
-public sealed record TileFieldPreview(string Label, JsonNode Value, TileFieldError Error = null);
+public sealed record TileFieldPreview(string Label, JsonNode Value, TileFieldError Error = null, bool Hidden = false);

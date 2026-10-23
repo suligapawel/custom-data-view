@@ -4,4 +4,5 @@ public sealed record TileFieldInput(
     Guid? ConnectionId,
     string Path,
     string Label,
-    IReadOnlyList<TransformationStepInput> Transformations);
+    IReadOnlyList<TransformationStepInput> Transformations,
+    bool Hidden = false);

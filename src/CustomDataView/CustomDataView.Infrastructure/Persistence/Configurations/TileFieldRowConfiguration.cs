@@ -15,6 +15,15 @@ public sealed class TileFieldRowConfiguration : IEntityTypeConfiguration<TileFie
         builder.Property(field => field.ConnectionId).HasColumnName("connection_id");
         builder.Property(field => field.Path).HasColumnName("path").HasColumnType("text").IsRequired();
         builder.Property(field => field.Label).HasColumnName("label").HasMaxLength(100).IsRequired();
+        builder.Property(field => field.NormalizedLabel)
+            .HasColumnName("normalized_label")
+            .HasMaxLength(100)
+            .IsRequired()
+            .HasComputedColumnSql("lower(btrim(label))", stored: true);
+        builder.Property(field => field.Hidden).HasColumnName("hidden").HasDefaultValue(false);
+        builder.HasIndex(field => new { field.TileId, field.NormalizedLabel })
+            .IsUnique()
+            .HasDatabaseName("ux_tile_fields_tile_id_normalized_label");
         builder.HasIndex(field => field.ConnectionId).HasDatabaseName("ix_tile_fields_connection_id");
         builder.HasOne<ConnectionRow>()
             .WithMany()

@@ -20,7 +20,8 @@ public sealed record TileRequest(string Name, IReadOnlyList<TileFieldRequest> Fi
                     field.ConnectionId,
                     field.Path,
                     field.Label,
-                    (field.Transformations ?? []).Select(ToInput).ToList()))
+                    (field.Transformations ?? []).Select(ToInput).ToList(),
+                    field.Hidden ?? false))
                 .ToList());
 
     private static TransformationStepInput ToInput(TransformationStepRequest step)
@@ -34,6 +35,7 @@ public sealed record TileFieldRequest(
     Guid? ConnectionId,
     string Path,
     string Label,
-    IReadOnlyList<TransformationStepRequest> Transformations);
+    IReadOnlyList<TransformationStepRequest> Transformations,
+    bool? Hidden);
 
 public sealed record TransformationStepRequest(string Key, Dictionary<string, JsonElement> Parameters);

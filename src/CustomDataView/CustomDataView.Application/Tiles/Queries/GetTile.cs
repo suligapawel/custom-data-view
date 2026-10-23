@@ -20,7 +20,8 @@ public sealed class GetTileHandler(ITileRepository repository)
                     field.ConnectionId,
                     field.Path,
                     field.Label,
-                    field.Transformations.Select(step => new TransformationStepDto(step.Key, step.Parameters)).ToList()))
+                    field.Transformations.Select(step => new TransformationStepDto(step.Key, step.Parameters)).ToList(),
+                    field.Hidden))
                 .ToList());
     }
 }

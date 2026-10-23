@@ -42,7 +42,9 @@ public sealed class TilePreviewer(
         return new TilePreview(
             id,
             definition.Name,
-            definition.Fields.Select(field => PreviewField(field, responses[field.ConnectionId])).ToList());
+            definition.Fields
+                .Select(field => PreviewField(field, responses[field.ConnectionId]) with { Hidden = field.Hidden })
+                .ToList());
     }
 
     private async Task<Dictionary<Guid, ExternalApiResult>> Call(
