@@ -4,7 +4,7 @@
 
 Moduł CustomDataView pozwala zdefiniować, skąd i w jaki sposób mają być pobierane dane z zewnętrznych REST API oraz jak
 mają zostać zaprezentowane użytkownikowi. Przechowuje definicje połączeń i kafelków (także złożonych, pełniących rolę
-widoku), udostępnia katalog gotowych transformacji pól, a także umożliwia sprawdzenie, czy połączenie i definicja
+widoku), udostępnia katalogi gotowych transformacji i kombinatorów pól, a także umożliwia sprawdzenie, czy połączenie i definicja
 kafelka generują dane zgodne z oczekiwaniami. Kafelek jest samodzielnym, reużywalnym komponentem: buduje się sam na
 podstawie własnej definicji i wartości swoich wejść, ma typ wyświetlania (`table`, `list`, `details`, `summary`,
 `form`, `pagination_table`, `tabs`), z którego front wie, jak go pokazać, może zawierać inne kafelki (kafelki złożone)
@@ -41,6 +41,19 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
     - lowercase - zamiana tekstu na małe litery,
     - truncate(max_length) - przycięcie tekstu do maksymalnej liczby znaków.
 - Użytkownik może odczytać katalog dostępnych transformacji wraz z opisem parametru.
+- Kombinatory pól są predefiniowane w kodzie jak transformacje, ale składają jedną wartość z wartości kilku pól
+  kafelka. Kombinator implementuje wspólny interfejs, ma klucz, nazwę, opis, najwyżej jeden parametr (tekst) i sam
+  interpretuje parametr oraz listę pól wejściowych (etykiet): wskazuje, których pól potrzebuje, waliduje je i składa
+  wartość.
+- Katalog kombinatorów MVP:
+    - join(separator) - sklejenie wartości pól w kolejności listy separatorem (brak parametru = pusty separator);
+      `null` jest pomijany, tablica jest spłaszczana, a jej elementy łączone tym samym separatorem,
+    - template(pattern) - tekst ze wzorca z etykietami pól w klamrach, np. `"{Ulica} {Nr}, {Miasto}"` (`{{` i `}}`
+      to dosłowne klamry); pola wynikają ze wzorca, `null` wstawia pusty tekst,
+    - object - obiekt JSON, w którym kluczem jest etykieta pola wejściowego, a wartością wartość pola (także `null`
+      i tablica),
+    - coalesce - pierwsza wartość różna od `null` z co najmniej dwóch pól.
+- Użytkownik może odczytać katalog dostępnych kombinatorów wraz z opisem parametru i wymaganą liczbą pól.
 
 3.2. Definicje połączeń
 
@@ -82,6 +95,13 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
 - Pole kafelka (poza formularzem) zawiera źródło (`source`), ścieżkę JSONPath, etykietę, opcjonalną rolę, flagę
   `hidden` (domyślnie `false`) oraz uporządkowaną listę transformacji z katalogu (może być pusta). Transformacja ma
   `key` i opcjonalny `parameter` — prostą wartość (tekst albo liczba, zapisywana jako tekst).
+- Pole złożone ma zamiast `source` i `path` kombinator `combine`: `key` z katalogu, opcjonalny `parameter` (tekst)
+  i opcjonalne `fields` (etykiety pól wejściowych tego kafelka). Wejściem jest wartość pola po jego transformacjach;
+  wejście nie może być polem złożonym ani samym polem. Wynik przechodzi przez łańcuch transformacji pola (pole
+  z `object` nie ma transformacji), może być ukryty, mieć rolę i zasilać wiązania z `parent` i z dziecka oraz akcje;
+  nie należy do żadnego źródła, więc nie zasila wiązań źródło → źródło. `template` nie przyjmuje pól, których ścieżka
+  zwraca tablicę. W kafelku z `items` wejścia pochodzą ze źródła elementów, a pole złożone jest polem elementu i nie
+  może być kluczem `items.key`.
 - Ścieżka JSONPath obsługuje podzbiór składni: `$`, `.name`, `['name']`, `[n]` (także ujemny), `[*]`, `.*` i filtr
   `[?@.a.b == 'x']` (także `[?(...)]`). Filtr porównuje operatorem `==` lub `!=` wartość pod ścieżką względną `@`
   (segmenty `.name`, `['name']`, `[n]`) z literałem: tekstem, liczbą, `true`, `false` albo `null`; liczby porównywane są
@@ -197,9 +217,13 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
   albo brak wejścia danych daje błąd pól tego źródła `invalid_parameters` ze szczegółami (parametr, komunikat, czy
   wartość pochodzi z wiązania); pozostałe pola zwracają dane. Podgląd kafelka zwraca zawsze status 200 (zasada
   częściowych wyników); walidacja kształtu samego żądania pozostaje.
+- Pola złożone są wyliczane po polach ze źródeł (w kafelku z `items` osobno dla każdego elementu), a w odpowiedzi
+  zachowują kolejność z definicji. Błąd pola wejściowego daje polu złożonemu `dependency_failed` z przyczyną (źródło,
+  pole, kod), a wartość, której kombinator nie umie złożyć (np. obiekt w `join`), daje `combination_failed`
+  z kluczem kombinatora i powodem.
 - Błąd źródła, brak wartości pod ścieżką lub błąd transformacji nie przerywa podglądu: zwracany jest częściowy wynik z
-  błędem per pole (source_unavailable, path_not_found, transformation_failed, invalid_parameters, dependency_failed,
-  invalid_binding).
+  błędem per pole (source_unavailable, path_not_found, transformation_failed, combination_failed, invalid_parameters,
+  dependency_failed, invalid_binding).
 - Każde połączenie użyte w instancji kafelka jest wywoływane najwyżej raz, a wywołanie tego samego połączenia z tymi
   samymi wartościami parametrów jest wykonywane raz na całe żądanie podglądu (bez przechowywania między żądaniami).
 - Limity podglądu (stałe w kodzie): 50 elementów na osadzenie `eager` ze `scope: item`, 200 wywołań zewnętrznych na
@@ -225,7 +249,7 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
 - Frontend renderujący kafelki.
 - Źródła danych inne niż REST (SQL, GraphQL, pliki).
 - Harmonogramy pobierania, cache i historia wyników testów.
-- Definiowanie, edycja i usuwanie transformacji przez użytkownika; nowe transformacje dodaje się wyłącznie w kodzie.
+- Definiowanie, edycja i usuwanie transformacji i kombinatorów przez użytkownika; nowe dodaje się wyłącznie w kodzie.
 - Test transformacji na przykładowej wartości; efekt transformacji jest widoczny w podglądzie kafelka.
 - Operacje arytmetyczne i agregaty na tablicach w transformacjach.
 - Edytor wizualny typu drag & drop.
@@ -234,8 +258,9 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
 - Agregaty, także w kafelku `summary`.
 - Wielokrotny wybór elementów, wybór zapisany w URL i symulacja wyboru elementu na serwerze.
 - Dziecko wstawione między pola kafelka (`region`) i kafelki prywatne (widoczne tylko w rodzicu).
-- Składanie jednego parametru z kilku pól (szablon, np. `"{lat},{lon}"`) i różne wartości dla parametrów o tej samej
-  nazwie w różnych połączeniach jednego kafelka.
+- Składanie parametru z kilku pól w wiązaniu źródło → źródło (pole złożone `template` zasila tylko wiązania z `parent`
+  i z dziecka) i różne wartości dla parametrów o tej samej nazwie w różnych połączeniach jednego kafelka.
+- Pole złożone z innych pól złożonych, kombinatory z wejściem spoza kafelka i grupy pól jako sekcje prezentacji.
 - Limit długości łańcucha wiązań.
 - Wiązanie jako samodzielny, współdzielony zasób.
 - Renderowanie kafelków, obsługa wyboru elementów i formularzy we froncie; moduł dostarcza tylko kontrakt i odpowiedzi.
@@ -250,7 +275,8 @@ połączenia, kafelki, widoki i podgląd widoku (TEMP-001 … TEMP-029; widoki w
 złożone i wiązania (TEMP-030 … TEMP-039), rozbudowuje kafelki etapami: unikalna etykieta i ukryte pole, walidacja
 parametrów per połączenie, typ wyświetlania i elementy, źródła z wiązaniami źródło → źródło, wejścia danych, formularze,
 dzieci `scope: tile`, dzieci `scope: item` z limitami, usunięcie widoków na rzecz kafelków złożonych i wybór elementu. TEMP-040 dodaje filtr w ścieżce JSONPath, a TEMP-041 …
-TEMP-043 zakładki, tabelę ze stronicowaniem i akcje przejścia do kafelka (wyszukiwarka z filtrami).
+TEMP-043 zakładki, tabelę ze stronicowaniem i akcje przejścia do kafelka (wyszukiwarka z filtrami). TEMP-044 dodaje
+kombinatory pól (pola złożone z kilku pól kafelka).
 Każda grupa korzysta wyłącznie z grup wcześniejszych; blokada usuwania połączeń używanych przez kafelki należy do grupy
 kafelków. Historyjki i scenariusze leżą w `docs/scenarios/scenario_TEMP-*`.
 
