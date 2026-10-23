@@ -346,6 +346,30 @@ public class FieldCombinationTests : TileApiTests
         Assert.That(problemDetails!["errors"]!.AsObject().Select(pair => pair.Key), Is.EqualTo(new[] { error }), problemDetails.ToJsonString());
     }
 
+    [Test(Description = $"{Dir} - #13")]
+    public async Task Given_FieldUsedByCombination_When_UserRenamesOrRemovesIt_Then_SaveIsRejectedForCombinedField()
+    {
+        var tile = Address(Combined("Pełny adres", "template", "{Ulica} {Nr}, {Miasto}"));
+        var id = await CreateTile(tile);
+        var renamed = tile.DeepClone().AsObject();
+        renamed["fields"]![2]!["label"] = "Miejscowość";
+        var removed = tile.DeepClone().AsObject();
+        removed["fields"]!.AsArray().RemoveAt(0);
+
+        var renameResponse = await Client.PutAsJsonAsync($"{TilesUrl}/{id}", renamed);
+        var removeResponse = await Client.PutAsJsonAsync($"{TilesUrl}/{id}", removed);
+
+        Assert.That(renameResponse.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        Assert.That(
+            (await renameResponse.Content.ReadFromJsonAsync<JsonObject>())!["errors"]!.AsObject().Select(pair => pair.Key),
+            Is.EqualTo(new[] { "fields[5].combine" }));
+        Assert.That(removeResponse.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        Assert.That(
+            (await removeResponse.Content.ReadFromJsonAsync<JsonObject>())!["errors"]!.AsObject().Select(pair => pair.Key),
+            Is.EqualTo(new[] { "fields[4].combine" }));
+        Assert.That(Field(await Preview(id), "Pełny adres")["value"]?.GetValue<string>(), Is.EqualTo("Długa 5, Kraków"));
+    }
+
     private async Task<Guid> CreateWeatherTile()
     {
         var weatherConnectionId = await CreateConnection(new
