@@ -288,13 +288,10 @@ public static class TileDefinitionValidator
 
         for (var position = 0; position < field.Transformations.Count; position++)
         {
-            foreach (var (name, value) in field.Transformations[position].Parameters)
+            if (!TransformationParameterValues.IsStorable(field.Transformations[position].Parameter))
             {
-                if (!TransformationParameterValues.IsStorable(value))
-                {
-                    errors[$"{key}.transformations[{position}].parameters.{name}"] =
-                        ["Wartość parametru transformacji musi być tekstem lub liczbą."];
-                }
+                errors[$"{key}.transformations[{position}].parameter"] =
+                    ["Wartość parametru transformacji musi być tekstem lub liczbą."];
             }
         }
     }

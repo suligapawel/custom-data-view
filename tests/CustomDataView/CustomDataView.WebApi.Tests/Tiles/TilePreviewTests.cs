@@ -13,10 +13,10 @@ public class TilePreviewTests : TileApiTests
                     CustomerConnectionId,
                     "$.temp",
                     "Temperatura",
-                    Transformation("round", new { decimals = 1 }),
-                    Transformation("suffix", new { text = " °C" })),
+                    Transformation("round", 1),
+                    Transformation("suffix", " °C")),
                 Field(CustomerConnectionId, "$.name", "Nazwa", Transformation("uppercase")),
-                Field(RateConnectionId, "$.rate", "Kurs EUR", Transformation("round", new { decimals = 2 }))));
+                Field(RateConnectionId, "$.rate", "Kurs EUR", Transformation("round", 2))));
 
         var response = await Client.PostAsJsonAsync($"{TilesUrl}/{id}/preview", CustomerAndRateValues());
 
@@ -35,7 +35,7 @@ public class TilePreviewTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #14")]
     public async Task Given_SavedTileWithInvalidRoundParameter_When_UserPreviewsIt_Then_FieldHasInvalidParameterError(bool outOfRange)
     {
-        var round = outOfRange ? Transformation("round", new { decimals = 20 }) : Transformation("round");
+        var round = outOfRange ? Transformation("round", 20) : Transformation("round");
         var response = await Client.PostAsJsonAsync(TilesUrl, Tile("Klient", Field(CustomerConnectionId, "$.balance", "Saldo", round)));
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
         var id = (await response.Content.ReadFromJsonAsync<CreatedTile>()).Id;
@@ -78,7 +78,7 @@ public class TilePreviewTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #32")]
     public async Task Given_FieldWithNestedWildcardsAndSuffix_When_UserPreviewsTile_Then_FieldHasOneFlatList()
     {
-        var id = await CreateTile(Tile("Klient", Field(CustomerConnectionId, "$.orders[*].items[*].price", "Ceny", Transformation("suffix", new { text = " zł" }))));
+        var id = await CreateTile(Tile("Klient", Field(CustomerConnectionId, "$.orders[*].items[*].price", "Ceny", Transformation("suffix", " zł"))));
 
         var preview = await Preview(id, CustomerValues());
 

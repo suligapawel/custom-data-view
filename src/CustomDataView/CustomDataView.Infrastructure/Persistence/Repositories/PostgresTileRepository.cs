@@ -1,22 +1,14 @@
 using System.Text.Json.Nodes;
 using CustomDataView.Domain.Entities;
-using CustomDataView.Domain.Policies;
 using CustomDataView.Domain.Repositories;
-using CustomDataView.Domain.Services.Transformations;
 using CustomDataView.Domain.ValueObjects;
 using CustomDataView.Infrastructure.Persistence.Rows;
 using Microsoft.EntityFrameworkCore;
 
 namespace CustomDataView.Infrastructure.Persistence.Repositories;
 
-public sealed class PostgresTileRepository(
-    IDbContextFactory<CustomDataViewDbContext> contextFactory,
-    IEnumerable<ITransformation> transformations)
-    : ITileRepository
+public sealed class PostgresTileRepository(IDbContextFactory<CustomDataViewDbContext> contextFactory) : ITileRepository
 {
-    private readonly Dictionary<string, ITransformation> catalog =
-        transformations.ToDictionary(transformation => transformation.Key, StringComparer.Ordinal);
-
     public void Add(Tile tile)
     {
         using var context = contextFactory.CreateDbContext();
@@ -152,7 +144,6 @@ public sealed class PostgresTileRepository(
             .Include(tile => tile.Children.OrderBy(child => child.Position))
             .Include(tile => tile.Fields.OrderBy(field => field.Position))
             .ThenInclude(field => field.Transformations.OrderBy(transformation => transformation.Position))
-            .ThenInclude(transformation => transformation.Parameters.OrderBy(parameter => parameter.Name))
             .AsSplitQuery();
 
     private static List<TileSourceRow> ToSourceRows(Tile tile)
@@ -238,25 +229,16 @@ public sealed class PostgresTileRepository(
                     .Select((step, position) => new TileFieldTransformationRow
                     {
                         TileId = tile.Id,
-                        FieldPosition = fieldPosition,
+                        FieldLabel = field.Label,
                         Position = position,
                         Key = step.Key,
-                        Parameters = (step.Parameters ?? new Dictionary<string, JsonNode>())
-                            .Select(parameter => new TileFieldTransformationParameterRow
-                            {
-                                TileId = tile.Id,
-                                FieldPosition = fieldPosition,
-                                TransformationPosition = position,
-                                Name = parameter.Key,
-                                Value = TransformationParameterValues.ToText(parameter.Value)
-                            })
-                            .ToList()
+                        Parameter = step.Parameter
                     })
                     .ToList()
             })
             .ToList();
 
-    private Tile ToTile(TileRow tile)
+    private static Tile ToTile(TileRow tile)
         => new Tile(tile.Id, new TileDefinition(
             tile.Name,
             tile.Display,
@@ -267,7 +249,7 @@ public sealed class PostgresTileRepository(
                     field.SourceKey,
                     field.Path,
                     field.Label,
-                    field.Transformations.Select(ToStep).ToList(),
+                    field.Transformations.Select(step => new TransformationStep(step.Key, step.Parameter)).ToList(),
                     field.Hidden,
                     field.Role))
                 .ToList())
@@ -284,14 +266,4 @@ public sealed class PostgresTileRepository(
                     field.DefaultValue is null ? null : JsonNode.Parse(field.DefaultValue)))
                 .ToList()
         });
-
-    private TransformationStep ToStep(TileFieldTransformationRow step)
-    {
-        var transformation = catalog.GetValueOrDefault(step.Key);
-        return new TransformationStep(
-            step.Key,
-            step.Parameters.ToDictionary(
-                parameter => parameter.Name,
-                parameter => TransformationParameterValues.FromText(transformation, parameter.Name, parameter.Value)));
-    }
 }

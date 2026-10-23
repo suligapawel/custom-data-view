@@ -110,12 +110,12 @@ public class TileValidationTests : TileApiTests
         tile["fields"]![0]!["transformations"] = new JsonArray(new JsonObject
         {
             ["key"] = "suffix",
-            ["parameters"] = new JsonObject { ["text"] = new JsonObject { ["value"] = " zł" } }
+            ["parameter"] = new JsonObject { ["value"] = " zł" }
         });
 
         var response = await Client.PostAsJsonAsync(TilesUrl, tile);
 
-        await AssertRejected(response, "fields[0].transformations[0].parameters.text");
+        await AssertRejected(response, "fields[0].transformations[0].parameter");
     }
 
     [Test(Description = "scenario_TEMP-015-023 - #15")]

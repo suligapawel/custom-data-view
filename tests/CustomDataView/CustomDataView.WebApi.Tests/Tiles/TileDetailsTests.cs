@@ -7,14 +7,14 @@ namespace CustomDataView.WebApi.Tests.Tiles;
 public class TileDetailsTests : TileApiTests
 {
     [Test(Description = "scenario_TEMP-015-023 - #3")]
-    public async Task Given_FieldWithRoundAndSuffix_When_UserViewsTileDetails_Then_ChainKeepsOrderAndTypedParameters()
+    public async Task Given_FieldWithRoundAndSuffix_When_UserViewsTileDetails_Then_ChainKeepsOrderAndParameters()
     {
         var id = await CreateTile(Tile("Klient", Field(
                     CustomerConnectionId,
                     "$.balance",
                     "Saldo",
-                    Transformation("round", new { decimals = 2 }),
-                    Transformation("suffix", new { text = " zł" }))));
+                    Transformation("round", 2),
+                    Transformation("suffix", " zł"))));
 
         var tile = await GetTile(id);
 
@@ -23,8 +23,8 @@ public class TileDetailsTests : TileApiTests
                 tile["fields"]![0]!["transformations"],
                 JsonNode.Parse("""
                                [
-                                 {"key": "round", "parameters": {"decimals": 2}},
-                                 {"key": "suffix", "parameters": {"text": " zł"}}
+                                 {"key": "round", "parameter": "2"},
+                                 {"key": "suffix", "parameter": " zł"}
                                ]
                                """)),
             Is.True);
@@ -62,7 +62,7 @@ public class TileDetailsTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #18")]
     public async Task Given_TileWithRateField_When_UserViewsTileDetails_Then_NameAndFieldDefinitionAreShown()
     {
-        var id = await CreateTile(Tile("Klient i kurs", Field(RateConnectionId, "$.rate", "Kurs EUR", Transformation("round", new { decimals = 2 }))));
+        var id = await CreateTile(Tile("Klient i kurs", Field(RateConnectionId, "$.rate", "Kurs EUR", Transformation("round", 2))));
 
         var tile = await GetTile(id);
 
@@ -86,7 +86,7 @@ public class TileDetailsTests : TileApiTests
                         ["source"] = "rate",
                         ["path"] = "$.rate",
                         ["label"] = "Kurs EUR",
-                        ["transformations"] = JsonNode.Parse("""[{"key": "round", "parameters": {"decimals": 2}}]"""),
+                        ["transformations"] = JsonNode.Parse("""[{"key": "round", "parameter": "2"}]"""),
                         ["hidden"] = false,
                         ["role"] = null
                     }),

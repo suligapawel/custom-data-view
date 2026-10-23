@@ -41,5 +41,5 @@ public class TileLabelAndHiddenTests : TileApiTests
 
     private Task<Guid> CustomerWithHiddenBalance()
         => CreateTile(Tile("Klient", Field(CustomerConnectionId, "$.name", "Nazwa"),
-                HiddenField(CustomerConnectionId, "$.balance", "Saldo", Transformation("round", new { decimals = 1 }))));
+                HiddenField(CustomerConnectionId, "$.balance", "Saldo", Transformation("round", 1))));
 }

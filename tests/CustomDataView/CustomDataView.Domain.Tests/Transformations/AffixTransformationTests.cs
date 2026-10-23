@@ -1,4 +1,3 @@
-using System.Text.Json.Nodes;
 using CustomDataView.Domain.Dictionaries;
 using CustomDataView.Domain.Exceptions;
 using CustomDataView.Domain.Services.Transformations;
@@ -12,9 +11,9 @@ public class AffixTransformationTests
     public void Given_SuffixWithDegreesCelsius_When_ValueIs21_5_Then_ResultIs21_5DegreesCelsius()
     {
         var transformation = new SuffixTransformation();
-        var parameters = CreateText(" °C");
+        var parameter = " °C";
 
-        var result = transformation.Apply(21.5m, parameters);
+        var result = transformation.Apply(21.5m, parameter);
 
         Assert.That(result, Is.EqualTo("21.5 °C"));
     }
@@ -23,9 +22,9 @@ public class AffixTransformationTests
     public void Given_PrefixWithIdLabel_When_ValueIs7_Then_ResultIsId7()
     {
         var transformation = new PrefixTransformation();
-        var parameters = CreateText("ID: ");
+        var parameter = "ID: ";
 
-        var result = transformation.Apply(7m, parameters);
+        var result = transformation.Apply(7m, parameter);
 
         Assert.That(result, Is.EqualTo("ID: 7"));
     }
@@ -34,9 +33,9 @@ public class AffixTransformationTests
     public void Given_PrefixWithEmptyText_When_ValueIsAbc_Then_ResultIsUnchangedText()
     {
         var transformation = new PrefixTransformation();
-        var parameters = CreateText("");
+        var parameter = "";
 
-        var result = transformation.Apply("abc", parameters);
+        var result = transformation.Apply("abc", parameter);
 
         Assert.That(result, Is.EqualTo("abc"));
     }
@@ -45,9 +44,9 @@ public class AffixTransformationTests
     public void Given_PrefixWithoutText_When_ValueIsAbc_Then_FailsWithInvalidTextParameter()
     {
         var transformation = new PrefixTransformation();
-        var parameters = new TransformationParameters(null);
+        var parameter = (string)null;
 
-        var exception = Assert.Throws<TransformationFailedException>(() => transformation.Apply("abc", parameters));
+        var exception = Assert.Throws<TransformationFailedException>(() => transformation.Apply("abc", parameter));
 
         Assert.That(exception.Key, Is.EqualTo("prefix"));
         Assert.That(exception.Reason, Is.EqualTo(TransformationFailureReasons.InvalidParameter));
@@ -58,15 +57,12 @@ public class AffixTransformationTests
     public void Given_SuffixWithoutText_When_ValueIsAbc_Then_FailsWithInvalidTextParameter()
     {
         var transformation = new SuffixTransformation();
-        var parameters = new TransformationParameters(null);
+        var parameter = (string)null;
 
-        var exception = Assert.Throws<TransformationFailedException>(() => transformation.Apply("abc", parameters));
+        var exception = Assert.Throws<TransformationFailedException>(() => transformation.Apply("abc", parameter));
 
         Assert.That(exception.Key, Is.EqualTo("suffix"));
         Assert.That(exception.Reason, Is.EqualTo(TransformationFailureReasons.InvalidParameter));
         Assert.That(exception.Parameter, Is.EqualTo("text"));
     }
-
-    private static TransformationParameters CreateText(JsonNode text)
-        => new TransformationParameters(new Dictionary<string, JsonNode> { ["text"] = text });
 }

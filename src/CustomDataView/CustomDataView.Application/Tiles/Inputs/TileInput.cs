@@ -1,4 +1,5 @@
 using CustomDataView.Domain.Dictionaries;
+using CustomDataView.Domain.Policies;
 using CustomDataView.Domain.ValueObjects;
 
 namespace CustomDataView.Application.Tiles.Inputs;
@@ -37,7 +38,7 @@ public sealed record TileInput(
                     field.Path,
                     field.Label,
                     field.Transformations
-                        .Select(step => new TransformationStep(step.Key, step.Parameters))
+                        .Select(step => new TransformationStep(step.Key, TransformationParameterValues.ToText(step.Parameter)))
                         .ToList(),
                     field.Hidden,
                     string.IsNullOrWhiteSpace(field.Role) ? null : field.Role))

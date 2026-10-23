@@ -1,5 +1,4 @@
 using CustomDataView.Domain.Dictionaries;
-using CustomDataView.Domain.Exceptions;
 using CustomDataView.Domain.ValueObjects;
 
 namespace CustomDataView.Domain.Services.Transformations;
@@ -17,14 +16,14 @@ public sealed class TruncateTransformation : Transformation
 
     public override string Description => "Przycina tekst do maksymalnej liczby znaków.";
 
-    public override IReadOnlyList<TransformationParameterDescriptor> Parameters { get; } = [MaxLengthParameter];
+    public override TransformationParameterDescriptor Parameter => MaxLengthParameter;
 
-    protected override object Transform(object value, TransformationParameters parameters)
+    protected override object Transform(object value, string parameter)
     {
-        var maxLength = parameters.GetInteger(Key, MaxLengthParameter.Name);
+        var maxLength = RequireInteger(parameter);
         if (maxLength < MinMaxLength)
         {
-            throw new TransformationFailedException(Key, TransformationFailureReasons.InvalidParameter, MaxLengthParameter.Name);
+            throw InvalidParameter();
         }
 
         var text = TransformationValue.ToText(Key, value);

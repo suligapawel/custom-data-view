@@ -1,4 +1,3 @@
-using System.Text.Json.Nodes;
 using CustomDataView.Domain.Services;
 using CustomDataView.Domain.Services.Transformations;
 using CustomDataView.Domain.ValueObjects;
@@ -13,8 +12,8 @@ public class TransformationChainTests
         var service = CreateService();
         var steps = new[]
         {
-            Step("round", ("decimals", 1)),
-            Step("suffix", ("text", " °C"))
+            Step("round", "1"),
+            Step("suffix", " °C")
         };
 
         var result = service.Apply(21.46m, steps);
@@ -39,8 +38,8 @@ public class TransformationChainTests
         var steps = new[]
         {
             Step("uppercase"),
-            Step("round", ("decimals", 1)),
-            Step("suffix", ("text", " °C"))
+            Step("round", "1"),
+            Step("suffix", " °C")
         };
 
         var result = service.Apply("abc", steps);
@@ -70,8 +69,8 @@ public class TransformationChainTests
         var service = CreateService();
         var steps = new[]
         {
-            Step("prefix", ("text", "a")),
-            Step("prefix", ("text", "b"))
+            Step("prefix", "a"),
+            Step("prefix", "b")
         };
 
         var result = service.Apply("x", steps);
@@ -91,6 +90,5 @@ public class TransformationChainTests
         return new TransformationService(transformations);
     }
 
-    private static TransformationStep Step(string key, params (string Name, JsonNode Value)[] parameters)
-        => new TransformationStep(key, parameters.ToDictionary(parameter => parameter.Name, parameter => parameter.Value));
+    private static TransformationStep Step(string key, string parameter = null) => new TransformationStep(key, parameter);
 }

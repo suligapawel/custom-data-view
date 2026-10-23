@@ -19,11 +19,11 @@ Content-Type: application/json
   "items": { "source": "forecast", "path": "$.forecast[*]", "key": "Dzień" },
   "fields": [
     { "source": "forecast", "path": "$.date", "label": "Dzień",
-      "transformations": [ { "key": "date_format", "parameters": { "pattern": "dd.MM" } } ] },
+      "transformations": [ { "key": "date_format", "parameter": "dd.MM" } ] },
     { "source": "forecast", "path": "$.temperature", "label": "Temperatura",
-      "transformations": [ { "key": "suffix", "parameters": { "text": " °C" } } ] },
+      "transformations": [ { "key": "suffix", "parameter": " °C" } ] },
     { "source": "forecast", "path": "$.humidity", "label": "Wilgotność",
-      "transformations": [ { "key": "suffix", "parameters": { "text": " %" } } ] },
+      "transformations": [ { "key": "suffix", "parameter": " %" } ] },
     { "source": "forecast", "path": "$.summary", "label": "Opis" }
   ]
 }
@@ -46,11 +46,11 @@ Content-Type: application/json
   "fields": [
     { "source": "readings", "path": "$.hour", "label": "Godzina" },
     { "source": "readings", "path": "$.temperature", "label": "Temperatura",
-      "transformations": [ { "key": "suffix", "parameters": { "text": " °C" } } ] },
+      "transformations": [ { "key": "suffix", "parameter": " °C" } ] },
     { "source": "readings", "path": "$.humidity", "label": "Wilgotność",
-      "transformations": [ { "key": "suffix", "parameters": { "text": " %" } } ] },
+      "transformations": [ { "key": "suffix", "parameter": " %" } ] },
     { "source": "readings", "path": "$.pressure", "label": "Ciśnienie",
-      "transformations": [ { "key": "suffix", "parameters": { "text": " hPa" } } ] }
+      "transformations": [ { "key": "suffix", "parameter": " hPa" } ] }
   ]
 }
 
@@ -72,7 +72,7 @@ Content-Type: application/json
   "fields": [
     { "source": "station", "path": "$.name", "label": "Nazwa" },
     { "source": "station", "path": "$.elevation", "label": "Wysokość",
-      "transformations": [ { "key": "suffix", "parameters": { "text": " m n.p.m." } } ] },
+      "transformations": [ { "key": "suffix", "parameter": " m n.p.m." } ] },
     { "source": "station", "path": "$.operator", "label": "Operator" },
     { "source": "station", "path": "$.id", "label": "ID stacji", "hidden": true }
   ],
@@ -103,7 +103,7 @@ Content-Type: application/json
   ],
   "fields": [
     { "source": "forecast", "path": "$.city", "label": "Miasto",
-      "transformations": [ { "key": "uppercase", "parameters": {} } ] },
+      "transformations": [ { "key": "uppercase" } ] },
     { "source": "forecast", "path": "$.units", "label": "Jednostki" },
     { "source": "forecast", "path": "$.city", "label": "Kod miasta", "hidden": true }
   ],

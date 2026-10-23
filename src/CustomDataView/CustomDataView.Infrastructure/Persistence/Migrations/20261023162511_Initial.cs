@@ -266,6 +266,7 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("pk_tile_fields", x => new { x.tile_id, x.position });
+                    table.UniqueConstraint("uq_tile_fields_tile_id_label", x => new { x.tile_id, x.label });
                     table.CheckConstraint("ck_tile_fields_position", "position >= 0");
                     table.CheckConstraint("ck_tile_fields_role", "role IN ('title', 'subtitle', 'badge', 'primary', 'secondary')");
                     table.ForeignKey(
@@ -290,43 +291,21 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                 columns: table => new
                 {
                     tile_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    field_position = table.Column<int>(type: "integer", nullable: false),
+                    field_label = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     position = table.Column<int>(type: "integer", nullable: false),
-                    key = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false)
+                    key = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    parameter = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("pk_tile_field_transformations", x => new { x.tile_id, x.field_position, x.position });
+                    table.PrimaryKey("pk_tile_field_transformations", x => new { x.tile_id, x.field_label, x.position });
                     table.CheckConstraint("ck_tile_field_transformations_position", "position >= 0");
                     table.ForeignKey(
                         name: "fk_tile_field_transformations_field",
-                        columns: x => new { x.tile_id, x.field_position },
+                        columns: x => new { x.tile_id, x.field_label },
                         principalSchema: "custom_data_view",
                         principalTable: "tile_fields",
-                        principalColumns: new[] { "tile_id", "position" },
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "tile_field_transformation_parameters",
-                schema: "custom_data_view",
-                columns: table => new
-                {
-                    tile_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    field_position = table.Column<int>(type: "integer", nullable: false),
-                    transformation_position = table.Column<int>(type: "integer", nullable: false),
-                    name = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    value = table.Column<string>(type: "text", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("pk_tile_field_transformation_parameters", x => new { x.tile_id, x.field_position, x.transformation_position, x.name });
-                    table.ForeignKey(
-                        name: "fk_tile_field_transformation_parameters_transformation",
-                        columns: x => new { x.tile_id, x.field_position, x.transformation_position },
-                        principalSchema: "custom_data_view",
-                        principalTable: "tile_field_transformations",
-                        principalColumns: new[] { "tile_id", "field_position", "position" },
+                        principalColumns: new[] { "tile_id", "label" },
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -399,15 +378,11 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                 schema: "custom_data_view");
 
             migrationBuilder.DropTable(
-                name: "tile_field_transformation_parameters",
+                name: "tile_field_transformations",
                 schema: "custom_data_view");
 
             migrationBuilder.DropTable(
                 name: "tile_form_fields",
-                schema: "custom_data_view");
-
-            migrationBuilder.DropTable(
-                name: "tile_field_transformations",
                 schema: "custom_data_view");
 
             migrationBuilder.DropTable(

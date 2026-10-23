@@ -29,7 +29,8 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
 - Transformacje pól są predefiniowane w kodzie aplikacji; użytkownik nie może ich tworzyć, edytować ani usuwać.
 - Każda transformacja implementuje wspólny interfejs i może dekorować inne transformacje; uporządkowana lista
   transformacji pola jest składana w łańcuch dekoratorów stosowanych kolejno do wartości.
-- Transformacja ma klucz, nazwę, opis oraz opcjonalne parametry; wartości parametrów podaje pole kafelka.
+- Transformacja ma klucz, nazwę, opis oraz najwyżej jeden parametr; wartość parametru (tekst) podaje pole kafelka,
+  a transformacja sama ją interpretuje.
 - Katalog MVP:
     - round(decimals) - zaokrąglenie liczby do 0-10 miejsc po przecinku,
     - date_format(pattern) - formatowanie daty według wzorca w kulturze niezmiennej,
@@ -38,7 +39,7 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
     - uppercase - zamiana tekstu na wielkie litery,
     - lowercase - zamiana tekstu na małe litery,
     - truncate(max_length) - przycięcie tekstu do maksymalnej liczby znaków.
-- Użytkownik może odczytać katalog dostępnych transformacji wraz z opisem parametrów.
+- Użytkownik może odczytać katalog dostępnych transformacji wraz z opisem parametru.
 
 3.2. Definicje połączeń
 
@@ -75,8 +76,8 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
   źródło `input` to wejście danych, przez które kafelek dostaje gotowy JSON (obiekt, tablicę albo wartość prostą),
   a klucz źródła jest nazwą wejścia w kontrakcie kafelka. Kafelek może mieszać oba rodzaje źródeł.
 - Pole kafelka (poza formularzem) zawiera źródło (`source`), ścieżkę JSONPath, etykietę, opcjonalną rolę, flagę
-  `hidden` (domyślnie `false`) oraz uporządkowaną listę transformacji z katalogu wraz z wartościami ich parametrów
-  (może być pusta).
+  `hidden` (domyślnie `false`) oraz uporządkowaną listę transformacji z katalogu (może być pusta). Transformacja ma
+  `key` i opcjonalny `parameter` — prostą wartość (tekst albo liczba, zapisywana jako tekst).
 - Ścieżka JSONPath obsługuje podzbiór składni: `$`, `.name`, `['name']`, `[n]` (także ujemny), `[*]` i `.*`. Ścieżka
   bez wildcardu wskazuje jedną wartość; ścieżka z wildcardem zwraca płaską tablicę dopasowań, a każdy jej element
   przechodzi przez łańcuch transformacji pola.

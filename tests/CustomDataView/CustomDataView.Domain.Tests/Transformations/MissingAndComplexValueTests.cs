@@ -12,9 +12,9 @@ public class MissingAndComplexValueTests
     public void Given_Uppercase_When_ValueIsMissing_Then_ResultIsMissing()
     {
         var transformation = new UppercaseTransformation();
-        var parameters = new TransformationParameters(null);
+        var parameter = (string)null;
 
-        var result = transformation.Apply(null, parameters);
+        var result = transformation.Apply(null, parameter);
 
         Assert.That(result, Is.Null);
     }
@@ -22,10 +22,10 @@ public class MissingAndComplexValueTests
     [Test(Description = "scenario_TEMP-001-006 - #14")]
     public void Given_RoundWithTwoDecimals_When_ValueIsMissing_Then_ResultIsMissing()
     {
-        var parameters = new TransformationParameters(new Dictionary<string, JsonNode> { ["decimals"] = 2 });
+        var parameter = "2";
         var transformation = new RoundTransformation();
 
-        var result = transformation.Apply(null, parameters);
+        var result = transformation.Apply(null, parameter);
 
         Assert.That(result, Is.Null);
     }
@@ -34,9 +34,9 @@ public class MissingAndComplexValueTests
     public void Given_Uppercase_When_ValueIsObject_Then_FailsWithInvalidValue()
     {
         var transformation = new UppercaseTransformation();
-        var parameters = new TransformationParameters(null);
+        var parameter = (string)null;
 
-        var exception = Assert.Throws<TransformationFailedException>(() => transformation.Apply(new JsonObject { ["temperature"] = 21.5 }, parameters));
+        var exception = Assert.Throws<TransformationFailedException>(() => transformation.Apply(new JsonObject { ["temperature"] = 21.5 }, parameter));
 
         Assert.That(exception.Key, Is.EqualTo("uppercase"));
         Assert.That(exception.Reason, Is.EqualTo(TransformationFailureReasons.InvalidValue));
@@ -45,10 +45,10 @@ public class MissingAndComplexValueTests
     [Test(Description = "scenario_TEMP-001-006 - #14")]
     public void Given_TruncateToThree_When_ValueIsList_Then_FailsWithInvalidValue()
     {
-        var parameters = new TransformationParameters(new Dictionary<string, JsonNode> { ["max_length"] = 3 });
+        var parameter = "3";
         var transformation = new TruncateTransformation();
 
-        var exception = Assert.Throws<TransformationFailedException>(() => transformation.Apply(new JsonArray(1, 2, 3), parameters));
+        var exception = Assert.Throws<TransformationFailedException>(() => transformation.Apply(new JsonArray(1, 2, 3), parameter));
 
         Assert.That(exception.Key, Is.EqualTo("truncate"));
         Assert.That(exception.Reason, Is.EqualTo(TransformationFailureReasons.InvalidValue));

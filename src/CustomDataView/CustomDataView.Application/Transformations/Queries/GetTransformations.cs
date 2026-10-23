@@ -15,7 +15,7 @@ public sealed class GetTransformationsHandler(IEnumerable<ITransformation> trans
                 transformation.Key,
                 transformation.Name,
                 transformation.Description,
-                transformation.Parameters.Select(parameter => new TransformationParameterDto(parameter.Name, parameter.Type)).ToList()))
+                transformation.Parameter is { } parameter ? new TransformationParameterDto(parameter.Name, parameter.Type) : null))
             .ToList()
             .AsReadOnly();
 }

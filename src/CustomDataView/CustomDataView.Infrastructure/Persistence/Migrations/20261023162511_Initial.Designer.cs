@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CustomDataView.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(CustomDataViewDbContext))]
-    [Migration("20261023154514_Initial")]
+    [Migration("20261023162511_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -316,6 +316,9 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                     b.HasKey("TileId", "Position")
                         .HasName("pk_tile_fields");
 
+                    b.HasAlternateKey("TileId", "Label")
+                        .HasName("uq_tile_fields_tile_id_label");
+
                     b.HasIndex("TileId", "NormalizedLabel")
                         .IsUnique()
                         .HasDatabaseName("ux_tile_fields_tile_id_normalized_label");
@@ -331,45 +334,16 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                         });
                 });
 
-            modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileFieldTransformationParameterRow", b =>
-                {
-                    b.Property<Guid>("TileId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("tile_id");
-
-                    b.Property<int>("FieldPosition")
-                        .HasColumnType("integer")
-                        .HasColumnName("field_position");
-
-                    b.Property<int>("TransformationPosition")
-                        .HasColumnType("integer")
-                        .HasColumnName("transformation_position");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("name");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("value");
-
-                    b.HasKey("TileId", "FieldPosition", "TransformationPosition", "Name")
-                        .HasName("pk_tile_field_transformation_parameters");
-
-                    b.ToTable("tile_field_transformation_parameters", "custom_data_view");
-                });
-
             modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileFieldTransformationRow", b =>
                 {
                     b.Property<Guid>("TileId")
                         .HasColumnType("uuid")
                         .HasColumnName("tile_id");
 
-                    b.Property<int>("FieldPosition")
-                        .HasColumnType("integer")
-                        .HasColumnName("field_position");
+                    b.Property<string>("FieldLabel")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("field_label");
 
                     b.Property<int>("Position")
                         .HasColumnType("integer")
@@ -381,7 +355,11 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("key");
 
-                    b.HasKey("TileId", "FieldPosition", "Position")
+                    b.Property<string>("Parameter")
+                        .HasColumnType("text")
+                        .HasColumnName("parameter");
+
+                    b.HasKey("TileId", "FieldLabel", "Position")
                         .HasName("pk_tile_field_transformations");
 
                     b.ToTable("tile_field_transformations", "custom_data_view", t =>
@@ -621,21 +599,12 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_tile_fields_source");
                 });
 
-            modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileFieldTransformationParameterRow", b =>
-                {
-                    b.HasOne("CustomDataView.Infrastructure.Persistence.Rows.TileFieldTransformationRow", null)
-                        .WithMany("Parameters")
-                        .HasForeignKey("TileId", "FieldPosition", "TransformationPosition")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_tile_field_transformation_parameters_transformation");
-                });
-
             modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileFieldTransformationRow", b =>
                 {
                     b.HasOne("CustomDataView.Infrastructure.Persistence.Rows.TileFieldRow", null)
                         .WithMany("Transformations")
-                        .HasForeignKey("TileId", "FieldPosition")
+                        .HasForeignKey("TileId", "FieldLabel")
+                        .HasPrincipalKey("TileId", "Label")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_tile_field_transformations_field");
@@ -679,11 +648,6 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileFieldRow", b =>
                 {
                     b.Navigation("Transformations");
-                });
-
-            modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileFieldTransformationRow", b =>
-                {
-                    b.Navigation("Parameters");
                 });
 
             modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileRow", b =>

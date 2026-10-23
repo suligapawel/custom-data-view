@@ -24,7 +24,7 @@ public sealed class TransformationService : ITransformationService
             {
                 var transformation = _transformations.GetValueOrDefault(step.Key)
                     ?? throw new TransformationFailedException(step.Key, TransformationFailureReasons.UnknownTransformation);
-                value = transformation.Apply(value, new TransformationParameters(step.Parameters));
+                value = transformation.Apply(value, step.Parameter);
             }
 
             return new TransformationResult(value);

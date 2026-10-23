@@ -173,7 +173,7 @@ public class TileDisplayTests : TileApiTests
                     ["source"] = "cities",
                     ["path"] = "$.temp",
                     ["label"] = "Temperatura",
-                    ["transformations"] = JsonNode.Parse("""[{"key": "round", "parameters": {"decimals": 1}}]""")
+                    ["transformations"] = JsonNode.Parse("""[{"key": "round", "parameter": 1}]""")
                 })
         };
 

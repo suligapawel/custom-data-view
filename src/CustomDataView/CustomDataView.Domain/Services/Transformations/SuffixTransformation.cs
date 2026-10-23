@@ -14,8 +14,8 @@ public sealed class SuffixTransformation : Transformation
 
     public override string Description => "Dokleja tekst po wartości.";
 
-    public override IReadOnlyList<TransformationParameterDescriptor> Parameters { get; } = [TextParameter];
+    public override TransformationParameterDescriptor Parameter => TextParameter;
 
-    protected override object Transform(object value, TransformationParameters parameters)
-        => TransformationValue.ToText(Key, value) + parameters.GetText(Key, TextParameter.Name);
+    protected override object Transform(object value, string parameter)
+        => TransformationValue.ToText(Key, value) + RequireText(parameter);
 }

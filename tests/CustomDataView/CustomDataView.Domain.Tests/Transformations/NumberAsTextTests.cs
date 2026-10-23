@@ -1,4 +1,3 @@
-using System.Text.Json.Nodes;
 using CustomDataView.Domain.Services.Transformations;
 using CustomDataView.Domain.ValueObjects;
 
@@ -10,9 +9,9 @@ public class NumberAsTextTests
     public void Given_SuffixWithKilograms_When_NumberHasTrailingZero_Then_TextHasNoTrailingZero()
     {
         var transformation = new SuffixTransformation();
-        var parameters = CreateParameter("text", " kg");
+        var parameter = " kg";
 
-        var result = transformation.Apply(21.50m, parameters);
+        var result = transformation.Apply(21.50m, parameter);
 
         Assert.That(result, Is.EqualTo("21.5 kg"));
     }
@@ -21,9 +20,9 @@ public class NumberAsTextTests
     public void Given_PrefixWithHash_When_NumberIsInExponentNotation_Then_TextIsPlainNumber()
     {
         var transformation = new PrefixTransformation();
-        var parameters = CreateParameter("text", "#");
+        var parameter = "#";
 
-        var result = transformation.Apply(1e3m, parameters);
+        var result = transformation.Apply(1e3m, parameter);
 
         Assert.That(result, Is.EqualTo("#1000"));
     }
@@ -32,9 +31,9 @@ public class NumberAsTextTests
     public void Given_Uppercase_When_NumberHasTrailingZero_Then_ResultIsNumberText()
     {
         var transformation = new UppercaseTransformation();
-        var parameters = new TransformationParameters(null);
+        var parameter = (string)null;
 
-        var result = transformation.Apply(21.50m, parameters);
+        var result = transformation.Apply(21.50m, parameter);
 
         Assert.That(result, Is.EqualTo("21.5"));
     }
@@ -43,9 +42,9 @@ public class NumberAsTextTests
     public void Given_Lowercase_When_NumberIsFraction_Then_ResultIsNumberText()
     {
         var transformation = new LowercaseTransformation();
-        var parameters = new TransformationParameters(null);
+        var parameter = (string)null;
 
-        var result = transformation.Apply(0.1m, parameters);
+        var result = transformation.Apply(0.1m, parameter);
 
         Assert.That(result, Is.EqualTo("0.1"));
     }
@@ -54,13 +53,10 @@ public class NumberAsTextTests
     public void Given_TruncateToThree_When_NumberHasTrailingZero_Then_ResultIsCutNumberText()
     {
         var transformation = new TruncateTransformation();
-        var parameters = CreateParameter("max_length", 3);
+        var parameter = "3";
 
-        var result = transformation.Apply(21.50m, parameters);
+        var result = transformation.Apply(21.50m, parameter);
 
         Assert.That(result, Is.EqualTo("21."));
     }
-
-    private static TransformationParameters CreateParameter(string name, JsonNode value)
-        => new TransformationParameters(new Dictionary<string, JsonNode> { [name] = value });
 }

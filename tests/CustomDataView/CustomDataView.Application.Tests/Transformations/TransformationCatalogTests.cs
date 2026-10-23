@@ -32,19 +32,19 @@ public class TransformationCatalogTests
     }
 
     [Test(Description = "scenario_TEMP-001-006 - #2")]
-    public void Given_UserBrowsesCatalog_When_ChecksParameters_Then_EachTransformationDescribesItsParameters()
+    public void Given_UserBrowsesCatalog_When_ChecksParameters_Then_EachTransformationDescribesItsParameter()
     {
         var handler = CreateHandler();
 
-        var parameters = handler.Handle(new GetTransformations()).ToDictionary(transformation => transformation.Key, transformation => transformation.Parameters);
+        var parameters = handler.Handle(new GetTransformations()).ToDictionary(transformation => transformation.Key, transformation => transformation.Parameter);
 
-        Assert.That(parameters["round"], Is.EqualTo(new[] { new TransformationParameterDto("decimals", "integer") }));
-        Assert.That(parameters["date_format"], Is.EqualTo(new[] { new TransformationParameterDto("pattern", "string") }));
-        Assert.That(parameters["prefix"], Is.EqualTo(new[] { new TransformationParameterDto("text", "string") }));
-        Assert.That(parameters["suffix"], Is.EqualTo(new[] { new TransformationParameterDto("text", "string") }));
-        Assert.That(parameters["truncate"], Is.EqualTo(new[] { new TransformationParameterDto("max_length", "integer") }));
-        Assert.That(parameters["uppercase"], Is.Empty);
-        Assert.That(parameters["lowercase"], Is.Empty);
+        Assert.That(parameters["round"], Is.EqualTo(new TransformationParameterDto("decimals", "integer")));
+        Assert.That(parameters["date_format"], Is.EqualTo(new TransformationParameterDto("pattern", "string")));
+        Assert.That(parameters["prefix"], Is.EqualTo(new TransformationParameterDto("text", "string")));
+        Assert.That(parameters["suffix"], Is.EqualTo(new TransformationParameterDto("text", "string")));
+        Assert.That(parameters["truncate"], Is.EqualTo(new TransformationParameterDto("max_length", "integer")));
+        Assert.That(parameters["uppercase"], Is.Null);
+        Assert.That(parameters["lowercase"], Is.Null);
     }
 
     [Test(Description = "scenario_TEMP-001-006 - #3")]

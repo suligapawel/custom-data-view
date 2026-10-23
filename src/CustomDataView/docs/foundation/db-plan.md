@@ -9,8 +9,8 @@ deklaracje parametrów ścieżki, query i treści — ma własną tabelę podrz�
 wiele-do-jednego. Nagłówki nie są przechowywane: są stałe i predefiniowane w kodzie.
 Kafelek (`tiles`) ma typ wyświetlania i opcjonalne elementy (`items_*`), listę źródeł danych (`tile_sources`:
 połączenie albo wejście danych), uporządkowaną listę pól (`tile_fields`) — każde pole wskazuje źródło, ścieżkę JSONPath,
-unikalną etykietę, rolę, flagę ukrycia oraz uporządkowany łańcuch transformacji (`tile_field_transformations`)
-z parametrami (`tile_field_transformation_parameters`). Kafelek `form` ma zamiast nich pola formularza
+unikalną etykietę, rolę, flagę ukrycia oraz uporządkowany łańcuch transformacji (`tile_field_transformations`,
+każda z najwyżej jednym parametrem tekstowym; transformacja wskazuje pole etykietą). Kafelek `form` ma zamiast nich pola formularza
 (`tile_form_fields`). Kafelek może osadzać inne kafelki (`tile_children`) i definiować wiązania wewnętrzne
 (`tile_bindings`, jeden wiersz na mapowanie). Kafelki nie przechowują wartości parametrów połączeń — przychodzą one
 z wiązań albo z żądania podglądu.
@@ -107,32 +107,21 @@ PK: `(tile_id, key)`. UNIQUE `uq_tile_sources_tile_id_position` na `(tile_id, po
 | hidden           | boolean      | NOT NULL, DEFAULT false                          | Pole techniczne; front go nie pokazuje       |
 
 PK: `(tile_id, position)`. FK: `(tile_id, source_key)` → `tile_sources (tile_id, key)` `ON DELETE CASCADE`.
-UNIQUE INDEX `ux_tile_fields_tile_id_normalized_label` na `(tile_id, normalized_label)`.
+UNIQUE INDEX `ux_tile_fields_tile_id_normalized_label` na `(tile_id, normalized_label)`. UNIQUE
+`uq_tile_fields_tile_id_label` na `(tile_id, label)` — cel FK z `tile_field_transformations`.
 
 ### custom_data_view.tile_field_transformations
 
-| Column         | Type        | Constraints                         | Description                              |
-|----------------|-------------|-------------------------------------|------------------------------------------|
-| tile_id        | uuid        | PK, NOT NULL, FK (z field_position) | Kafelek                                  |
-| field_position | integer     | PK, NOT NULL, FK (z tile_id)        | Pozycja pola                             |
-| position       | integer     | PK, NOT NULL, CHECK (position >= 0) | Pozycja transformacji w łańcuchu (od 0)  |
-| key            | varchar(50) | NOT NULL                            | Klucz transformacji z katalogu w kodzie  |
+| Column      | Type         | Constraints                         | Description                                          |
+|-------------|--------------|-------------------------------------|------------------------------------------------------|
+| tile_id     | uuid         | PK, NOT NULL, FK (z field_label)    | Kafelek                                              |
+| field_label | varchar(100) | PK, NOT NULL, FK (z tile_id)        | Etykieta pola, któremu służy transformacja           |
+| position    | integer      | PK, NOT NULL, CHECK (position >= 0) | Kolejność wykonania w łańcuchu pola (od 0)           |
+| key         | varchar(50)  | NOT NULL                            | Klucz transformacji z katalogu w kodzie              |
+| parameter   | text         | NULL                                | Parametr transformacji jako tekst; NULL = brak       |
 
-PK: `(tile_id, field_position, position)`. FK: `(tile_id, field_position)` → `tile_fields (tile_id, position)`
+PK: `(tile_id, field_label, position)`. FK: `(tile_id, field_label)` → `tile_fields (tile_id, label)`
 `ON DELETE CASCADE`.
-
-### custom_data_view.tile_field_transformation_parameters
-
-| Column                  | Type        | Constraints  | Description                                         |
-|-------------------------|-------------|--------------|-----------------------------------------------------|
-| tile_id                 | uuid        | PK, NOT NULL | Kafelek                                             |
-| field_position          | integer     | PK, NOT NULL | Pozycja pola                                        |
-| transformation_position | integer     | PK, NOT NULL | Pozycja transformacji w łańcuchu                    |
-| name                    | varchar(50) | PK, NOT NULL | Nazwa parametru transformacji (np. `decimals`)      |
-| value                   | text        | NOT NULL     | Wartość jako tekst; typ odtwarzany z deskryptora transformacji |
-
-PK: `(tile_id, field_position, transformation_position, name)`. FK: `(tile_id, field_position,
-transformation_position)` → `tile_field_transformations (tile_id, field_position, position)` `ON DELETE CASCADE`.
 
 ### custom_data_view.tile_form_fields
 
@@ -193,8 +182,7 @@ aplikacja.
 | tile_sources                | connections | many-to-one | tile_sources.connection_id → connections.id                |
 | tile_fields                 | tiles       | many-to-one | tile_fields.tile_id → tiles.id                             |
 | tile_fields                 | tile_sources | many-to-one | (tile_id, source_key) → tile_sources (tile_id, key)       |
-| tile_field_transformations  | tile_fields | many-to-one | (tile_id, field_position) → tile_fields (tile_id, position) |
-| tile_field_transformation_parameters | tile_field_transformations | many-to-one | (tile_id, field_position, transformation_position) → tile_field_transformations (tile_id, field_position, position) |
+| tile_field_transformations  | tile_fields | many-to-one | (tile_id, field_label) → tile_fields (tile_id, label)      |
 | tile_form_fields            | tiles       | many-to-one | tile_form_fields.tile_id → tiles.id                        |
 | tile_children               | tiles       | many-to-one | tile_children.parent_tile_id → tiles.id                    |
 | tile_children               | tiles       | many-to-one | tile_children.child_tile_id → tiles.id                     |
@@ -216,8 +204,8 @@ Wszystkie klucze obce: `ON DELETE CASCADE`, z wyjątkiem `tile_sources.connectio
 - `pk_tiles` (`tiles(id)`) — szczegóły, edycja, usunięcie i podgląd kafelka po identyfikatorze (TEMP-017 … TEMP-019,
   TEMP-021).
 - `ix_tiles_created_at_id` (`tiles(created_at, id)`) — lista kafelków w kolejności dodania (TEMP-017).
-- `pk_tile_sources`, `pk_tile_fields` (`(tile_id, position)`), `pk_tile_field_transformations`,
-  `pk_tile_field_transformation_parameters`, `pk_tile_form_fields`, `pk_tile_children`, `pk_tile_bindings` —
+- `pk_tile_sources`, `pk_tile_fields` (`(tile_id, position)`), `pk_tile_field_transformations`
+  (`(tile_id, field_label, position)`), `pk_tile_form_fields`, `pk_tile_children`, `pk_tile_bindings` —
   wczytanie definicji kafelka (`WHERE tile_id = @id ORDER BY …`) i kaskadowe usuwanie; wiodąca kolumna `tile_id`
   (`parent_tile_id`) obsługuje FK.
 - `ix_tile_fields_tile_id_source_key` (`tile_fields(tile_id, source_key)`) — obsługa FK pól do źródeł.
@@ -225,6 +213,7 @@ Wszystkie klucze obce: `ON DELETE CASCADE`, z wyjątkiem `tile_sources.connectio
   przy blokadzie jego usunięcia (TEMP-020) i obsługa FK `RESTRICT`.
 - `ux_tile_fields_tile_id_normalized_label`, `ux_tile_form_fields_tile_id_normalized_label` — unikalna etykieta pola
   w kafelku (TEMP-030).
+- `uq_tile_fields_tile_id_label` (`tile_fields(tile_id, label)`) — cel FK transformacji wskazujących pole etykietą.
 - `ix_tile_children_child_tile_id` (`tile_children(child_tile_id)`) — blokada usunięcia kafelka osadzonego jako
   dziecko, walidacja cykli i głębokości, blokada edycji pól używanych w wiązaniach rodziców; obsługa FK `RESTRICT`.
 
@@ -236,7 +225,7 @@ Wszystkie klucze obce: `ON DELETE CASCADE`, z wyjątkiem `tile_sources.connectio
   od modelu domeny. Repozytoria mapują wiersze na `Connection` i `Tile` oraz z powrotem.
 - Konfiguracje odwzorowują ten plan 1:1: nazwy tabel i kolumn, typy (`json`, `text`, `varchar(n)`, `timestamptz`),
   klucze złożone, nazwy `pk_*`, `fk_*`, `ix_*`, `ux_*`, `uq_*`, `ck_*`, `OnDelete` (`Cascade`, `Restrict`), CHECK przez `HasCheckConstraint`, kolumny generowane przez `HasComputedColumnSql(..., stored: true)`
-  oraz `UNIQUE (…, position)` jako klucze alternatywne.
+  oraz `UNIQUE (…, position)` i `uq_tile_fields_tile_id_label` jako klucze alternatywne.
 - Identyfikatory i pozycje nadaje aplikacja (`ValueGeneratedNever`). `created_at` i `updated_at` przy dodaniu
   wypełnia `DEFAULT now()` bazy; edycja ustawia `updated_at` w `ExecuteUpdate` (`DateTime.UtcNow` tłumaczone na
   `now()`).
@@ -286,17 +275,21 @@ Wszystkie klucze obce: `ON DELETE CASCADE`, z wyjątkiem `tile_sources.connectio
     z `connections.created_at` i `connections.updated_at`.
 14. **Brak tabeli nagłówków** (decyzja dewelopera). Wszystkie połączenia wysyłają te same nagłówki, predefiniowane
     w kodzie (treść POST zawsze jako `Content-Type: application/json`), więc definicja połączenia ich nie zawiera.
-15. **Kafelek w czterech tabelach, bez kolumn JSON** (decyzja dewelopera). Kafelek, pola, transformacje i parametry
-    transformacji są osobnymi tabelami; klucz transformacji jest zapisany jako tekst (`key`).
-16. **Pola i transformacje identyfikowane pozycją.** PK złożone z `position` zachowuje kolejność pól i łańcucha
-    transformacji bez osobnych identyfikatorów. Etykieta pola jest unikalna w kafelku (decyzja 23), bo wiązania
-    wskazują pola etykietą. Edycja zastępuje całą definicję: `UPDATE tiles` + `DELETE` źródeł, pól, pól formularza,
-    dzieci i wiązań (transformacje i parametry kaskadowo) i ponowny `INSERT` w jednej transakcji.
+15. **Transformacje w jednej tabeli, bez kolumn JSON** (decyzja dewelopera, 2026-10-23). Każda transformacja z katalogu
+    ma najwyżej jeden parametr, więc parametr jest kolumną `parameter` wiersza transformacji, a nie osobną tabelą;
+    klucz transformacji jest zapisany jako tekst (`key`).
+16. **Pola identyfikowane pozycją, transformacje etykietą pola i pozycją w łańcuchu** (decyzja dewelopera,
+    2026-10-23). PK `tile_fields` z `position` zachowuje kolejność pól. Transformacja wskazuje pole etykietą
+    (`field_label`), tak jak wiązania (decyzja 23), a nie pozycją pola, która łatwo się zmienia; `position`
+    transformacji wyznacza tylko kolejność wykonania w łańcuchu pola. Edycja zastępuje całą definicję:
+    `UPDATE tiles` + `DELETE` źródeł, pól, pól formularza, dzieci i wiązań (transformacje kaskadowo) i ponowny
+    `INSERT` w jednej transakcji.
 17. **Klucz transformacji bez FK.** Katalog transformacji żyje w kodzie; istnienie klucza sprawdza walidator przy
     zapisie.
-18. **Parametry transformacji jako `text`.** Wartość (tekst lub liczba z żądania) jest zapisywana jako tekst, a typ
-    (`integer` / `string`) odtwarzany przy odczycie z deskryptora transformacji w katalogu. Parametry nie są walidowane
-    przy zapisie (decyzja dewelopera) — brak lub zły zakres ujawnia podgląd kafelka.
+18. **Parametr transformacji jako `text`** (decyzja dewelopera, 2026-10-23). Wartość jest zapisywana jako tekst,
+    a klasa transformacji sama ją interpretuje (np. `round` i `truncate` parsują liczbę całkowitą). Wartość parametru
+    nie jest walidowana przy zapisie — brak, zły format lub zły zakres ujawnia podgląd kafelka
+    (`transformation_failed`).
 19. **`ON DELETE RESTRICT` ze źródeł do połączeń.** Usunięcie kafelka nie zmienia połączeń; usunięcie połączenia
     używanego przez źródło jest blokowane. Aplikacja zwraca 409 z listą kafelków (`WHERE connection_id = @id`), a FK
     chroni przed wyścigiem.

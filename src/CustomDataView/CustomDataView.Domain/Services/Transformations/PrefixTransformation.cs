@@ -14,8 +14,8 @@ public sealed class PrefixTransformation : Transformation
 
     public override string Description => "Dokleja tekst przed wartością.";
 
-    public override IReadOnlyList<TransformationParameterDescriptor> Parameters { get; } = [TextParameter];
+    public override TransformationParameterDescriptor Parameter => TextParameter;
 
-    protected override object Transform(object value, TransformationParameters parameters)
-        => parameters.GetText(Key, TextParameter.Name) + TransformationValue.ToText(Key, value);
+    protected override object Transform(object value, string parameter)
+        => RequireText(parameter) + TransformationValue.ToText(Key, value);
 }

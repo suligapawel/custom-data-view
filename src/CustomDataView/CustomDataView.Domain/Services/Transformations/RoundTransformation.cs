@@ -1,5 +1,4 @@
 using CustomDataView.Domain.Dictionaries;
-using CustomDataView.Domain.Exceptions;
 using CustomDataView.Domain.ValueObjects;
 
 namespace CustomDataView.Domain.Services.Transformations;
@@ -18,14 +17,14 @@ public sealed class RoundTransformation : Transformation
 
     public override string Description => "Zaokrągla liczbę do podanej liczby miejsc po przecinku (0-10).";
 
-    public override IReadOnlyList<TransformationParameterDescriptor> Parameters { get; } = [DecimalsParameter];
+    public override TransformationParameterDescriptor Parameter => DecimalsParameter;
 
-    protected override object Transform(object value, TransformationParameters parameters)
+    protected override object Transform(object value, string parameter)
     {
-        var decimals = parameters.GetInteger(Key, DecimalsParameter.Name);
+        var decimals = RequireInteger(parameter);
         if (decimals < MinDecimals || decimals > MaxDecimals)
         {
-            throw new TransformationFailedException(Key, TransformationFailureReasons.InvalidParameter, DecimalsParameter.Name);
+            throw InvalidParameter();
         }
 
         return Math.Round(TransformationValue.ToNumber(Key, value), decimals, MidpointRounding.AwayFromZero);

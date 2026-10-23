@@ -21,7 +21,7 @@ public class PostgresTileRepositoryTests
     public void CreateDatabase()
     {
         dataSource = TestDatabase.Create();
-        repository = new PostgresTileRepository(TestDatabase.ContextFactory(dataSource), [new RoundTransformation(), new SuffixTransformation()]);
+        repository = new PostgresTileRepository(TestDatabase.ContextFactory(dataSource));
     }
 
     [OneTimeTearDown]
@@ -71,35 +71,22 @@ public class PostgresTileRepositoryTests
     }
 
     [Test]
-    public void Given_FieldWithTransformationChain_When_TileIsLoaded_Then_KeysOrderAndTypedParametersAreUnchanged()
+    public void Given_FieldWithTransformationChain_When_TileIsLoaded_Then_KeysOrderAndParametersAreUnchanged()
     {
         var tile = new Tile(Guid.NewGuid(), Definition("Klient",
         [
             new TileField("customer", "$.balance", "Saldo",
             [
-                new TransformationStep("round", new Dictionary<string, JsonNode> { ["decimals"] = 2 }),
-                new TransformationStep("suffix", new Dictionary<string, JsonNode> { ["text"] = " zł" }),
-                new TransformationStep("suffix", new Dictionary<string, JsonNode> { ["text"] = "2" }),
-                new TransformationStep("round", new Dictionary<string, JsonNode> { ["decimals"] = "dwa", ["extra"] = 1.5m })
+                new TransformationStep("round", "2"),
+                new TransformationStep("suffix", " zł"),
+                new TransformationStep("uppercase"),
+                new TransformationStep("round", "dwa")
             ])
         ]));
 
         repository.Add(tile);
 
-        Assert.That(Json(repository.Get(tile.Id)), Is.EqualTo(Json(tile with { Definition = tile.Definition with
-        {
-            Fields =
-            [
-                tile.Definition.Fields[0] with
-                {
-                    Transformations =
-                    [
-                        .. tile.Definition.Fields[0].Transformations.Take(3),
-                        new TransformationStep("round", new Dictionary<string, JsonNode> { ["decimals"] = "dwa", ["extra"] = "1.5" })
-                    ]
-                }
-            ]
-        } })));
+        Assert.That(Json(repository.Get(tile.Id)), Is.EqualTo(Json(tile)));
     }
 
     [Test]
@@ -108,7 +95,7 @@ public class PostgresTileRepositoryTests
         var first = new Tile(Guid.NewGuid(), Definition("Klient",
         [
             new TileField("customer", "$.name", "Nazwa",
-                [new TransformationStep("round", new Dictionary<string, JsonNode> { ["decimals"] = 2 })]),
+                [new TransformationStep("round", "2")]),
             new TileField("customer", "$.balance", "Saldo", [])
         ]));
         var second = new Tile(Guid.NewGuid(), Definition("Kurs", [new TileField("rate", "$.rate", "Kurs EUR", [])]));
@@ -119,7 +106,7 @@ public class PostgresTileRepositoryTests
             Definition = Definition("Klient VIP",
             [
                 new TileField("rate", "$.address.city", "Miasto",
-                    [new TransformationStep("suffix", new Dictionary<string, JsonNode> { ["text"] = " zł" })])
+                    [new TransformationStep("suffix", " zł")])
             ])
         };
 
@@ -134,7 +121,7 @@ public class PostgresTileRepositoryTests
         var tile = new Tile(Guid.NewGuid(), Definition("Klient",
         [
             new TileField("customer", "$.balance", "Saldo",
-                [new TransformationStep("round", new Dictionary<string, JsonNode> { ["decimals"] = 2 })])
+                [new TransformationStep("round", "2")])
         ]));
         repository.Add(tile);
 

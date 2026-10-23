@@ -61,7 +61,7 @@ public class TilePartialPreviewTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #47")]
     public async Task Given_RoundOnNameAndPlainBalance_When_UserPreviewsTile_Then_OnlyNameFieldHasTransformationError()
     {
-        var id = await CreateTile(Tile("Klient", Field(CustomerConnectionId, "$.name", "Nazwa jako liczba", Transformation("round", new { decimals = 1 })),
+        var id = await CreateTile(Tile("Klient", Field(CustomerConnectionId, "$.name", "Nazwa jako liczba", Transformation("round", 1)),
                 Field(CustomerConnectionId, "$.balance", "Saldo")));
 
         var preview = await Preview(id, CustomerValues());

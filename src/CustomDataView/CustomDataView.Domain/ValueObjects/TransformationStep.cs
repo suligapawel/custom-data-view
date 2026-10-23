@@ -1,5 +1,3 @@
-using System.Text.Json.Nodes;
-
 namespace CustomDataView.Domain.ValueObjects;
 
-public sealed record TransformationStep(string Key, IReadOnlyDictionary<string, JsonNode> Parameters);
+public sealed record TransformationStep(string Key, string Parameter = null);

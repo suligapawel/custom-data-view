@@ -29,6 +29,7 @@ public sealed class TileFieldRowConfiguration : IEntityTypeConfiguration<TileFie
         builder.HasIndex(field => new { field.TileId, field.NormalizedLabel })
             .IsUnique()
             .HasDatabaseName("ux_tile_fields_tile_id_normalized_label");
+        builder.HasAlternateKey(field => new { field.TileId, field.Label }).HasName("uq_tile_fields_tile_id_label");
         builder.HasIndex(field => new { field.TileId, field.SourceKey }).HasDatabaseName("ix_tile_fields_tile_id_source_key");
         builder.HasOne<TileSourceRow>()
             .WithMany()
@@ -37,7 +38,8 @@ public sealed class TileFieldRowConfiguration : IEntityTypeConfiguration<TileFie
             .OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(field => field.Transformations)
             .WithOne()
-            .HasForeignKey(transformation => new { transformation.TileId, transformation.FieldPosition })
+            .HasPrincipalKey(field => new { field.TileId, field.Label })
+            .HasForeignKey(transformation => new { transformation.TileId, transformation.FieldLabel })
             .HasConstraintName("fk_tile_field_transformations_field")
             .OnDelete(DeleteBehavior.Cascade);
     }

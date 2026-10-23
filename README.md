@@ -94,7 +94,7 @@ a etykieta „Stacja” przekazuje identyfikator stacji swojej tabeli:
   "sources": [ { "key": "forecast", "kind": "connection", "connectionId": "<ID_PROGNOZA>" } ],
   "fields": [
     { "source": "forecast", "path": "$.city", "label": "Miasto",
-      "transformations": [ { "key": "uppercase", "parameters": {} } ] },
+      "transformations": [ { "key": "uppercase" } ] },
     { "source": "forecast", "path": "$.units", "label": "Jednostki" },
     { "source": "forecast", "path": "$.city", "label": "Kod miasta", "hidden": true }
   ],
@@ -117,7 +117,7 @@ a etykieta „Stacja” przekazuje identyfikator stacji swojej tabeli:
   "fields": [
     { "source": "station", "path": "$.name", "label": "Nazwa" },
     { "source": "station", "path": "$.elevation", "label": "Wysokość",
-      "transformations": [ { "key": "suffix", "parameters": { "text": " m n.p.m." } } ] },
+      "transformations": [ { "key": "suffix", "parameter": " m n.p.m." } ] },
     { "source": "station", "path": "$.operator", "label": "Operator" },
     { "source": "station", "path": "$.id", "label": "ID stacji", "hidden": true }
   ],

@@ -10,30 +10,23 @@ public sealed class DateFormatTransformation : Transformation
     private static readonly TransformationParameterDescriptor PatternParameter =
         new("pattern", TransformationParameterTypes.String);
 
-    private static readonly string[] IsoFormats = ["yyyy-MM-ddTHH:mm:sszzz", "yyyy-MM-dd"];
-
     public override string Key => "date_format";
 
     public override string Name => "Formatowanie daty";
 
     public override string Description => "Formatuje datę ISO 8601 według wzorca w kulturze niezmiennej.";
 
-    public override IReadOnlyList<TransformationParameterDescriptor> Parameters { get; } = [PatternParameter];
+    public override TransformationParameterDescriptor Parameter => PatternParameter;
 
-    protected override object Transform(object value, TransformationParameters parameters)
+    protected override object Transform(object value, string parameter)
     {
-        var pattern = parameters.GetText(Key, PatternParameter.Name);
+        var pattern = RequireText(parameter);
         if (pattern.Length == 0)
         {
-            throw new TransformationFailedException(Key, TransformationFailureReasons.InvalidParameter, PatternParameter.Name);
+            throw InvalidParameter();
         }
 
-        if (value is not string text || !DateTimeOffset.TryParseExact(
-                text,
-                IsoFormats,
-                CultureInfo.InvariantCulture,
-                DateTimeStyles.AssumeUniversal,
-                out var date))
+        if (value is not string text || !DateTimeOffset.TryParse(text, out var date))
         {
             throw new TransformationFailedException(Key, TransformationFailureReasons.InvalidValue);
         }

@@ -11,16 +11,12 @@ public sealed class TileFieldTransformationRowConfiguration : IEntityTypeConfigu
         builder.ToTable(
             "tile_field_transformations",
             table => table.HasCheckConstraint("ck_tile_field_transformations_position", "position >= 0"));
-        builder.HasKey(transformation => new { transformation.TileId, transformation.FieldPosition, transformation.Position })
+        builder.HasKey(transformation => new { transformation.TileId, transformation.FieldLabel, transformation.Position })
             .HasName("pk_tile_field_transformations");
         builder.Property(transformation => transformation.TileId).HasColumnName("tile_id");
-        builder.Property(transformation => transformation.FieldPosition).HasColumnName("field_position");
+        builder.Property(transformation => transformation.FieldLabel).HasColumnName("field_label").HasMaxLength(100);
         builder.Property(transformation => transformation.Position).HasColumnName("position").ValueGeneratedNever();
         builder.Property(transformation => transformation.Key).HasColumnName("key").HasMaxLength(50).IsRequired();
-        builder.HasMany(transformation => transformation.Parameters)
-            .WithOne()
-            .HasForeignKey(parameter => new { parameter.TileId, parameter.FieldPosition, parameter.TransformationPosition })
-            .HasConstraintName("fk_tile_field_transformation_parameters_transformation")
-            .OnDelete(DeleteBehavior.Cascade);
+        builder.Property(transformation => transformation.Parameter).HasColumnName("parameter").HasColumnType("text");
     }
 }

@@ -13,10 +13,10 @@ public class TileDraftPreviewTests : TileApiTests
                     CustomerConnectionId,
                     "$.temp",
                     "Temperatura",
-                    Transformation("round", new { decimals = 1 }),
-                    Transformation("suffix", new { text = " °C" })),
+                    Transformation("round", 1),
+                    Transformation("suffix", " °C")),
                 Field(CustomerConnectionId, "$.name", "Nazwa", Transformation("uppercase")),
-                Field(RateConnectionId, "$.rate", "Kurs EUR", Transformation("round", new { decimals = 2 })));
+                Field(RateConnectionId, "$.rate", "Kurs EUR", Transformation("round", 2)));
         var id = await CreateTile(tile);
         var saved = await (await Client.PostAsJsonAsync($"{TilesUrl}/{id}/preview", CustomerAndRateValues()))
             .Content.ReadFromJsonAsync<JsonObject>();

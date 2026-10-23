@@ -26,7 +26,7 @@ public sealed class GetTileHandler(ITileRepository repository, TileContracts con
                     field.Source,
                     field.Path,
                     field.Label,
-                    field.Transformations.Select(step => new TransformationStepDto(step.Key, step.Parameters)).ToList(),
+                    field.Transformations.Select(step => new TransformationStepDto(step.Key, step.Parameter)).ToList(),
                     field.Hidden,
                     field.Role))
             ],

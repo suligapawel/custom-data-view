@@ -10,7 +10,7 @@ public interface ITransformation
 
     string Description { get; }
 
-    IReadOnlyList<TransformationParameterDescriptor> Parameters { get; }
+    TransformationParameterDescriptor Parameter { get; }
 
-    object Apply(object value, TransformationParameters parameters);
+    object Apply(object value, string parameter);
 }

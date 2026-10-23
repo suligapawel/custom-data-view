@@ -56,8 +56,7 @@ public sealed record TileRequest(
     private static TransformationStepInput ToInput(TransformationStepRequest step)
         => new TransformationStepInput(
             step.Key,
-            (step.Parameters ?? new Dictionary<string, JsonElement>())
-                .ToDictionary(parameter => parameter.Key, parameter => JsonNode.Parse(parameter.Value.GetRawText())));
+            step.Parameter is { } parameter ? JsonNode.Parse(parameter.GetRawText()) : null);
 }
 
 public sealed record TileSourceRequest(string Key, string Kind, Guid? ConnectionId);
@@ -81,4 +80,4 @@ public sealed record TileFieldRequest(
     bool? Required,
     JsonElement? Default);
 
-public sealed record TransformationStepRequest(string Key, Dictionary<string, JsonElement> Parameters);
+public sealed record TransformationStepRequest(string Key, JsonElement? Parameter);

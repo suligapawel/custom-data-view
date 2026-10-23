@@ -4,11 +4,11 @@ public sealed class TileFieldTransformationRow
 {
     public Guid TileId { get; set; }
 
-    public int FieldPosition { get; set; }
+    public string FieldLabel { get; set; }
 
     public int Position { get; set; }
 
     public string Key { get; set; }
 
-    public List<TileFieldTransformationParameterRow> Parameters { get; set; } = [];
+    public string Parameter { get; set; }
 }

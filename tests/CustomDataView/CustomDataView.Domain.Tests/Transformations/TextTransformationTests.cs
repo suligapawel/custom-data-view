@@ -1,4 +1,3 @@
-using System.Text.Json.Nodes;
 using CustomDataView.Domain.Dictionaries;
 using CustomDataView.Domain.Exceptions;
 using CustomDataView.Domain.Services.Transformations;
@@ -12,9 +11,9 @@ public class TextTransformationTests
     public void Given_Uppercase_When_ValueIsAbc_Then_ResultIsUppercaseText()
     {
         var transformation = new UppercaseTransformation();
-        var parameters = new TransformationParameters(null);
+        var parameter = (string)null;
 
-        var result = transformation.Apply("abc", parameters);
+        var result = transformation.Apply("abc", parameter);
 
         Assert.That(result, Is.EqualTo("ABC"));
     }
@@ -24,9 +23,9 @@ public class TextTransformationTests
     public void Given_UppercaseOnTurkishServerCulture_When_ValueIsIstanbul_Then_ResultUsesInvariantCulture()
     {
         var transformation = new UppercaseTransformation();
-        var parameters = new TransformationParameters(null);
+        var parameter = (string)null;
 
-        var result = transformation.Apply("istanbul", parameters);
+        var result = transformation.Apply("istanbul", parameter);
 
         Assert.That(result, Is.EqualTo("ISTANBUL"));
     }
@@ -35,9 +34,9 @@ public class TextTransformationTests
     public void Given_Lowercase_When_ValueIsAbc_Then_ResultIsLowercaseText()
     {
         var transformation = new LowercaseTransformation();
-        var parameters = new TransformationParameters(null);
+        var parameter = (string)null;
 
-        var result = transformation.Apply("ABC", parameters);
+        var result = transformation.Apply("ABC", parameter);
 
         Assert.That(result, Is.EqualTo("abc"));
     }
@@ -47,9 +46,9 @@ public class TextTransformationTests
     public void Given_LowercaseOnTurkishServerCulture_When_ValueIsTitle_Then_ResultUsesInvariantCulture()
     {
         var transformation = new LowercaseTransformation();
-        var parameters = new TransformationParameters(null);
+        var parameter = (string)null;
 
-        var result = transformation.Apply("TITLE", parameters);
+        var result = transformation.Apply("TITLE", parameter);
 
         Assert.That(result, Is.EqualTo("title"));
     }
@@ -58,9 +57,9 @@ public class TextTransformationTests
     public void Given_TruncateToThree_When_ValueIsLonger_Then_ResultIsCutToThreeCharacters()
     {
         var transformation = new TruncateTransformation();
-        var parameters = MaxLength(3);
+        var parameter = "3";
 
-        var result = transformation.Apply("abcdef", parameters);
+        var result = transformation.Apply("abcdef", parameter);
 
         Assert.That(result, Is.EqualTo("abc"));
     }
@@ -69,9 +68,9 @@ public class TextTransformationTests
     public void Given_TruncateToThree_When_ValueIsShorter_Then_ResultIsUnchanged()
     {
         var transformation = new TruncateTransformation();
-        var parameters = MaxLength(3);
+        var parameter = "3";
 
-        var result = transformation.Apply("ab", parameters);
+        var result = transformation.Apply("ab", parameter);
 
         Assert.That(result, Is.EqualTo("ab"));
     }
@@ -80,9 +79,9 @@ public class TextTransformationTests
     public void Given_TruncateWithoutMaxLength_When_ValueIsTransformed_Then_FailsWithInvalidMaxLengthParameter()
     {
         var transformation = new TruncateTransformation();
-        var parameters = new TransformationParameters(null);
+        var parameter = (string)null;
 
-        var exception = Assert.Throws<TransformationFailedException>(() => transformation.Apply("abcdef", parameters));
+        var exception = Assert.Throws<TransformationFailedException>(() => transformation.Apply("abcdef", parameter));
 
         Assert.That(exception.Key, Is.EqualTo("truncate"));
         Assert.That(exception.Reason, Is.EqualTo(TransformationFailureReasons.InvalidParameter));
@@ -93,14 +92,11 @@ public class TextTransformationTests
     public void Given_TruncateWithZeroMaxLength_When_ValueIsTransformed_Then_FailsWithInvalidMaxLengthParameter()
     {
         var transformation = new TruncateTransformation();
-        var parameters = MaxLength(0);
+        var parameter = "0";
 
-        var exception = Assert.Throws<TransformationFailedException>(() => transformation.Apply("abcdef", parameters));
+        var exception = Assert.Throws<TransformationFailedException>(() => transformation.Apply("abcdef", parameter));
 
         Assert.That(exception.Reason, Is.EqualTo(TransformationFailureReasons.InvalidParameter));
         Assert.That(exception.Parameter, Is.EqualTo("max_length"));
     }
-
-    private static TransformationParameters MaxLength(JsonNode maxLength)
-        => new TransformationParameters(new Dictionary<string, JsonNode> { ["max_length"] = maxLength });
 }

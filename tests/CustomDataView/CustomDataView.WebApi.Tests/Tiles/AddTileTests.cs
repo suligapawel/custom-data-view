@@ -10,7 +10,7 @@ public class AddTileTests : TileApiTests
     public async Task Given_NoTile_When_UserSavesTileWithFieldsFromTwoConnections_Then_TileIsSavedAndIdReturned()
     {
         var response = await Client.PostAsJsonAsync(TilesUrl, Tile("Klient i kurs", Field(CustomerConnectionId, "$.name", "Nazwa", Transformation("uppercase")),
-                Field(RateConnectionId, "$.rate", "Kurs EUR", Transformation("round", new { decimals = 2 }))));
+                Field(RateConnectionId, "$.rate", "Kurs EUR", Transformation("round", 2))));
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
         var created = await response.Content.ReadFromJsonAsync<JsonObject>();
