@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using CustomDataView.WebApi.Tests.Connections;
 
@@ -67,13 +68,46 @@ public abstract class TileApiTests : ConnectionApiTests
     protected static HttpResponseMessage Json(string body)
         => new(HttpStatusCode.OK) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
 
-    protected static object Field(Guid connectionId, string path, string label, params object[] transformations)
-        => new { connectionId, path, label, transformations };
+    protected JsonObject Tile(string name, params TileFieldSpec[] fields)
+        => new()
+        {
+            ["name"] = name,
+            ["sources"] = new JsonArray(fields
+                .Select(field => field.ConnectionId)
+                .Distinct()
+                .Select(connectionId => (JsonNode)new JsonObject
+                {
+                    ["key"] = SourceKey(connectionId),
+                    ["kind"] = "connection",
+                    ["connectionId"] = connectionId
+                })
+                .ToArray()),
+            ["fields"] = new JsonArray(fields
+                .Select(field => (JsonNode)new JsonObject
+                {
+                    ["source"] = SourceKey(field.ConnectionId),
+                    ["path"] = field.Path,
+                    ["label"] = field.Label,
+                    ["hidden"] = field.Hidden,
+                    ["transformations"] = JsonSerializer.SerializeToNode(field.Transformations, JsonSerializerOptions.Web)
+                })
+                .ToArray())
+        };
 
-    protected static object HiddenField(Guid connectionId, string path, string label, params object[] transformations)
-        => new { connectionId, path, label, hidden = true, transformations };
+    protected string SourceKey(Guid connectionId)
+        => connectionId == CustomerConnectionId ? "customer"
+            : connectionId == RateConnectionId ? "rate"
+            : $"source_{connectionId:N}"[..15];
+
+    protected static TileFieldSpec Field(Guid connectionId, string path, string label, params object[] transformations)
+        => new(connectionId, path, label, false, transformations);
+
+    protected static TileFieldSpec HiddenField(Guid connectionId, string path, string label, params object[] transformations)
+        => new(connectionId, path, label, true, transformations);
 
     protected static object Transformation(string key, object parameters = null) => new { key, parameters };
 
     protected sealed record CreatedTile(Guid Id);
+
+    protected sealed record TileFieldSpec(Guid ConnectionId, string Path, string Label, bool Hidden, object[] Transformations);
 }

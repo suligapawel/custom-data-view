@@ -15,9 +15,10 @@ public sealed class GetTileHandler(ITileRepository repository)
         return new TileDto(
             tile.Id,
             tile.Definition.Name,
+            tile.Definition.Sources.Select(source => new TileSourceDto(source.Key, source.Kind, source.ConnectionId)).ToList(),
             tile.Definition.Fields
                 .Select(field => new TileFieldDto(
-                    field.ConnectionId,
+                    field.Source,
                     field.Path,
                     field.Label,
                     field.Transformations.Select(step => new TransformationStepDto(step.Key, step.Parameters)).ToList(),

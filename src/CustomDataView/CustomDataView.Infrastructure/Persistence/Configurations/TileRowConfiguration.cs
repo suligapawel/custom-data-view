@@ -21,6 +21,11 @@ public sealed class TileRowConfiguration : IEntityTypeConfiguration<TileRow>
             .HasColumnType("timestamptz")
             .HasDefaultValueSql("now()");
         builder.HasIndex(tile => new { tile.CreatedAt, tile.Id }).HasDatabaseName("ix_tiles_created_at_id");
+        builder.HasMany(tile => tile.Sources)
+            .WithOne()
+            .HasForeignKey(source => source.TileId)
+            .HasConstraintName("fk_tile_sources_tile_id")
+            .OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(tile => tile.Fields)
             .WithOne()
             .HasForeignKey(field => field.TileId)

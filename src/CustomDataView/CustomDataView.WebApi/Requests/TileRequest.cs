@@ -6,7 +6,7 @@ using CustomDataView.Domain.ValueObjects;
 
 namespace CustomDataView.WebApi.Requests;
 
-public sealed record TileRequest(string Name, IReadOnlyList<TileFieldRequest> Fields)
+public sealed record TileRequest(string Name, IReadOnlyList<TileSourceRequest> Sources, IReadOnlyList<TileFieldRequest> Fields)
 {
     public IDictionary<string, string[]> Validate() => TileDefinitionValidator.Validate(ToInput());
 
@@ -15,9 +15,10 @@ public sealed record TileRequest(string Name, IReadOnlyList<TileFieldRequest> Fi
     public TileInput ToInput()
         => new TileInput(
             Name,
+            (Sources ?? []).Select(source => new TileSourceInput(source.Key, source.Kind, source.ConnectionId)).ToList(),
             (Fields ?? [])
                 .Select(field => new TileFieldInput(
-                    field.ConnectionId,
+                    field.Source,
                     field.Path,
                     field.Label,
                     (field.Transformations ?? []).Select(ToInput).ToList(),
@@ -31,8 +32,10 @@ public sealed record TileRequest(string Name, IReadOnlyList<TileFieldRequest> Fi
                 .ToDictionary(parameter => parameter.Key, parameter => JsonNode.Parse(parameter.Value.GetRawText())));
 }
 
+public sealed record TileSourceRequest(string Key, string Kind, Guid? ConnectionId);
+
 public sealed record TileFieldRequest(
-    Guid? ConnectionId,
+    string Source,
     string Path,
     string Label,
     IReadOnlyList<TransformationStepRequest> Transformations,

@@ -10,5 +10,7 @@ public sealed class TileRow
 
     public DateTime UpdatedAt { get; set; }
 
+    public List<TileSourceRow> Sources { get; set; } = [];
+
     public List<TileFieldRow> Fields { get; set; } = [];
 }

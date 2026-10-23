@@ -30,7 +30,7 @@ public sealed class TestTileRepository(TestViewRepository views) : ITileReposito
 
     public IReadOnlyList<TileReference> GetUsingConnection(Guid connectionId)
         => tiles
-            .Where(tile => tile.Definition.Fields.Any(field => field.ConnectionId == connectionId))
+            .Where(tile => tile.Definition.Sources.Any(source => source.ConnectionId == connectionId))
             .Select(tile => new TileReference(tile.Id, tile.Definition.Name))
             .ToList();
 

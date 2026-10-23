@@ -21,34 +21,38 @@ public sealed class TileReferencesValidator(IConnectionRepository connections, I
     }
 
     public IDictionary<string, string[]> Validate(TileDefinition definition)
-        => Validate(definition.Fields
-            .Select(field => new FieldReferences(field.ConnectionId, field.Transformations.Select(step => step.Key).ToList()))
-            .ToList());
+        => Validate(
+            definition.Sources.Select(source => source.ConnectionId).ToList(),
+            definition.Fields.Select(field => field.Transformations.Select(step => step.Key).ToList()).ToList());
 
     public IDictionary<string, string[]> Validate(TileInput input)
-        => Validate(input.Fields
-            .Select(field => new FieldReferences(field.ConnectionId, field.Transformations.Select(step => step.Key).ToList()))
-            .ToList());
+        => Validate(
+            input.Sources.Select(source => source.ConnectionId).ToList(),
+            input.Fields.Select(field => field.Transformations.Select(step => step.Key).ToList()).ToList());
 
-    private Dictionary<string, string[]> Validate(IReadOnlyList<FieldReferences> fields)
+    private Dictionary<string, string[]> Validate(
+        IReadOnlyList<Guid?> sourceConnections,
+        IReadOnlyList<List<string>> fieldTransformations)
     {
         var errors = new Dictionary<string, string[]>();
-        var existing = fields
-            .Where(field => field.ConnectionId is not null)
-            .Select(field => field.ConnectionId.Value)
+        var existing = sourceConnections
+            .Where(id => id is not null)
+            .Select(id => id.Value)
             .Distinct()
             .ToDictionary(id => id, id => connections.Get(id) is not null);
-        for (var index = 0; index < fields.Count; index++)
+        for (var index = 0; index < sourceConnections.Count; index++)
         {
-            var field = fields[index];
-            if (field.ConnectionId is { } connectionId && !existing[connectionId])
+            if (sourceConnections[index] is { } connectionId && !existing[connectionId])
             {
-                errors[$"fields[{index}].connectionId"] = [$"Połączenie '{connectionId}' nie istnieje."];
+                errors[$"sources[{index}].connectionId"] = [$"Połączenie '{connectionId}' nie istnieje."];
             }
+        }
 
-            for (var position = 0; position < field.TransformationKeys.Count; position++)
+        for (var index = 0; index < fieldTransformations.Count; index++)
+        {
+            for (var position = 0; position < fieldTransformations[index].Count; position++)
             {
-                var key = field.TransformationKeys[position];
+                var key = fieldTransformations[index][position];
                 if (!catalog.Contains(key))
                 {
                     errors[$"fields[{index}].transformations[{position}].key"] = [$"Transformacja '{key}' nie istnieje w katalogu."];
@@ -58,6 +62,4 @@ public sealed class TileReferencesValidator(IConnectionRepository connections, I
 
         return errors;
     }
-
-    private sealed record FieldReferences(Guid? ConnectionId, IReadOnlyList<string> TransformationKeys);
 }

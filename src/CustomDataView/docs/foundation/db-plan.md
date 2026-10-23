@@ -88,10 +88,11 @@ CHECK `ck_tiles_items`: wszystkie trzy kolumny `items_*` są ustawione wtedy i t
 |---------------|-------------|---------------------------------------------------|----------------------------------------------|
 | tile_id       | uuid        | PK, NOT NULL, FK → tiles.id ON DELETE CASCADE     | Kafelek                                      |
 | key           | varchar(50) | PK, NOT NULL                                      | Klucz źródła, unikalny w kafelku; węzeł wiązań |
+| position      | integer     | NOT NULL, CHECK (position >= 0)                   | Kolejność źródła w definicji (od 0)          |
 | kind          | varchar(10) | NOT NULL, CHECK (kind IN ('connection', 'input')) | Rodzaj źródła                                |
 | connection_id | uuid        | NULL, FK → connections.id ON DELETE RESTRICT      | Połączenie źródła `connection`               |
 
-PK: `(tile_id, key)`. CHECK `ck_tile_sources_connection`: `connection_id` ustawione wtedy i tylko wtedy, gdy
+PK: `(tile_id, key)`. UNIQUE `uq_tile_sources_tile_id_position` na `(tile_id, position)`. CHECK `ck_tile_sources_connection`: `connection_id` ustawione wtedy i tylko wtedy, gdy
 `kind = 'connection'`.
 
 ### custom_data_view.tile_fields
@@ -383,7 +384,8 @@ view_tiles` (`ON DELETE NO ACTION`).
     indeksu deweloper sprawdza duplikaty zapytaniem z sekcji „Migracje danych”.
 29. **Źródła w osobnej tabeli `tile_sources`.** Pole wskazuje źródło kluczem (FK złożone), a połączenie należy do
     źródła. Migracja danych tworzy dla każdego kafelka jedno źródło `connection` na każde użyte połączenie, z kluczem
-    `source_<n>` w kolejności pierwszego użycia.
+    `source_<n>` w kolejności pierwszego użycia. Kolumna `position` zachowuje kolejność źródeł z definicji (szczegóły
+    kafelka zwracają je w tej kolejności).
 30. **Wiązania jako jeden wiersz na mapowanie** (`tile_bindings`, `view_bindings`). Grupowanie `from` → `to`
     odtwarza repozytorium przy odczycie (kolejność z `position`). PK celu gwarantuje, że wejście celu ma jedno źródło
     w definicji. Węzły kafelka (źródła, osadzenia, `parent`, ścieżki) nie mają FK, bo wskazują różne tabele; ich

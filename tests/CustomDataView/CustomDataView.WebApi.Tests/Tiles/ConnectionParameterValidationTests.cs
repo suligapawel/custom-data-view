@@ -73,11 +73,7 @@ public class ConnectionParameterValidationTests : ViewApiTests
     private Task<Guid> CustomerAndRateTile() => CreateTile(CustomerAndRate());
 
     private object CustomerAndRate()
-        => new
-        {
-            name = "Klient i kurs",
-            fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa"), Field(RateConnectionId, "$.rate", "Kurs EUR") }
-        };
+        => Tile("Klient i kurs", Field(CustomerConnectionId, "$.name", "Nazwa"), Field(RateConnectionId, "$.rate", "Kurs EUR"));
 
     private static void AssertParameterError(JsonNode field, string parameter, bool bound)
     {

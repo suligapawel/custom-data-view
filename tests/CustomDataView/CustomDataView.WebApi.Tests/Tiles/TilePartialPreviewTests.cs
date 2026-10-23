@@ -9,11 +9,7 @@ public class TilePartialPreviewTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #44")]
     public async Task Given_RateSourceNotResponding_When_UserPreviewsCustomerAndRateTile_Then_OnlyRateFieldHasSourceError()
     {
-        var id = await CreateTile(new
-        {
-            name = "Klient i kurs",
-            fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa"), Field(RateConnectionId, "$.rate", "Kurs EUR") }
-        });
+        var id = await CreateTile(Tile("Klient i kurs", Field(CustomerConnectionId, "$.name", "Nazwa"), Field(RateConnectionId, "$.rate", "Kurs EUR")));
         RateSourceFails(_ => throw new HttpRequestException("Connection refused"));
 
         var preview = await Preview(id, CustomerAndRateValues());
@@ -34,7 +30,7 @@ public class TilePartialPreviewTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #45")]
     public async Task Given_RateSourceRespondingWith503_When_UserPreviewsRateTile_Then_FieldHasSourceErrorWithReasonAndStatus()
     {
-        var id = await CreateTile(new { name = "Kurs", fields = new[] { Field(RateConnectionId, "$.rate", "Kurs EUR") } });
+        var id = await CreateTile(Tile("Kurs", Field(RateConnectionId, "$.rate", "Kurs EUR")));
         RateSourceFails(_ => new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
 
         var preview = await Preview(id, RateValues());
@@ -50,11 +46,7 @@ public class TilePartialPreviewTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #46")]
     public async Task Given_FieldsForExistingCityAndMissingZip_When_UserPreviewsTile_Then_ZipFieldHasPathNotFound()
     {
-        var id = await CreateTile(new
-        {
-            name = "Adres",
-            fields = new[] { Field(CustomerConnectionId, "$.address.city", "Miasto"), Field(CustomerConnectionId, "$.address.zip", "Kod") }
-        });
+        var id = await CreateTile(Tile("Adres", Field(CustomerConnectionId, "$.address.city", "Miasto"), Field(CustomerConnectionId, "$.address.zip", "Kod")));
 
         var preview = await Preview(id, CustomerValues());
 
@@ -69,15 +61,8 @@ public class TilePartialPreviewTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #47")]
     public async Task Given_RoundOnNameAndPlainBalance_When_UserPreviewsTile_Then_OnlyNameFieldHasTransformationError()
     {
-        var id = await CreateTile(new
-        {
-            name = "Klient",
-            fields = new[]
-            {
-                Field(CustomerConnectionId, "$.name", "Nazwa jako liczba", Transformation("round", new { decimals = 1 })),
-                Field(CustomerConnectionId, "$.balance", "Saldo")
-            }
-        });
+        var id = await CreateTile(Tile("Klient", Field(CustomerConnectionId, "$.name", "Nazwa jako liczba", Transformation("round", new { decimals = 1 })),
+                Field(CustomerConnectionId, "$.balance", "Saldo")));
 
         var preview = await Preview(id, CustomerValues());
 
@@ -92,11 +77,7 @@ public class TilePartialPreviewTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #48")]
     public async Task Given_WildcardOverWholeResponseWithUppercase_When_UserPreviewsTile_Then_WholeFieldHasTransformationError()
     {
-        var id = await CreateTile(new
-        {
-            name = "Klient",
-            fields = new[] { Field(CustomerConnectionId, "$.*", "Tagi", Transformation("uppercase")) }
-        });
+        var id = await CreateTile(Tile("Klient", Field(CustomerConnectionId, "$.*", "Tagi", Transformation("uppercase"))));
 
         var preview = await Preview(id, CustomerValues());
 
@@ -110,11 +91,7 @@ public class TilePartialPreviewTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #49")]
     public async Task Given_OnlyRateFieldsAndRateSourceNotResponding_When_UserPreviewsTile_Then_EveryFieldHasSourceError()
     {
-        var id = await CreateTile(new
-        {
-            name = "Kurs",
-            fields = new[] { Field(RateConnectionId, "$.rate", "Kurs EUR"), Field(RateConnectionId, "$.date", "Data") }
-        });
+        var id = await CreateTile(Tile("Kurs", Field(RateConnectionId, "$.rate", "Kurs EUR"), Field(RateConnectionId, "$.date", "Data")));
         RateSourceFails(_ => throw new HttpRequestException("Connection refused"));
 
         var preview = await Preview(id, RateValues());

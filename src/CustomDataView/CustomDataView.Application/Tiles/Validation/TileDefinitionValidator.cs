@@ -1,4 +1,5 @@
 using CustomDataView.Application.Tiles.Inputs;
+using CustomDataView.Domain.Dictionaries;
 using CustomDataView.Domain.Policies;
 using CustomDataView.Domain.Services;
 
@@ -16,6 +17,7 @@ public static class TileDefinitionValidator
             errors["name"] = [$"Nazwa kafelka jest wymagana i może mieć najwyżej {MaxTextLength} znaków."];
         }
 
+        var sources = ValidateSources(input.Sources, errors);
         if (input.Fields.Count == 0)
         {
             errors["fields"] = ["Kafelek musi mieć co najmniej jedno pole."];
@@ -24,7 +26,7 @@ public static class TileDefinitionValidator
         var labels = new HashSet<string>();
         for (var index = 0; index < input.Fields.Count; index++)
         {
-            ValidateField(input.Fields[index], $"fields[{index}]", errors);
+            ValidateField(input.Fields[index], $"fields[{index}]", sources, errors);
             if (IsValidText(input.Fields[index].Label) && !labels.Add(TileLabels.Normalize(input.Fields[index].Label)))
             {
                 errors[$"fields[{index}].label"] = ["Etykieta pola musi być unikalna w kafelku."];
@@ -34,16 +36,52 @@ public static class TileDefinitionValidator
         return errors;
     }
 
-    private static void ValidateField(TileFieldInput field, string key, Dictionary<string, string[]> errors)
+    private static HashSet<string> ValidateSources(IReadOnlyList<TileSourceInput> sources, Dictionary<string, string[]> errors)
+    {
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+        for (var index = 0; index < sources.Count; index++)
+        {
+            var source = sources[index];
+            var key = $"sources[{index}]";
+            if (!TileNodeKeys.IsValid(source.Key))
+            {
+                errors[$"{key}.key"] =
+                [
+                    $"Klucz źródła jest wymagany, może mieć najwyżej {TileNodeKeys.MaxLength} znaków, nie może zawierać znaku '/' ani być słowem '{TileNodeKeys.Parent}'."
+                ];
+            }
+            else if (!keys.Add(source.Key))
+            {
+                errors[$"{key}.key"] = [$"Klucz źródła '{source.Key}' występuje w kafelku więcej niż raz."];
+            }
+
+            if (source.Kind != TileSourceKinds.Connection)
+            {
+                errors[$"{key}.kind"] = [$"Rodzaj źródła musi mieć wartość '{TileSourceKinds.Connection}'."];
+            }
+            else if (source.ConnectionId is null)
+            {
+                errors[$"{key}.connectionId"] = ["Połączenie źródła jest wymagane."];
+            }
+        }
+
+        return keys;
+    }
+
+    private static void ValidateField(TileFieldInput field, string key, HashSet<string> sources, Dictionary<string, string[]> errors)
     {
         if (!IsValidText(field.Label))
         {
             errors[$"{key}.label"] = [$"Etykieta pola jest wymagana i może mieć najwyżej {MaxTextLength} znaków."];
         }
 
-        if (field.ConnectionId is null)
+        if (string.IsNullOrWhiteSpace(field.Source))
         {
-            errors[$"{key}.connectionId"] = ["Połączenie pola jest wymagane."];
+            errors[$"{key}.source"] = ["Źródło pola jest wymagane."];
+        }
+        else if (!sources.Contains(field.Source))
+        {
+            errors[$"{key}.source"] = [$"Źródło '{field.Source}' nie istnieje w kafelku."];
         }
 
         if (!JsonPathParser.TryParse(field.Path, out _))

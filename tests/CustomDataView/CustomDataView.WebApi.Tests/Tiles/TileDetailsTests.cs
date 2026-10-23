@@ -9,19 +9,12 @@ public class TileDetailsTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #3")]
     public async Task Given_FieldWithRoundAndSuffix_When_UserViewsTileDetails_Then_ChainKeepsOrderAndTypedParameters()
     {
-        var id = await CreateTile(new
-        {
-            name = "Klient",
-            fields = new[]
-            {
-                Field(
+        var id = await CreateTile(Tile("Klient", Field(
                     CustomerConnectionId,
                     "$.balance",
                     "Saldo",
                     Transformation("round", new { decimals = 2 }),
-                    Transformation("suffix", new { text = " zł" }))
-            }
-        });
+                    Transformation("suffix", new { text = " zł" }))));
 
         var tile = await GetTile(id);
 
@@ -40,11 +33,10 @@ public class TileDetailsTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #4")]
     public async Task Given_FieldWithoutTransformations_When_UserSavesTile_Then_DetailsShowEmptyTransformationList()
     {
-        var response = await Client.PostAsJsonAsync(TilesUrl, new
-        {
-            name = "Klient",
-            fields = new[] { new { connectionId = CustomerConnectionId, path = "$.address.city", label = "Miasto" } }
-        });
+        var request = Tile("Klient", Field(CustomerConnectionId, "$.address.city", "Miasto"));
+        request["fields"]![0]!.AsObject().Remove("transformations");
+
+        var response = await Client.PostAsJsonAsync(TilesUrl, request);
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
         var created = await response.Content.ReadFromJsonAsync<CreatedTile>();
@@ -56,16 +48,9 @@ public class TileDetailsTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #5")]
     public async Task Given_TileWithFieldsInGivenOrder_When_UserViewsTileDetails_Then_FieldsKeepThatOrder()
     {
-        var id = await CreateTile(new
-        {
-            name = "Klient i kurs",
-            fields = new[]
-            {
-                Field(RateConnectionId, "$.rate", "Kurs EUR"),
+        var id = await CreateTile(Tile("Klient i kurs", Field(RateConnectionId, "$.rate", "Kurs EUR"),
                 Field(CustomerConnectionId, "$.name", "Nazwa"),
-                Field(CustomerConnectionId, "$.address.city", "Miasto")
-            }
-        });
+                Field(CustomerConnectionId, "$.address.city", "Miasto")));
 
         var tile = await GetTile(id);
 
@@ -77,11 +62,7 @@ public class TileDetailsTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #18")]
     public async Task Given_TileWithRateField_When_UserViewsTileDetails_Then_NameAndFieldDefinitionAreShown()
     {
-        var id = await CreateTile(new
-        {
-            name = "Klient i kurs",
-            fields = new[] { Field(RateConnectionId, "$.rate", "Kurs EUR", Transformation("round", new { decimals = 2 })) }
-        });
+        var id = await CreateTile(Tile("Klient i kurs", Field(RateConnectionId, "$.rate", "Kurs EUR", Transformation("round", new { decimals = 2 }))));
 
         var tile = await GetTile(id);
 
@@ -92,9 +73,15 @@ public class TileDetailsTests : TileApiTests
                 {
                     ["id"] = id,
                     ["name"] = "Klient i kurs",
+                    ["sources"] = new JsonArray(new JsonObject
+                    {
+                        ["key"] = "rate",
+                        ["kind"] = "connection",
+                        ["connectionId"] = RateConnectionId
+                    }),
                     ["fields"] = new JsonArray(new JsonObject
                     {
-                        ["connectionId"] = RateConnectionId,
+                        ["source"] = "rate",
                         ["path"] = "$.rate",
                         ["label"] = "Kurs EUR",
                         ["transformations"] = JsonNode.Parse("""[{"key": "round", "parameters": {"decimals": 2}}]"""),

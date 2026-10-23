@@ -20,7 +20,13 @@ public sealed class PostgresTileRepository(
     public void Add(Tile tile)
     {
         using var context = contextFactory.CreateDbContext();
-        context.Tiles.Add(new TileRow { Id = tile.Id, Name = tile.Definition.Name, Fields = ToFieldRows(tile) });
+        context.Tiles.Add(new TileRow
+        {
+            Id = tile.Id,
+            Name = tile.Definition.Name,
+            Sources = ToSourceRows(tile),
+            Fields = ToFieldRows(tile)
+        });
         context.SaveChanges();
     }
 
@@ -51,7 +57,8 @@ public sealed class PostgresTileRepository(
             .ExecuteUpdate(setters => setters
                 .SetProperty(stored => stored.Name, tile.Definition.Name)
                 .SetProperty(stored => stored.UpdatedAt, stored => DateTime.UtcNow));
-        context.TileFields.Where(field => field.TileId == tile.Id).ExecuteDelete();
+        context.TileSources.Where(source => source.TileId == tile.Id).ExecuteDelete();
+        context.TileSources.AddRange(ToSourceRows(tile));
         context.TileFields.AddRange(ToFieldRows(tile));
         context.SaveChanges();
         transaction.Commit();
@@ -68,7 +75,7 @@ public sealed class PostgresTileRepository(
         using var context = contextFactory.CreateDbContext();
         return context.Tiles
             .AsNoTracking()
-            .Where(tile => tile.Fields.Any(field => field.ConnectionId == connectionId))
+            .Where(tile => tile.Sources.Any(source => source.ConnectionId == connectionId))
             .OrderBy(tile => tile.CreatedAt)
             .ThenBy(tile => tile.Id)
             .Select(tile => new TileReference(tile.Id, tile.Name))
@@ -93,10 +100,23 @@ public sealed class PostgresTileRepository(
     private static IQueryable<TileRow> WithFields(CustomDataViewDbContext context)
         => context.Tiles
             .AsNoTracking()
+            .Include(tile => tile.Sources.OrderBy(source => source.Position))
             .Include(tile => tile.Fields.OrderBy(field => field.Position))
             .ThenInclude(field => field.Transformations.OrderBy(transformation => transformation.Position))
             .ThenInclude(transformation => transformation.Parameters.OrderBy(parameter => parameter.Name))
             .AsSplitQuery();
+
+    private static List<TileSourceRow> ToSourceRows(Tile tile)
+        => tile.Definition.Sources
+            .Select((source, position) => new TileSourceRow
+            {
+                TileId = tile.Id,
+                Key = source.Key,
+                Position = position,
+                Kind = source.Kind,
+                ConnectionId = source.ConnectionId
+            })
+            .ToList();
 
     private static List<TileFieldRow> ToFieldRows(Tile tile)
         => tile.Definition.Fields
@@ -104,7 +124,7 @@ public sealed class PostgresTileRepository(
             {
                 TileId = tile.Id,
                 Position = fieldPosition,
-                ConnectionId = field.ConnectionId,
+                SourceKey = field.Source,
                 Path = field.Path,
                 Label = field.Label,
                 Hidden = field.Hidden,
@@ -133,9 +153,10 @@ public sealed class PostgresTileRepository(
     private Tile ToTile(TileRow tile)
         => new Tile(tile.Id, new TileDefinition(
             tile.Name,
+            tile.Sources.Select(source => new TileSource(source.Key, source.Kind, source.ConnectionId)).ToList(),
             tile.Fields
                 .Select(field => new TileField(
-                    field.ConnectionId,
+                    field.SourceKey,
                     field.Path,
                     field.Label,
                     field.Transformations.Select(ToStep).ToList(),

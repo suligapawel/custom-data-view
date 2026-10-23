@@ -11,11 +11,7 @@ public class TileChangesInViewsTests : ViewApiTests
     {
         var viewId = await CreateView("Pulpit", ViewTile(CustomerTileId, 3, "col-6"));
 
-        var response = await Client.PutAsJsonAsync($"{TilesUrl}/{CustomerTileId}", new
-        {
-            name = "Klient VIP",
-            fields = new[] { Field(CustomerConnectionId, "$.balance", "Saldo") }
-        });
+        var response = await Client.PutAsJsonAsync($"{TilesUrl}/{CustomerTileId}", Tile("Klient VIP", Field(CustomerConnectionId, "$.balance", "Saldo")));
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
         Assert.That(

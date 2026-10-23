@@ -9,21 +9,14 @@ public class TileDraftPreviewTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #42")]
     public async Task Given_UnsavedCustomerAndRateTile_When_UserPreviewsIt_Then_ResultMatchesSavedTilePreview()
     {
-        var tile = new
-        {
-            name = "Klient i kurs",
-            fields = new[]
-            {
-                Field(
+        var tile = Tile("Klient i kurs", Field(
                     CustomerConnectionId,
                     "$.temp",
                     "Temperatura",
                     Transformation("round", new { decimals = 1 }),
                     Transformation("suffix", new { text = " °C" })),
                 Field(CustomerConnectionId, "$.name", "Nazwa", Transformation("uppercase")),
-                Field(RateConnectionId, "$.rate", "Kurs EUR", Transformation("round", new { decimals = 2 }))
-            }
-        };
+                Field(RateConnectionId, "$.rate", "Kurs EUR", Transformation("round", new { decimals = 2 })));
         var id = await CreateTile(tile);
         var saved = await (await Client.PostAsJsonAsync($"{TilesUrl}/{id}/preview", CustomerAndRateValues()))
             .Content.ReadFromJsonAsync<JsonObject>();
@@ -51,14 +44,14 @@ public class TileDraftPreviewTests : TileApiTests
     {
         var response = await Client.PostAsJsonAsync($"{TilesUrl}/preview", new
         {
-            tile = new { fields = new[] { Field(Guid.NewGuid(), "$.name", "Nazwa") } }
+            tile = Tile(null, Field(Guid.NewGuid(), "$.name", "Nazwa"))
         });
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
         var problem = await response.Content.ReadFromJsonAsync<JsonObject>();
         Assert.That(
             problem["errors"]!.AsObject().Select(error => error.Key),
-            Is.SupersetOf(new[] { "tile.name", "tile.fields[0].connectionId" }));
+            Is.SupersetOf(new[] { "tile.name", "tile.sources[0].connectionId" }));
         Assert.That(Factory.ExternalApi.Requests, Is.Empty);
     }
 }

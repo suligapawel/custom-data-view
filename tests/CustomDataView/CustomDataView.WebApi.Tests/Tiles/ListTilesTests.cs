@@ -8,17 +8,10 @@ public class ListTilesTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #16")]
     public async Task Given_CustomerTileThenRateTile_When_UserViewsTileList_Then_TilesAreInAddingOrderWithFieldCounts()
     {
-        var customerId = await CreateTile(new
-        {
-            name = "Klient",
-            fields = new[]
-            {
-                Field(CustomerConnectionId, "$.name", "Nazwa"),
+        var customerId = await CreateTile(Tile("Klient", Field(CustomerConnectionId, "$.name", "Nazwa"),
                 Field(CustomerConnectionId, "$.balance", "Saldo"),
-                Field(CustomerConnectionId, "$.address.city", "Miasto")
-            }
-        });
-        var rateId = await CreateTile(new { name = "Kurs", fields = new[] { Field(RateConnectionId, "$.rate", "Kurs EUR") } });
+                Field(CustomerConnectionId, "$.address.city", "Miasto")));
+        var rateId = await CreateTile(Tile("Kurs", Field(RateConnectionId, "$.rate", "Kurs EUR")));
 
         var tiles = await Client.GetFromJsonAsync<JsonArray>(TilesUrl);
 

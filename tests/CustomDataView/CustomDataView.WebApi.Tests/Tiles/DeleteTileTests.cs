@@ -9,11 +9,7 @@ public class DeleteTileTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #23")]
     public async Task Given_CustomerTileUsingCustomerConnection_When_UserDeletesTile_Then_TileDisappearsAndConnectionIsUnchanged()
     {
-        var id = await CreateTile(new
-        {
-            name = "Klient",
-            fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa"), Field(CustomerConnectionId, "$.balance", "Saldo") }
-        });
+        var id = await CreateTile(Tile("Klient", Field(CustomerConnectionId, "$.name", "Nazwa"), Field(CustomerConnectionId, "$.balance", "Saldo")));
         var connection = await Client.GetStringAsync($"{ConnectionsUrl}/{CustomerConnectionId}");
 
         var response = await Client.DeleteAsync($"{TilesUrl}/{id}");

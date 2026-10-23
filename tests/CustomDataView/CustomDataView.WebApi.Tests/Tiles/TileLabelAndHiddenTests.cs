@@ -12,11 +12,7 @@ public class TileLabelAndHiddenTests : ViewApiTests
     [Test(Description = "scenario_TEMP-030 - #1")]
     public async Task Given_LabelRepeatedWithOtherCaseAndSpaces_When_UserSavesTile_Then_SaveIsRejectedWithSecondLabelError(string method)
     {
-        var tile = new
-        {
-            name = "Klient",
-            fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa"), Field(CustomerConnectionId, "$.balance", " nazwa ") }
-        };
+        var tile = Tile("Klient", Field(CustomerConnectionId, "$.name", "Nazwa"), Field(CustomerConnectionId, "$.balance", " nazwa "));
         var details = await Client.GetStringAsync($"{TilesUrl}/{CustomerTileId}");
         var tiles = await Client.GetStringAsync(TilesUrl);
 
@@ -73,13 +69,6 @@ public class TileLabelAndHiddenTests : ViewApiTests
     }
 
     private Task<Guid> CustomerWithHiddenBalance()
-        => CreateTile(new
-        {
-            name = "Klient",
-            fields = new[]
-            {
-                Field(CustomerConnectionId, "$.name", "Nazwa"),
-                HiddenField(CustomerConnectionId, "$.balance", "Saldo", Transformation("round", new { decimals = 1 }))
-            }
-        });
+        => CreateTile(Tile("Klient", Field(CustomerConnectionId, "$.name", "Nazwa"),
+                HiddenField(CustomerConnectionId, "$.balance", "Saldo", Transformation("round", new { decimals = 1 }))));
 }

@@ -6,7 +6,7 @@ public sealed class TileFieldRow
 
     public int Position { get; set; }
 
-    public Guid ConnectionId { get; set; }
+    public string SourceKey { get; set; }
 
     public string Path { get; set; }
 

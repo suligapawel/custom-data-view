@@ -9,18 +9,10 @@ public class EditTileTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #20")]
     public async Task Given_CustomerAndRateTiles_When_UserEditsCustomerTile_Then_NameAndFieldsAreReplacedInPlace()
     {
-        var customerId = await CreateTile(new
-        {
-            name = "Klient",
-            fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa"), Field(CustomerConnectionId, "$.balance", "Saldo") }
-        });
-        var rateId = await CreateTile(new { name = "Kurs", fields = new[] { Field(RateConnectionId, "$.rate", "Kurs EUR") } });
+        var customerId = await CreateTile(Tile("Klient", Field(CustomerConnectionId, "$.name", "Nazwa"), Field(CustomerConnectionId, "$.balance", "Saldo")));
+        var rateId = await CreateTile(Tile("Kurs", Field(RateConnectionId, "$.rate", "Kurs EUR")));
 
-        var response = await Client.PutAsJsonAsync($"{TilesUrl}/{customerId}", new
-        {
-            name = "Klient VIP",
-            fields = new[] { Field(CustomerConnectionId, "$.address.city", "Miasto"), Field(CustomerConnectionId, "$.name", "Nazwa") }
-        });
+        var response = await Client.PutAsJsonAsync($"{TilesUrl}/{customerId}", Tile("Klient VIP", Field(CustomerConnectionId, "$.address.city", "Miasto"), Field(CustomerConnectionId, "$.name", "Nazwa")));
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
         var tile = await GetTile(customerId);
@@ -38,7 +30,7 @@ public class EditTileTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #21")]
     public async Task Given_CustomerTileWithNameField_When_UserRemovesAllFields_Then_EditIsRejectedAndTileIsUnchanged()
     {
-        var id = await CreateTile(new { name = "Klient", fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa") } });
+        var id = await CreateTile(Tile("Klient", Field(CustomerConnectionId, "$.name", "Nazwa")));
 
         var response = await Client.PutAsJsonAsync($"{TilesUrl}/{id}", new { name = "Klient", fields = Array.Empty<object>() });
 

@@ -16,11 +16,7 @@ public class TilePreviewValuesTests : TileApiTests
             url = "https://api.example.com/archive-rates",
             queryParameters = new[] { new { name = "currency", required = false } }
         });
-        var id = await CreateTile(new
-        {
-            name = "Kursy",
-            fields = new[] { Field(RateConnectionId, "$.rate", "Kurs EUR"), Field(archiveConnectionId, "$.rate", "Kurs archiwalny") }
-        });
+        var id = await CreateTile(Tile("Kursy", Field(RateConnectionId, "$.rate", "Kurs EUR"), Field(archiveConnectionId, "$.rate", "Kurs archiwalny")));
 
         await Client.PostAsJsonAsync($"{TilesUrl}/{id}/preview", new { parameters = new { currency = "EUR" } });
 
@@ -32,7 +28,7 @@ public class TilePreviewValuesTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #39")]
     public async Task Given_OnlyCustomerField_When_UserPreviewsWithCurrencyToo_Then_UndeclaredParameterIsIgnored()
     {
-        var id = await CreateTile(new { name = "Klient", fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa") } });
+        var id = await CreateTile(Tile("Klient", Field(CustomerConnectionId, "$.name", "Nazwa")));
 
         var response = await Client.PostAsJsonAsync($"{TilesUrl}/{id}/preview", CustomerAndRateValues());
 
@@ -45,7 +41,7 @@ public class TilePreviewValuesTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #40")]
     public async Task Given_CustomerTile_When_UserPreviewsItTwice_Then_TileAndListAreUnchanged()
     {
-        var id = await CreateTile(new { name = "Klient", fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa") } });
+        var id = await CreateTile(Tile("Klient", Field(CustomerConnectionId, "$.name", "Nazwa")));
         var details = await Client.GetStringAsync($"{TilesUrl}/{id}");
         var list = await Client.GetStringAsync(TilesUrl);
 
@@ -59,7 +55,7 @@ public class TilePreviewValuesTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #50")]
     public async Task Given_CustomerField_When_UserPreviewsWithCustomerAsNumber_Then_SourceGetsCustomerAsText()
     {
-        var id = await CreateTile(new { name = "Klient", fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa") } });
+        var id = await CreateTile(Tile("Klient", Field(CustomerConnectionId, "$.name", "Nazwa")));
 
         var response = await Client.PostAsJsonAsync($"{TilesUrl}/{id}/preview", new { parameters = new { customer_id = 42 } });
 
@@ -95,7 +91,7 @@ public class TilePreviewValuesTests : TileApiTests
             url = "https://api.example.com/rates",
             queryParameters = new[] { new { name = "currency", required = false } }
         });
-        var id = await CreateTile(new { name = "Kursy", fields = new[] { Field(ratesConnectionId, "$.rate", "Kursy") } });
+        var id = await CreateTile(Tile("Kursy", Field(ratesConnectionId, "$.rate", "Kursy")));
 
         await Client.GetAsync($"{TilesUrl}/{id}/preview?currency=EUR&currency=USD");
 
@@ -105,9 +101,5 @@ public class TilePreviewValuesTests : TileApiTests
     }
 
     private Task<Guid> CustomerAndRateTile()
-        => CreateTile(new
-        {
-            name = "Klient i kurs",
-            fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa"), Field(RateConnectionId, "$.rate", "Kurs EUR") }
-        });
+        => CreateTile(Tile("Klient i kurs", Field(CustomerConnectionId, "$.name", "Nazwa"), Field(RateConnectionId, "$.rate", "Kurs EUR")));
 }

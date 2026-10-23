@@ -9,12 +9,8 @@ public class DeleteUsedConnectionTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #25")]
     public async Task Given_TwoTilesUsingCustomerConnection_When_UserDeletesConnection_Then_DeletionIsRejectedAsConflict()
     {
-        var customerId = await CreateTile(new { name = "Klient", fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa") } });
-        var bothId = await CreateTile(new
-        {
-            name = "Klient i kurs",
-            fields = new[] { Field(RateConnectionId, "$.rate", "Kurs EUR"), Field(CustomerConnectionId, "$.name", "Nazwa") }
-        });
+        var customerId = await CreateTile(Tile("Klient", Field(CustomerConnectionId, "$.name", "Nazwa")));
+        var bothId = await CreateTile(Tile("Klient i kurs", Field(RateConnectionId, "$.rate", "Kurs EUR"), Field(CustomerConnectionId, "$.name", "Nazwa")));
 
         var connection = await Client.GetStringAsync($"{ConnectionsUrl}/{CustomerConnectionId}");
 
@@ -40,7 +36,7 @@ public class DeleteUsedConnectionTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #26")]
     public async Task Given_OnlyTileUsingCustomerConnectionWasDeleted_When_UserDeletesConnection_Then_ConnectionIsDeleted()
     {
-        var id = await CreateTile(new { name = "Klient", fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa") } });
+        var id = await CreateTile(Tile("Klient", Field(CustomerConnectionId, "$.name", "Nazwa")));
         await Client.DeleteAsync($"{TilesUrl}/{id}");
 
         var response = await Client.DeleteAsync($"{ConnectionsUrl}/{CustomerConnectionId}");
@@ -52,7 +48,7 @@ public class DeleteUsedConnectionTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #27")]
     public async Task Given_NoTileUsesRateConnection_When_UserDeletesIt_Then_ConnectionIsDeleted()
     {
-        await CreateTile(new { name = "Klient", fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa") } });
+        await CreateTile(Tile("Klient", Field(CustomerConnectionId, "$.name", "Nazwa")));
 
         var response = await Client.DeleteAsync($"{ConnectionsUrl}/{RateConnectionId}");
 

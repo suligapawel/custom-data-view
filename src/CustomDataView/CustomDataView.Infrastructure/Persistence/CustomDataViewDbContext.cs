@@ -20,6 +20,8 @@ public sealed class CustomDataViewDbContext(DbContextOptions<CustomDataViewDbCon
 
     public DbSet<TileRow> Tiles => Set<TileRow>();
 
+    public DbSet<TileSourceRow> TileSources => Set<TileSourceRow>();
+
     public DbSet<TileFieldRow> TileFields => Set<TileFieldRow>();
 
     public DbSet<ViewRow> Views => Set<ViewRow>();

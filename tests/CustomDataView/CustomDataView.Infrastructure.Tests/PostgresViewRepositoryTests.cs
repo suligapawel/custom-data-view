@@ -1,3 +1,4 @@
+using CustomDataView.Domain.Dictionaries;
 using System.Text.Json;
 using CustomDataView.Domain.Entities;
 using CustomDataView.Domain.Repositories;
@@ -144,7 +145,10 @@ public class PostgresViewRepositoryTests
 
     private Guid AddTile(string name, Guid connectionId)
     {
-        var tile = new Tile(Guid.NewGuid(), new TileDefinition(name, [new TileField(connectionId, "$.name", "Nazwa", [])]));
+        var tile = new Tile(Guid.NewGuid(), new TileDefinition(
+            name,
+            [new TileSource("source", TileSourceKinds.Connection, connectionId)],
+            [new TileField("source", "$.name", "Nazwa", [])]));
         tiles.Add(tile);
         return tile.Id;
     }

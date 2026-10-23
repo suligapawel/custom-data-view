@@ -71,11 +71,11 @@ public class TileValidationTests : TileApiTests
     public async Task Given_FirstFieldWithoutConnection_When_UserSavesTile_Then_SaveIsRejectedWithFirstConnectionError()
     {
         var tile = ValidTile();
-        tile["fields"]![0]!.AsObject().Remove("connectionId");
+        tile["sources"]![0]!.AsObject().Remove("connectionId");
 
         var response = await Client.PostAsJsonAsync(TilesUrl, tile);
 
-        await AssertRejected(response, "fields[0].connectionId");
+        await AssertRejected(response, "sources[0].connectionId");
     }
 
     [Test(Description = "scenario_TEMP-015-023 - #11")]
@@ -83,12 +83,12 @@ public class TileValidationTests : TileApiTests
     {
         var missingId = Guid.NewGuid();
         var tile = ValidTile();
-        tile["fields"]![0]!["connectionId"] = missingId;
+        tile["sources"]![0]!["connectionId"] = missingId;
 
         var response = await Client.PostAsJsonAsync(TilesUrl, tile);
 
-        var errors = await AssertRejected(response, "fields[0].connectionId");
-        Assert.That(errors["fields[0].connectionId"]![0]!.GetValue<string>(), Does.Contain(missingId.ToString()));
+        var errors = await AssertRejected(response, "sources[0].connectionId");
+        Assert.That(errors["sources[0].connectionId"]![0]!.GetValue<string>(), Does.Contain(missingId.ToString()));
     }
 
     [Test(Description = "scenario_TEMP-015-023 - #12")]
@@ -135,13 +135,7 @@ public class TileValidationTests : TileApiTests
     }
 
     private JsonObject ValidTile()
-        => new()
-        {
-            ["name"] = "Klient",
-            ["fields"] = new JsonArray(
-                new JsonObject { ["connectionId"] = CustomerConnectionId, ["path"] = "$.name", ["label"] = "Nazwa" },
-                new JsonObject { ["connectionId"] = CustomerConnectionId, ["path"] = "$.balance", ["label"] = "Saldo" })
-        };
+        => Tile("Klient", Field(CustomerConnectionId, "$.name", "Nazwa"), Field(CustomerConnectionId, "$.balance", "Saldo"));
 
     private static async Task<JsonObject> AssertRejected(HttpResponseMessage response, string errorKey)
     {

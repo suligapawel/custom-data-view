@@ -1,3 +1,4 @@
+using CustomDataView.Domain.Dictionaries;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using CustomDataView.Domain.Entities;
@@ -40,8 +41,8 @@ public class PostgresTileRepositoryTests
     [Test]
     public void Given_TwoSavedTiles_When_AllAreLoaded_Then_TheyAreInAddingOrder()
     {
-        var first = new Tile(Guid.NewGuid(), new TileDefinition("Klient", []));
-        var second = new Tile(Guid.NewGuid(), new TileDefinition("Kurs", []));
+        var first = new Tile(Guid.NewGuid(), Definition("Klient", []));
+        var second = new Tile(Guid.NewGuid(), Definition("Kurs", []));
 
         repository.Add(first);
         repository.Add(second);
@@ -56,11 +57,11 @@ public class PostgresTileRepositoryTests
     [Test]
     public void Given_SavedTileWithFieldsFromManyConnections_When_ItIsLoaded_Then_FieldsAreInDefinitionOrder()
     {
-        var tile = new Tile(Guid.NewGuid(), new TileDefinition("Klient i kurs",
+        var tile = new Tile(Guid.NewGuid(), Definition("Klient i kurs",
         [
-            new TileField(rateConnectionId, "$.rate", "Kurs EUR", []),
-            new TileField(customerConnectionId, "$.name", "Nazwa", []),
-            new TileField(customerConnectionId, "$['unit-name']", "Dział", [], Hidden: true)
+            new TileField("rate", "$.rate", "Kurs EUR", []),
+            new TileField("customer", "$.name", "Nazwa", []),
+            new TileField("customer", "$['unit-name']", "Dział", [], Hidden: true)
         ]));
 
         repository.Add(tile);
@@ -72,9 +73,9 @@ public class PostgresTileRepositoryTests
     [Test]
     public void Given_FieldWithTransformationChain_When_TileIsLoaded_Then_KeysOrderAndTypedParametersAreUnchanged()
     {
-        var tile = new Tile(Guid.NewGuid(), new TileDefinition("Klient",
+        var tile = new Tile(Guid.NewGuid(), Definition("Klient",
         [
-            new TileField(customerConnectionId, "$.balance", "Saldo",
+            new TileField("customer", "$.balance", "Saldo",
             [
                 new TransformationStep("round", new Dictionary<string, JsonNode> { ["decimals"] = 2 }),
                 new TransformationStep("suffix", new Dictionary<string, JsonNode> { ["text"] = " zł" }),
@@ -104,20 +105,20 @@ public class PostgresTileRepositoryTests
     [Test]
     public void Given_TwoSavedTiles_When_FirstIsUpdated_Then_ItsDefinitionIsReplacedAndOrderIsKept()
     {
-        var first = new Tile(Guid.NewGuid(), new TileDefinition("Klient",
+        var first = new Tile(Guid.NewGuid(), Definition("Klient",
         [
-            new TileField(customerConnectionId, "$.name", "Nazwa",
+            new TileField("customer", "$.name", "Nazwa",
                 [new TransformationStep("round", new Dictionary<string, JsonNode> { ["decimals"] = 2 })]),
-            new TileField(customerConnectionId, "$.balance", "Saldo", [])
+            new TileField("customer", "$.balance", "Saldo", [])
         ]));
-        var second = new Tile(Guid.NewGuid(), new TileDefinition("Kurs", [new TileField(rateConnectionId, "$.rate", "Kurs EUR", [])]));
+        var second = new Tile(Guid.NewGuid(), Definition("Kurs", [new TileField("rate", "$.rate", "Kurs EUR", [])]));
         repository.Add(first);
         repository.Add(second);
         var updated = first with
         {
-            Definition = new TileDefinition("Klient VIP",
+            Definition = Definition("Klient VIP",
             [
-                new TileField(rateConnectionId, "$.address.city", "Miasto",
+                new TileField("rate", "$.address.city", "Miasto",
                     [new TransformationStep("suffix", new Dictionary<string, JsonNode> { ["text"] = " zł" })])
             ])
         };
@@ -130,9 +131,9 @@ public class PostgresTileRepositoryTests
     [Test]
     public void Given_SavedTileWithTransformations_When_ItIsDeleted_Then_ItIsGoneAndConnectionsRemain()
     {
-        var tile = new Tile(Guid.NewGuid(), new TileDefinition("Klient",
+        var tile = new Tile(Guid.NewGuid(), Definition("Klient",
         [
-            new TileField(customerConnectionId, "$.balance", "Saldo",
+            new TileField("customer", "$.balance", "Saldo",
                 [new TransformationStep("round", new Dictionary<string, JsonNode> { ["decimals"] = 2 })])
         ]));
         repository.Add(tile);
@@ -147,16 +148,16 @@ public class PostgresTileRepositoryTests
     [Test]
     public void Given_TilesUsingConnections_When_TilesUsingConnectionAreLoaded_Then_DistinctTilesAreReturnedInAddingOrder()
     {
-        var customer = new Tile(Guid.NewGuid(), new TileDefinition("Klient",
+        var customer = new Tile(Guid.NewGuid(), Definition("Klient",
         [
-            new TileField(customerConnectionId, "$.name", "Nazwa", []),
-            new TileField(customerConnectionId, "$.balance", "Saldo", [])
+            new TileField("customer", "$.name", "Nazwa", []),
+            new TileField("customer", "$.balance", "Saldo", [])
         ]));
-        var rate = new Tile(Guid.NewGuid(), new TileDefinition("Kurs", [new TileField(rateConnectionId, "$.rate", "Kurs EUR", [])]));
-        var both = new Tile(Guid.NewGuid(), new TileDefinition("Klient i kurs",
+        var rate = new Tile(Guid.NewGuid(), Definition("Kurs", [new TileField("rate", "$.rate", "Kurs EUR", [])]));
+        var both = new Tile(Guid.NewGuid(), Definition("Klient i kurs",
         [
-            new TileField(rateConnectionId, "$.rate", "Kurs EUR", []),
-            new TileField(customerConnectionId, "$.name", "Nazwa", [])
+            new TileField("rate", "$.rate", "Kurs EUR", []),
+            new TileField("customer", "$.name", "Nazwa", [])
         ]));
         repository.Add(customer);
         repository.Add(rate);
@@ -170,7 +171,7 @@ public class PostgresTileRepositoryTests
     [Test]
     public void Given_TileUsingConnection_When_ConnectionIsDeletedDirectly_Then_DatabaseRejectsIt()
     {
-        repository.Add(new Tile(Guid.NewGuid(), new TileDefinition("Klient", [new TileField(customerConnectionId, "$.name", "Nazwa", [])])));
+        repository.Add(new Tile(Guid.NewGuid(), Definition("Klient", [new TileField("customer", "$.name", "Nazwa", [])])));
 
         Assert.Throws<PostgresException>(() => new PostgresConnectionRepository(TestDatabase.ContextFactory(dataSource)).Delete(customerConnectionId));
     }
@@ -178,15 +179,28 @@ public class PostgresTileRepositoryTests
     [Test]
     public void Given_TileWithLabelsDifferingInCaseAndSpaces_When_ItIsSaved_Then_DatabaseRejectsIt()
     {
-        var tile = new Tile(Guid.NewGuid(), new TileDefinition("Klient",
+        var tile = new Tile(Guid.NewGuid(), Definition("Klient",
         [
-            new TileField(customerConnectionId, "$.name", "Nazwa", []),
-            new TileField(customerConnectionId, "$.balance", " NAZWA ", [])
+            new TileField("customer", "$.name", "Nazwa", []),
+            new TileField("customer", "$.balance", " NAZWA ", [])
         ]));
 
         Assert.That(() => repository.Add(tile), Throws.InstanceOf<Microsoft.EntityFrameworkCore.DbUpdateException>());
         Assert.That(repository.Get(tile.Id), Is.Null);
     }
+
+    private TileDefinition Definition(string name, IReadOnlyList<TileField> fields)
+        => new TileDefinition(
+            name,
+            fields
+                .Select(field => field.Source)
+                .Distinct()
+                .Select(source => new TileSource(
+                    source,
+                    TileSourceKinds.Connection,
+                    source == "customer" ? customerConnectionId : rateConnectionId))
+                .ToList(),
+            fields);
 
     private static string Json(Tile tile) => JsonSerializer.Serialize(tile);
 

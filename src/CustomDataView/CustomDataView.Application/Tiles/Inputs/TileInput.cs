@@ -2,14 +2,15 @@ using CustomDataView.Domain.ValueObjects;
 
 namespace CustomDataView.Application.Tiles.Inputs;
 
-public sealed record TileInput(string Name, IReadOnlyList<TileFieldInput> Fields)
+public sealed record TileInput(string Name, IReadOnlyList<TileSourceInput> Sources, IReadOnlyList<TileFieldInput> Fields)
 {
     public TileDefinition ToDefinition()
         => new TileDefinition(
             Name,
+            Sources.Select(source => new TileSource(source.Key, source.Kind, source.ConnectionId)).ToList(),
             Fields
                 .Select(field => new TileField(
-                    field.ConnectionId.Value,
+                    field.Source,
                     field.Path,
                     field.Label,
                     field.Transformations

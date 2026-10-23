@@ -12,7 +12,7 @@ public sealed class TileFieldRowConfiguration : IEntityTypeConfiguration<TileFie
         builder.HasKey(field => new { field.TileId, field.Position }).HasName("pk_tile_fields");
         builder.Property(field => field.TileId).HasColumnName("tile_id");
         builder.Property(field => field.Position).HasColumnName("position").ValueGeneratedNever();
-        builder.Property(field => field.ConnectionId).HasColumnName("connection_id");
+        builder.Property(field => field.SourceKey).HasColumnName("source_key").HasMaxLength(50).IsRequired();
         builder.Property(field => field.Path).HasColumnName("path").HasColumnType("text").IsRequired();
         builder.Property(field => field.Label).HasColumnName("label").HasMaxLength(100).IsRequired();
         builder.Property(field => field.NormalizedLabel)
@@ -24,12 +24,12 @@ public sealed class TileFieldRowConfiguration : IEntityTypeConfiguration<TileFie
         builder.HasIndex(field => new { field.TileId, field.NormalizedLabel })
             .IsUnique()
             .HasDatabaseName("ux_tile_fields_tile_id_normalized_label");
-        builder.HasIndex(field => field.ConnectionId).HasDatabaseName("ix_tile_fields_connection_id");
-        builder.HasOne<ConnectionRow>()
+        builder.HasIndex(field => new { field.TileId, field.SourceKey }).HasDatabaseName("ix_tile_fields_tile_id_source_key");
+        builder.HasOne<TileSourceRow>()
             .WithMany()
-            .HasForeignKey(field => field.ConnectionId)
-            .HasConstraintName("fk_tile_fields_connection_id")
-            .OnDelete(DeleteBehavior.Restrict);
+            .HasForeignKey(field => new { field.TileId, field.SourceKey })
+            .HasConstraintName("fk_tile_fields_source")
+            .OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(field => field.Transformations)
             .WithOne()
             .HasForeignKey(transformation => new { transformation.TileId, transformation.FieldPosition })

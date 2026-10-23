@@ -57,7 +57,7 @@ public class ViewPreviewTests : ViewApiTests
     [Test(Description = "scenario_TEMP-029 - #5")]
     public async Task Given_TwoTilesUsingCustomerConnection_When_UserPreviewsView_Then_CustomerSourceIsCalledForEachTile()
     {
-        var balanceTileId = await CreateTile(new { name = "Saldo", fields = new[] { Field(CustomerConnectionId, "$.balance", "Saldo") } });
+        var balanceTileId = await CreateTile(Tile("Saldo", Field(CustomerConnectionId, "$.balance", "Saldo")));
         var id = await CreateView("Pulpit", ViewTile(CustomerTileId, 0), ViewTile(balanceTileId, 1));
 
         var response = await Client.PostAsJsonAsync($"{ViewsUrl}/{id}/preview", CustomerValues());

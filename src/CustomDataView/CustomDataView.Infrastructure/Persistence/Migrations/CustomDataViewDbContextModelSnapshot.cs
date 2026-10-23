@@ -160,10 +160,6 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("position");
 
-                    b.Property<Guid>("ConnectionId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("connection_id");
-
                     b.Property<bool>("Hidden")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -189,15 +185,21 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("path");
 
+                    b.Property<string>("SourceKey")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("source_key");
+
                     b.HasKey("TileId", "Position")
                         .HasName("pk_tile_fields");
-
-                    b.HasIndex("ConnectionId")
-                        .HasDatabaseName("ix_tile_fields_connection_id");
 
                     b.HasIndex("TileId", "NormalizedLabel")
                         .IsUnique()
                         .HasDatabaseName("ux_tile_fields_tile_id_normalized_label");
+
+                    b.HasIndex("TileId", "SourceKey")
+                        .HasDatabaseName("ix_tile_fields_tile_id_source_key");
 
                     b.ToTable("tile_fields", "custom_data_view", t =>
                         {
@@ -295,6 +297,50 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_tiles_created_at_id");
 
                     b.ToTable("tiles", "custom_data_view");
+                });
+
+            modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileSourceRow", b =>
+                {
+                    b.Property<Guid>("TileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tile_id");
+
+                    b.Property<string>("Key")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("key");
+
+                    b.Property<Guid?>("ConnectionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("connection_id");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("kind");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.HasKey("TileId", "Key")
+                        .HasName("pk_tile_sources");
+
+                    b.HasAlternateKey("TileId", "Position")
+                        .HasName("uq_tile_sources_tile_id_position");
+
+                    b.HasIndex("ConnectionId")
+                        .HasDatabaseName("ix_tile_sources_connection_id");
+
+                    b.ToTable("tile_sources", "custom_data_view", t =>
+                        {
+                            t.HasCheckConstraint("ck_tile_sources_connection", "(kind = 'connection' AND connection_id IS NOT NULL) OR (kind <> 'connection' AND connection_id IS NULL)");
+
+                            t.HasCheckConstraint("ck_tile_sources_kind", "kind IN ('connection', 'input')");
+
+                            t.HasCheckConstraint("ck_tile_sources_position", "position >= 0");
+                        });
                 });
 
             modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.ViewRow", b =>
@@ -396,19 +442,19 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileFieldRow", b =>
                 {
-                    b.HasOne("CustomDataView.Infrastructure.Persistence.Rows.ConnectionRow", null)
-                        .WithMany()
-                        .HasForeignKey("ConnectionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fk_tile_fields_connection_id");
-
                     b.HasOne("CustomDataView.Infrastructure.Persistence.Rows.TileRow", null)
                         .WithMany("Fields")
                         .HasForeignKey("TileId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_tile_fields_tile_id");
+
+                    b.HasOne("CustomDataView.Infrastructure.Persistence.Rows.TileSourceRow", null)
+                        .WithMany()
+                        .HasForeignKey("TileId", "SourceKey")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_tile_fields_source");
                 });
 
             modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileFieldTransformationParameterRow", b =>
@@ -429,6 +475,22 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_tile_field_transformations_field");
+                });
+
+            modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileSourceRow", b =>
+                {
+                    b.HasOne("CustomDataView.Infrastructure.Persistence.Rows.ConnectionRow", null)
+                        .WithMany()
+                        .HasForeignKey("ConnectionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_tile_sources_connection_id");
+
+                    b.HasOne("CustomDataView.Infrastructure.Persistence.Rows.TileRow", null)
+                        .WithMany("Sources")
+                        .HasForeignKey("TileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_tile_sources_tile_id");
                 });
 
             modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.ViewTileRow", b =>
@@ -470,6 +532,8 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileRow", b =>
                 {
                     b.Navigation("Fields");
+
+                    b.Navigation("Sources");
                 });
 
             modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.ViewRow", b =>

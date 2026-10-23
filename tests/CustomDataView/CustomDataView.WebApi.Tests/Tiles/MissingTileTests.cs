@@ -18,11 +18,7 @@ public class MissingTileTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #22")]
     public async Task Given_TileDoesNotExist_When_UserEditsIt_Then_TileIsNotFound()
     {
-        var response = await Client.PutAsJsonAsync($"{TilesUrl}/{Guid.NewGuid()}", new
-        {
-            name = "Klient",
-            fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa") }
-        });
+        var response = await Client.PutAsJsonAsync($"{TilesUrl}/{Guid.NewGuid()}", Tile("Klient", Field(CustomerConnectionId, "$.name", "Nazwa")));
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }

@@ -9,15 +9,8 @@ public class AddTileTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #1")]
     public async Task Given_NoTile_When_UserSavesTileWithFieldsFromTwoConnections_Then_TileIsSavedAndIdReturned()
     {
-        var response = await Client.PostAsJsonAsync(TilesUrl, new
-        {
-            name = "Klient i kurs",
-            fields = new[]
-            {
-                Field(CustomerConnectionId, "$.name", "Nazwa", Transformation("uppercase")),
-                Field(RateConnectionId, "$.rate", "Kurs EUR", Transformation("round", new { decimals = 2 }))
-            }
-        });
+        var response = await Client.PostAsJsonAsync(TilesUrl, Tile("Klient i kurs", Field(CustomerConnectionId, "$.name", "Nazwa", Transformation("uppercase")),
+                Field(RateConnectionId, "$.rate", "Kurs EUR", Transformation("round", new { decimals = 2 }))));
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
         var created = await response.Content.ReadFromJsonAsync<JsonObject>();
@@ -30,45 +23,32 @@ public class AddTileTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #2")]
     public async Task Given_ThreeFieldsFromCustomerConnection_When_UserSavesTile_Then_TileHasThreeFieldsUsingThatConnection()
     {
-        var id = await CreateTile(new
-        {
-            name = "Klient",
-            fields = new[]
-            {
-                Field(CustomerConnectionId, "$.name", "Nazwa"),
+        var id = await CreateTile(Tile("Klient", Field(CustomerConnectionId, "$.name", "Nazwa"),
                 Field(CustomerConnectionId, "$.balance", "Saldo"),
-                Field(CustomerConnectionId, "$.address.city", "Miasto")
-            }
-        });
+                Field(CustomerConnectionId, "$.address.city", "Miasto")));
 
         var tile = await GetTile(id);
 
         Assert.That(
             tile["fields"]!.AsArray().Select(field => (
-                field["connectionId"]?.GetValue<Guid>(),
+                field["source"]?.GetValue<string>(),
                 field["path"]?.GetValue<string>(),
                 field["label"]?.GetValue<string>())),
-            Is.EqualTo(new (Guid?, string, string)[]
+            Is.EqualTo(new[]
             {
-                (CustomerConnectionId, "$.name", "Nazwa"),
-                (CustomerConnectionId, "$.balance", "Saldo"),
-                (CustomerConnectionId, "$.address.city", "Miasto")
+                ("customer", "$.name", "Nazwa"),
+                ("customer", "$.balance", "Saldo"),
+                ("customer", "$.address.city", "Miasto")
             }));
+        Assert.That(tile["sources"]!.AsArray().Select(source => source["connectionId"]?.GetValue<Guid>()), Is.EqualTo(new[] { CustomerConnectionId }));
     }
 
     [Test(Description = "scenario_TEMP-015-023 - #6")]
     public async Task Given_TileNamedCustomer_When_UserSavesAnotherCustomerTileWithSameLabel_Then_BothTilesAreListed()
     {
-        var firstId = await CreateTile(new { name = "Klient", fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa") } });
+        var firstId = await CreateTile(Tile("Klient", Field(CustomerConnectionId, "$.name", "Nazwa")));
 
-        var response = await Client.PostAsJsonAsync(TilesUrl, new
-        {
-            name = "Klient",
-            fields = new[]
-            {
-                Field(CustomerConnectionId, "$.balance", "Nazwa")
-            }
-        });
+        var response = await Client.PostAsJsonAsync(TilesUrl, Tile("Klient", Field(CustomerConnectionId, "$.balance", "Nazwa")));
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
         var secondId = (await response.Content.ReadFromJsonAsync<CreatedTile>()).Id;

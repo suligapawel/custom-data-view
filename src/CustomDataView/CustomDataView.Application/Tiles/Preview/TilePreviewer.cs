@@ -43,23 +43,23 @@ public sealed class TilePreviewer(
             id,
             definition.Name,
             definition.Fields
-                .Select(field => PreviewField(field, responses[field.ConnectionId]) with { Hidden = field.Hidden })
+                .Select(field => PreviewField(field, responses[field.Source]) with { Hidden = field.Hidden })
                 .ToList());
     }
 
-    private async Task<Dictionary<Guid, SourceResult>> Call(
+    private async Task<Dictionary<string, SourceResult>> Call(
         TileDefinition definition,
         IReadOnlyDictionary<string, JsonElement> parameters,
         CancellationToken cancellationToken)
     {
-        var results = await Task.WhenAll(definition.Fields
-            .Select(field => field.ConnectionId)
-            .Distinct()
-            .Select(connections.Get)
-            .Select(async connection => (
-                connectionId: connection.Id,
-                result: await Call(connection, TileParameterValues.For(connection.Definition, parameters), cancellationToken))));
-        return results.ToDictionary(call => call.connectionId, call => call.result);
+        var results = await Task.WhenAll(definition.Sources.Select(async source =>
+        {
+            var connection = connections.Get(source.ConnectionId.Value);
+            return (
+                source: source.Key,
+                result: await Call(connection, TileParameterValues.For(connection.Definition, parameters), cancellationToken));
+        }));
+        return results.ToDictionary(call => call.source, call => call.result);
     }
 
     private async Task<SourceResult> Call(Connection connection, ParameterValuesInput parameters, CancellationToken cancellationToken)

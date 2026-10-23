@@ -9,21 +9,14 @@ public class TilePreviewTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #28")]
     public async Task Given_SavedTileWithFieldsFromTwoConnections_When_UserPreviewsIt_Then_PreviewHasTransformedValuesInOrder()
     {
-        var id = await CreateTile(new
-        {
-            name = "Klient i kurs",
-            fields = new[]
-            {
-                Field(
+        var id = await CreateTile(Tile("Klient i kurs", Field(
                     CustomerConnectionId,
                     "$.temp",
                     "Temperatura",
                     Transformation("round", new { decimals = 1 }),
                     Transformation("suffix", new { text = " °C" })),
                 Field(CustomerConnectionId, "$.name", "Nazwa", Transformation("uppercase")),
-                Field(RateConnectionId, "$.rate", "Kurs EUR", Transformation("round", new { decimals = 2 }))
-            }
-        });
+                Field(RateConnectionId, "$.rate", "Kurs EUR", Transformation("round", new { decimals = 2 }))));
 
         var response = await Client.PostAsJsonAsync($"{TilesUrl}/{id}/preview", CustomerAndRateValues());
 
@@ -43,11 +36,7 @@ public class TilePreviewTests : TileApiTests
     public async Task Given_SavedTileWithInvalidRoundParameter_When_UserPreviewsIt_Then_FieldHasInvalidParameterError(bool outOfRange)
     {
         var round = outOfRange ? Transformation("round", new { decimals = 20 }) : Transformation("round");
-        var response = await Client.PostAsJsonAsync(TilesUrl, new
-        {
-            name = "Klient",
-            fields = new[] { Field(CustomerConnectionId, "$.balance", "Saldo", round) }
-        });
+        var response = await Client.PostAsJsonAsync(TilesUrl, Tile("Klient", Field(CustomerConnectionId, "$.balance", "Saldo", round)));
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
         var id = (await response.Content.ReadFromJsonAsync<CreatedTile>()).Id;
 
@@ -59,11 +48,7 @@ public class TilePreviewTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #29")]
     public async Task Given_FieldsWithoutTransformations_When_UserPreviewsTile_Then_ValuesAreReturnedUnchanged()
     {
-        var id = await CreateTile(new
-        {
-            name = "Klient",
-            fields = new[] { Field(CustomerConnectionId, "$.balance", "Saldo"), Field(CustomerConnectionId, "$.address", "Adres") }
-        });
+        var id = await CreateTile(Tile("Klient", Field(CustomerConnectionId, "$.balance", "Saldo"), Field(CustomerConnectionId, "$.address", "Adres")));
 
         var preview = await Preview(id, CustomerValues());
 
@@ -73,11 +58,7 @@ public class TilePreviewTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #30")]
     public async Task Given_FieldWithSellersWildcardAndUppercase_When_UserPreviewsTile_Then_FieldHasTransformedList()
     {
-        var id = await CreateTile(new
-        {
-            name = "Klient",
-            fields = new[] { Field(CustomerConnectionId, "$.sellers[*].name", "Sprzedawcy", Transformation("uppercase")) }
-        });
+        var id = await CreateTile(Tile("Klient", Field(CustomerConnectionId, "$.sellers[*].name", "Sprzedawcy", Transformation("uppercase"))));
 
         var preview = await Preview(id, CustomerValues());
 
@@ -87,11 +68,7 @@ public class TilePreviewTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #31")]
     public async Task Given_FieldWithWildcardWithoutMatches_When_UserPreviewsTile_Then_FieldHasEmptyList()
     {
-        var id = await CreateTile(new
-        {
-            name = "Klient",
-            fields = new[] { Field(CustomerConnectionId, "$.invoices[*].number", "Faktury") }
-        });
+        var id = await CreateTile(Tile("Klient", Field(CustomerConnectionId, "$.invoices[*].number", "Faktury")));
 
         var preview = await Preview(id, CustomerValues());
 
@@ -101,14 +78,7 @@ public class TilePreviewTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #32")]
     public async Task Given_FieldWithNestedWildcardsAndSuffix_When_UserPreviewsTile_Then_FieldHasOneFlatList()
     {
-        var id = await CreateTile(new
-        {
-            name = "Klient",
-            fields = new[]
-            {
-                Field(CustomerConnectionId, "$.orders[*].items[*].price", "Ceny", Transformation("suffix", new { text = " zł" }))
-            }
-        });
+        var id = await CreateTile(Tile("Klient", Field(CustomerConnectionId, "$.orders[*].items[*].price", "Ceny", Transformation("suffix", new { text = " zł" }))));
 
         var preview = await Preview(id, CustomerValues());
 
@@ -122,7 +92,7 @@ public class TilePreviewTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #33")]
     public async Task Given_FieldWithSupportedPathForm_When_UserPreviewsTile_Then_FieldHasPointedValue(string path, string value)
     {
-        var id = await CreateTile(new { name = "Klient", fields = new[] { Field(CustomerConnectionId, path, "Wartość") } });
+        var id = await CreateTile(Tile("Klient", Field(CustomerConnectionId, path, "Wartość")));
 
         var preview = await Preview(id, CustomerValues());
 
@@ -132,11 +102,7 @@ public class TilePreviewTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #34")]
     public async Task Given_FieldPointingNullNoteWithUppercase_When_UserPreviewsTile_Then_FieldHasNullValueWithoutError()
     {
-        var id = await CreateTile(new
-        {
-            name = "Klient",
-            fields = new[] { Field(CustomerConnectionId, "$.note", "Notatka", Transformation("uppercase")) }
-        });
+        var id = await CreateTile(Tile("Klient", Field(CustomerConnectionId, "$.note", "Notatka", Transformation("uppercase"))));
 
         var preview = await Preview(id, CustomerValues());
 
@@ -147,17 +113,10 @@ public class TilePreviewTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #35")]
     public async Task Given_ThreeCustomerFieldsAndOneRateField_When_UserPreviewsTile_Then_EachSourceIsCalledOnce()
     {
-        var id = await CreateTile(new
-        {
-            name = "Klient i kurs",
-            fields = new[]
-            {
-                Field(CustomerConnectionId, "$.name", "Nazwa"),
+        var id = await CreateTile(Tile("Klient i kurs", Field(CustomerConnectionId, "$.name", "Nazwa"),
                 Field(RateConnectionId, "$.rate", "Kurs EUR"),
                 Field(CustomerConnectionId, "$.balance", "Saldo"),
-                Field(CustomerConnectionId, "$.address.city", "Miasto")
-            }
-        });
+                Field(CustomerConnectionId, "$.address.city", "Miasto")));
 
         var preview = await Preview(id, CustomerAndRateValues());
 
@@ -170,11 +129,7 @@ public class TilePreviewTests : TileApiTests
     [Test(Description = "scenario_TEMP-015-023 - #36")]
     public async Task Given_FieldsFromCustomerAndRate_When_UserPreviewsWithParameterValuesOnly_Then_SourcesDeclaringThemGetThem()
     {
-        var id = await CreateTile(new
-        {
-            name = "Klient i kurs",
-            fields = new[] { Field(CustomerConnectionId, "$.name", "Nazwa"), Field(RateConnectionId, "$.rate", "Kurs EUR") }
-        });
+        var id = await CreateTile(Tile("Klient i kurs", Field(CustomerConnectionId, "$.name", "Nazwa"), Field(RateConnectionId, "$.rate", "Kurs EUR")));
 
         await Preview(id, new { parameters = new { customer_id = "42", currency = "EUR" } });
 
