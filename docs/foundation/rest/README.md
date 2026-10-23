@@ -22,6 +22,10 @@ tabeli odczytów.
    panel z dwoma dziećmi. Każde żądanie zapisuje identyfikator w zmiennej globalnej (`client.global.set`).
 4. `03-preview.http` — podgląd całego panelu, podgląd etykiety z wartościami dla wnuka (`descendants`) i podgląd
    samej tabeli z wartością testową.
+5. `04-filters.http` (opcjonalnie, wymaga tylko połączenia prognozy) — filtr w ścieżce JSONPath: tabela „Dni bez
+   słońca” z elementami `$.forecast[?(@.summary != 'Słonecznie')]`, etykieta z polami
+   `$.forecast[?@.summary == 'Deszczowo'].date` i `$.forecast[?@.humidity == 99].date`, ich podglądy oraz odrzucony
+   filtr z operatorem `>`.
 
 W odpowiedzi podglądu panel zwraca swoje pola i dwa osadzenia (`days`, `station`) ze stanem `data`; osadzenie
 `station` zawiera zagnieżdżony podgląd etykiety z osadzeniem `readings` pod adresem `station/readings`. Prognoza

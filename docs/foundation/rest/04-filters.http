@@ -1,0 +1,77 @@
+# Filtr w ścieżce JSONPath (TEMP-040). Wymaga zmiennej forecastConnectionId z 01-connections.http.
+# Filtr [?@.ścieżka == literał] (albo [?(...)], operator == lub !=) wybiera z tablicy pasujące elementy
+# i, tak jak [*], zwraca tablicę dopasowań.
+
+### Tabela „Dni bez słońca”: elementy filtrowane po opisie
+POST {{host}}/api/custom-data-view/tiles
+Content-Type: application/json
+
+{
+  "name": "Dni bez słońca",
+  "display": "table",
+  "sources": [
+    { "key": "forecast", "kind": "connection", "connectionId": "{{forecastConnectionId}}" }
+  ],
+  "items": { "source": "forecast", "path": "$.forecast[?(@.summary != 'Słonecznie')]", "key": "Dzień" },
+  "fields": [
+    { "source": "forecast", "path": "$.date", "label": "Dzień",
+      "transformations": [ { "key": "date_format", "parameter": "dd.MM" } ] },
+    { "source": "forecast", "path": "$.summary", "label": "Opis" }
+  ]
+}
+
+> {%
+    client.global.set("cloudyDaysTileId", response.body.id);
+%}
+
+### Etykieta „Deszcz i upał”: pola z filtrem po tekście i po liczbie
+POST {{host}}/api/custom-data-view/tiles
+Content-Type: application/json
+
+{
+  "name": "Deszcz i upał",
+  "display": "details",
+  "sources": [
+    { "key": "forecast", "kind": "connection", "connectionId": "{{forecastConnectionId}}" }
+  ],
+  "fields": [
+    { "source": "forecast", "path": "$.forecast[?@.summary == 'Deszczowo'].date", "label": "Deszczowe dni",
+      "transformations": [ { "key": "date_format", "parameter": "dd.MM" } ] },
+    { "source": "forecast", "path": "$.forecast[?@.humidity == 99].date", "label": "Dni z wilgotnością 99 %" }
+  ]
+}
+
+> {%
+    client.global.set("rainTileId", response.body.id);
+%}
+
+### Podgląd tabeli dla dwóch tygodni w Krakowie
+POST {{host}}/api/custom-data-view/tiles/{{cloudyDaysTileId}}/preview
+Content-Type: application/json
+
+{
+  "parameters": { "city": "Kraków", "days": 14 }
+}
+
+### Podgląd etykiety: pole z filtrem bez dopasowań ma wartość [] (nie błąd)
+POST {{host}}/api/custom-data-view/tiles/{{rainTileId}}/preview
+Content-Type: application/json
+
+{
+  "parameters": { "city": "Kraków", "days": 14 }
+}
+
+### Niepoprawny filtr (operator > jest poza MVP) — 400 z błędem fields[0].path
+POST {{host}}/api/custom-data-view/tiles
+Content-Type: application/json
+
+{
+  "name": "Ciepłe dni",
+  "display": "details",
+  "sources": [
+    { "key": "forecast", "kind": "connection", "connectionId": "{{forecastConnectionId}}" }
+  ],
+  "fields": [
+    { "source": "forecast", "path": "$.forecast[?@.temperature > 20].date", "label": "Ciepłe dni" }
+  ]
+}
