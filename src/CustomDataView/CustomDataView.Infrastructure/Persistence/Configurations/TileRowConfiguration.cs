@@ -37,6 +37,11 @@ public sealed class TileRowConfiguration : IEntityTypeConfiguration<TileRow>
             .HasForeignKey(source => source.TileId)
             .HasConstraintName("fk_tile_sources_tile_id")
             .OnDelete(DeleteBehavior.Cascade);
+        builder.HasMany(tile => tile.Bindings)
+            .WithOne()
+            .HasForeignKey(binding => binding.TileId)
+            .HasConstraintName("fk_tile_bindings_tile_id")
+            .OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(tile => tile.Fields)
             .WithOne()
             .HasForeignKey(field => field.TileId)

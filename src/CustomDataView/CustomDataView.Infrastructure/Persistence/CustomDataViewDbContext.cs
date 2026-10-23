@@ -24,6 +24,8 @@ public sealed class CustomDataViewDbContext(DbContextOptions<CustomDataViewDbCon
 
     public DbSet<TileFieldRow> TileFields => Set<TileFieldRow>();
 
+    public DbSet<TileBindingRow> TileBindings => Set<TileBindingRow>();
+
     public DbSet<ViewRow> Views => Set<ViewRow>();
 
     public DbSet<ViewTileRow> ViewTiles => Set<ViewTileRow>();

@@ -1,5 +1,6 @@
 using CustomDataView.Application.Abstractions;
 using CustomDataView.Application.Exceptions;
+using CustomDataView.Application.Tiles.Contracts;
 using CustomDataView.Application.Tiles.Dtos;
 using CustomDataView.Domain.Repositories;
 
@@ -7,7 +8,7 @@ namespace CustomDataView.Application.Tiles.Queries;
 
 public sealed record GetTile(Guid Id) : IQuery<TileDto>;
 
-public sealed class GetTileHandler(ITileRepository repository)
+public sealed class GetTileHandler(ITileRepository repository, TileContracts contracts)
 {
     public TileDto Handle(GetTile query)
     {
@@ -27,6 +28,15 @@ public sealed class GetTileHandler(ITileRepository repository)
                     field.Transformations.Select(step => new TransformationStepDto(step.Key, step.Parameters)).ToList(),
                     field.Hidden,
                     field.Role))
-                .ToList());
+                .ToList(),
+            definition.Bindings
+                .Select(binding => new TileBindingDto(
+                    binding.From,
+                    binding.To,
+                    binding.Map
+                        .Select(mapping => new TileBindingMappingDto(mapping.Field, mapping.Parameter, mapping.Input, mapping.Scope))
+                        .ToList()))
+                .ToList(),
+            contracts.Of(definition));
     }
 }

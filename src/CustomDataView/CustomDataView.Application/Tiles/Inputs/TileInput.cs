@@ -9,6 +9,8 @@ public sealed record TileInput(
     TileItemsInput Items,
     IReadOnlyList<TileFieldInput> Fields)
 {
+    public IReadOnlyList<TileBindingInput> Bindings { get; init; } = [];
+
     public TileDefinition ToDefinition()
         => new TileDefinition(
             Name,
@@ -25,5 +27,15 @@ public sealed record TileInput(
                         .ToList(),
                     field.Hidden,
                     string.IsNullOrWhiteSpace(field.Role) ? null : field.Role))
-                .ToList());
+                .ToList())
+        {
+            Bindings = Bindings
+                .Select(binding => new TileBinding(
+                    binding.From,
+                    binding.To,
+                    binding.Map
+                        .Select(mapping => new TileBindingMapping(mapping.Field, mapping.Parameter, mapping.Input, mapping.Scope))
+                        .ToList()))
+                .ToList()
+        };
 }

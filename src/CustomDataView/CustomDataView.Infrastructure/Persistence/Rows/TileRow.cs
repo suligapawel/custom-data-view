@@ -21,4 +21,6 @@ public sealed class TileRow
     public List<TileSourceRow> Sources { get; set; } = [];
 
     public List<TileFieldRow> Fields { get; set; } = [];
+
+    public List<TileBindingRow> Bindings { get; set; } = [];
 }

@@ -1,8 +1,10 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using CustomDataView.Application.Connections.Calls;
 using CustomDataView.Application.Connections.Validation;
 using CustomDataView.Application.Exceptions;
+using CustomDataView.Application.Tiles.Validation;
 using CustomDataView.Domain.Entities;
 using CustomDataView.Domain.Policies;
 using CustomDataView.Domain.Repositories;
@@ -39,30 +41,119 @@ public sealed class TilePreviewer(
         IReadOnlyDictionary<string, JsonElement> parameters,
         CancellationToken cancellationToken)
     {
-        var responses = await Call(definition, parameters, cancellationToken);
+        var instance = new TileInstance(definition, parameters);
+        var order = BindingGraph.Order(
+            definition.Sources.Select(source => source.Key).ToList(),
+            definition.Bindings.Select(binding => (binding.From, binding.To)));
+        foreach (var wave in order.Waves)
+        {
+            await Task.WhenAll(wave.Select(key => Execute(instance, key, cancellationToken)));
+        }
+
         if (definition.Items is not null)
         {
-            return PreviewItems(id, definition, responses[definition.Items.Source]);
+            return PreviewItems(id, instance);
         }
 
         return new TilePreview(
             id,
             definition.Name,
             definition.Display,
-            definition.Fields.Select(field => PreviewField(field, responses[field.Source])).ToList());
+            definition.Fields.Select(field => instance.Field(field, PreviewField)).ToList());
     }
 
-    private TilePreview PreviewItems(Guid? id, TileDefinition definition, SourceResult source)
+    private async Task Execute(TileInstance instance, string key, CancellationToken cancellationToken)
     {
-        var preview = new TilePreview(id, definition.Name, definition.Display, null, definition.Items.Key);
-        if (Error(source) is { } error)
+        var source = instance.Definition.Sources.Single(candidate => candidate.Key == key);
+        var connection = connections.Get(source.ConnectionId.Value);
+        var mappings = instance.Definition.Bindings
+            .Where(binding => binding.To == key)
+            .SelectMany(binding => binding.Map.Select(mapping => (binding.From, Mapping: mapping)))
+            .ToList();
+        var bound = new Dictionary<string, JsonNode>(StringComparer.Ordinal);
+        foreach (var (from, mapping) in mappings)
         {
-            return preview with { ItemsError = error };
+            var field = instance.Definition.Fields.First(candidate => TileLabels.AreEqual(candidate.Label, mapping.Field));
+            var value = instance.Field(field, PreviewField);
+            if (value.Error is not null)
+            {
+                instance.Complete(key, SourceResult.Failed(new TileFieldError(
+                    TileFieldErrorCodes.DependencyFailed,
+                    Cause: new TileFieldErrorCause(from, field.Label, value.Error.Code))));
+                return;
+            }
+
+            bound[mapping.Parameter] = value.Value;
+        }
+
+        var declared = TileConnectionParameters.Names(connection.Definition);
+        var undeclared = bound.Keys.Where(name => !declared.Contains(name)).ToList();
+        if (undeclared.Count > 0)
+        {
+            instance.Complete(key, SourceResult.Failed(new TileFieldError(
+                TileFieldErrorCodes.InvalidBinding,
+                Parameters: undeclared
+                    .Select(name => new TileParameterError(
+                        name,
+                        $"Wiązanie wskazuje parametr '{name}', którego połączenie nie deklaruje.",
+                        true))
+                    .ToList())));
+            return;
+        }
+
+        var values = new Dictionary<string, JsonElement>(instance.Parameters, StringComparer.Ordinal);
+        foreach (var (name, value) in bound)
+        {
+            if (value is null)
+            {
+                values.Remove(name);
+            }
+            else
+            {
+                values[name] = JsonSerializer.SerializeToElement(value);
+            }
+        }
+
+        instance.Complete(key, await Call(connection, TileParameterValues.For(connection.Definition, values), bound.Keys, cancellationToken));
+    }
+
+    private async Task<SourceResult> Call(
+        Connection connection,
+        ParameterValuesInput parameters,
+        IEnumerable<string> bound,
+        CancellationToken cancellationToken)
+    {
+        var errors = ParameterValuesValidator.Validate(connection.Definition, parameters);
+        if (errors.Count > 0)
+        {
+            var boundNames = bound.ToHashSet(StringComparer.Ordinal);
+            return SourceResult.Failed(new TileFieldError(
+                TileFieldErrorCodes.InvalidParameters,
+                Parameters: errors
+                    .Select(error =>
+                    {
+                        var name = error.Key.Split('.', 3)[2];
+                        return new TileParameterError(name, error.Value[0], boundNames.Contains(name));
+                    })
+                    .ToList()));
+        }
+
+        return SourceResult.Of(await factory.Create(connection.Definition).Get(parameters.ToValues(), cancellationToken));
+    }
+
+    private TilePreview PreviewItems(Guid? id, TileInstance instance)
+    {
+        var definition = instance.Definition;
+        var preview = new TilePreview(id, definition.Name, definition.Display, null, definition.Items.Key);
+        var source = instance.Result(definition.Items.Source);
+        if (source.Error is not null)
+        {
+            return preview with { ItemsError = source.Error };
         }
 
         JsonPathParser.TryParse(definition.Items.Path, out var path);
         var fields = definition.Fields.Where(field => field.Source == definition.Items.Source).ToList();
-        var items = path.Evaluate(source.Response.Body)
+        var items = path.Evaluate(source.Body)
             .Select(element =>
             {
                 var values = fields.Select(field => PreviewField(field, element)).ToList();
@@ -73,57 +164,10 @@ public sealed class TilePreviewer(
         return preview with { Items = items };
     }
 
-    private async Task<Dictionary<string, SourceResult>> Call(
-        TileDefinition definition,
-        IReadOnlyDictionary<string, JsonElement> parameters,
-        CancellationToken cancellationToken)
-    {
-        var results = await Task.WhenAll(definition.Sources.Select(async source =>
-        {
-            var connection = connections.Get(source.ConnectionId.Value);
-            return (
-                source: source.Key,
-                result: await Call(connection, TileParameterValues.For(connection.Definition, parameters), cancellationToken));
-        }));
-        return results.ToDictionary(call => call.source, call => call.result);
-    }
-
-    private async Task<SourceResult> Call(Connection connection, ParameterValuesInput parameters, CancellationToken cancellationToken)
-    {
-        var errors = ParameterValuesValidator.Validate(connection.Definition, parameters);
-        if (errors.Count > 0)
-        {
-            return new SourceResult(null, new TileFieldError(
-                TileFieldErrorCodes.InvalidParameters,
-                Parameters: errors
-                    .Select(error => new TileParameterError(error.Key.Split('.', 3)[2], error.Value[0], false))
-                    .ToList()));
-        }
-
-        return new SourceResult(await factory.Create(connection.Definition).Get(parameters.ToValues(), cancellationToken), null);
-    }
-
     private TileFieldPreview PreviewField(TileField field, SourceResult source)
-        => Error(source) is { } error
-            ? new TileFieldPreview(field.Label, null, error, field.Hidden)
-            : PreviewField(field, source.Response.Body);
-
-    private static TileFieldError Error(SourceResult source)
-    {
-        if (source.Error is not null)
-        {
-            return source.Error;
-        }
-
-        var response = source.Response;
-        if (response.IsSuccess)
-        {
-            return null;
-        }
-
-        var reason = response.ErrorCode == TileFieldErrorCodes.SourceUnavailable ? null : response.ErrorCode;
-        return new TileFieldError(TileFieldErrorCodes.SourceUnavailable, Reason: reason, Status: response.Status);
-    }
+        => source.Error is not null
+            ? new TileFieldPreview(field.Label, null, source.Error, field.Hidden)
+            : PreviewField(field, source.Body);
 
     private TileFieldPreview PreviewField(TileField field, JsonNode body)
     {
@@ -146,5 +190,36 @@ public sealed class TilePreviewer(
         return new TileFieldPreview(field.Label, path.HasWildcard ? new JsonArray(values) : values.Single(), null, field.Hidden);
     }
 
-    private sealed record SourceResult(ExternalApiResult Response, TileFieldError Error);
+    private sealed class TileInstance(TileDefinition definition, IReadOnlyDictionary<string, JsonElement> parameters)
+    {
+        private readonly ConcurrentDictionary<string, SourceResult> results = new(StringComparer.Ordinal);
+        private readonly ConcurrentDictionary<TileField, TileFieldPreview> fields = new();
+
+        public TileDefinition Definition { get; } = definition;
+
+        public IReadOnlyDictionary<string, JsonElement> Parameters { get; } = parameters;
+
+        public void Complete(string source, SourceResult result) => results[source] = result;
+
+        public SourceResult Result(string source) => results[source];
+
+        public TileFieldPreview Field(TileField field, Func<TileField, SourceResult, TileFieldPreview> preview)
+            => fields.GetOrAdd(field, candidate => preview(candidate, results[candidate.Source]));
+    }
+
+    private sealed record SourceResult(JsonNode Body, TileFieldError Error)
+    {
+        public static SourceResult Failed(TileFieldError error) => new(null, error);
+
+        public static SourceResult Of(ExternalApiResult response)
+        {
+            if (response.IsSuccess)
+            {
+                return new SourceResult(response.Body, null);
+            }
+
+            var reason = response.ErrorCode == TileFieldErrorCodes.SourceUnavailable ? null : response.ErrorCode;
+            return Failed(new TileFieldError(TileFieldErrorCodes.SourceUnavailable, Reason: reason, Status: response.Status));
+        }
+    }
 }

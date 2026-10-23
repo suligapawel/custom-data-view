@@ -5,4 +5,7 @@ public sealed record TileDefinition(
     string Display,
     IReadOnlyList<TileSource> Sources,
     TileItems Items,
-    IReadOnlyList<TileField> Fields);
+    IReadOnlyList<TileField> Fields)
+{
+    public IReadOnlyList<TileBinding> Bindings { get; init; } = [];
+}

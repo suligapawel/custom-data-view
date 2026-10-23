@@ -1,3 +1,4 @@
+using CustomDataView.Application.Tiles.Contracts;
 using CustomDataView.Application.Tiles.Preview;
 using CustomDataView.Application.Tiles.Validation;
 using CustomDataView.Application.Views.Validation;
@@ -14,6 +15,7 @@ public static class DependencyInjection
         services.AddCustomDataViewTransformations();
         services.AddSingleton<TileReferencesValidator>();
         services.AddSingleton<TilePreviewer>();
+        services.AddSingleton<TileContracts>();
         services.AddSingleton<ViewReferencesValidator>();
         return services;
     }

@@ -150,6 +150,63 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileBindingRow", b =>
+                {
+                    b.Property<Guid>("TileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tile_id");
+
+                    b.Property<string>("TargetNode")
+                        .HasMaxLength(110)
+                        .HasColumnType("character varying(110)")
+                        .HasColumnName("target_node");
+
+                    b.Property<string>("TargetKind")
+                        .HasMaxLength(9)
+                        .HasColumnType("character varying(9)")
+                        .HasColumnName("target_kind");
+
+                    b.Property<string>("TargetName")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("target_name");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.Property<string>("SourceField")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("source_field");
+
+                    b.Property<string>("SourceNode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("source_node");
+
+                    b.Property<string>("SourceScope")
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("source_scope");
+
+                    b.HasKey("TileId", "TargetNode", "TargetKind", "TargetName")
+                        .HasName("pk_tile_bindings");
+
+                    b.ToTable("tile_bindings", "custom_data_view", t =>
+                        {
+                            t.HasCheckConstraint("ck_tile_bindings_nodes", "source_node <> target_node");
+
+                            t.HasCheckConstraint("ck_tile_bindings_position", "position >= 0");
+
+                            t.HasCheckConstraint("ck_tile_bindings_source_scope", "source_scope IN ('selected', 'all', 'item')");
+
+                            t.HasCheckConstraint("ck_tile_bindings_target_kind", "target_kind IN ('parameter', 'input')");
+                        });
+                });
+
             modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileFieldRow", b =>
                 {
                     b.Property<Guid>("TileId")
@@ -472,6 +529,16 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_connection_query_parameters_connection_id");
                 });
 
+            modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileBindingRow", b =>
+                {
+                    b.HasOne("CustomDataView.Infrastructure.Persistence.Rows.TileRow", null)
+                        .WithMany("Bindings")
+                        .HasForeignKey("TileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_tile_bindings_tile_id");
+                });
+
             modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileFieldRow", b =>
                 {
                     b.HasOne("CustomDataView.Infrastructure.Persistence.Rows.TileRow", null)
@@ -563,6 +630,8 @@ namespace CustomDataView.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("CustomDataView.Infrastructure.Persistence.Rows.TileRow", b =>
                 {
+                    b.Navigation("Bindings");
+
                     b.Navigation("Fields");
 
                     b.Navigation("Sources");

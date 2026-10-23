@@ -7,4 +7,5 @@ public sealed record TileFieldError(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string Transformation = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string Reason = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? Status = null,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<TileParameterError> Parameters = null);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<TileParameterError> Parameters = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TileFieldErrorCause Cause = null);

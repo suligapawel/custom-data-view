@@ -200,6 +200,29 @@ public class PostgresTileRepositoryTests
     }
 
     [Test]
+    public void Given_TileWithBindingsHavingManyMappings_When_ItIsLoaded_Then_BindingsAreGroupedInDefinitionOrder()
+    {
+        var tile = new Tile(Guid.NewGuid(), Definition("Klient i kurs", [
+            new TileField("customer", "$.id", "ID", [], Hidden: true),
+            new TileField("customer", "$.currency", "Waluta", [], Hidden: true),
+            new TileField("rate", "$.rate", "Kurs", [])
+        ]) with
+        {
+            Bindings =
+            [
+                new TileBinding("customer", "rate", [
+                    new TileBindingMapping("Waluta", "currency", null, null),
+                    new TileBindingMapping("ID", "customer", null, null)
+                ])
+            ]
+        });
+
+        repository.Add(tile);
+
+        Assert.That(Json(repository.Get(tile.Id)), Is.EqualTo(Json(tile)));
+    }
+
+    [Test]
     public void Given_TileWithLabelsDifferingInCaseAndSpaces_When_ItIsSaved_Then_DatabaseRejectsIt()
     {
         var tile = new Tile(Guid.NewGuid(), Definition("Klient",

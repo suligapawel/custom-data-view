@@ -29,7 +29,8 @@ public sealed class PostgresTileRepository(
             ItemsPath = tile.Definition.Items?.Path,
             ItemsKeyLabel = tile.Definition.Items?.Key,
             Sources = ToSourceRows(tile),
-            Fields = ToFieldRows(tile)
+            Fields = ToFieldRows(tile),
+            Bindings = ToBindingRows(tile)
         });
         context.SaveChanges();
     }
@@ -65,9 +66,11 @@ public sealed class PostgresTileRepository(
                 .SetProperty(stored => stored.ItemsPath, tile.Definition.Items == null ? null : tile.Definition.Items.Path)
                 .SetProperty(stored => stored.ItemsKeyLabel, tile.Definition.Items == null ? null : tile.Definition.Items.Key)
                 .SetProperty(stored => stored.UpdatedAt, stored => DateTime.UtcNow));
+        context.TileBindings.Where(binding => binding.TileId == tile.Id).ExecuteDelete();
         context.TileSources.Where(source => source.TileId == tile.Id).ExecuteDelete();
         context.TileSources.AddRange(ToSourceRows(tile));
         context.TileFields.AddRange(ToFieldRows(tile));
+        context.TileBindings.AddRange(ToBindingRows(tile));
         context.SaveChanges();
         transaction.Commit();
     }
@@ -109,6 +112,7 @@ public sealed class PostgresTileRepository(
         => context.Tiles
             .AsNoTracking()
             .Include(tile => tile.Sources.OrderBy(source => source.Position))
+            .Include(tile => tile.Bindings.OrderBy(binding => binding.Position))
             .Include(tile => tile.Fields.OrderBy(field => field.Position))
             .ThenInclude(field => field.Transformations.OrderBy(transformation => transformation.Position))
             .ThenInclude(transformation => transformation.Parameters.OrderBy(parameter => parameter.Name))
@@ -124,6 +128,35 @@ public sealed class PostgresTileRepository(
                 Kind = source.Kind,
                 ConnectionId = source.ConnectionId
             })
+            .ToList();
+
+    private static List<TileBindingRow> ToBindingRows(Tile tile)
+        => tile.Definition.Bindings
+            .SelectMany(binding => binding.Map.Select(mapping => (binding, mapping)))
+            .Select((pair, position) => new TileBindingRow
+            {
+                TileId = tile.Id,
+                TargetNode = pair.binding.To,
+                TargetKind = pair.mapping.Parameter is null ? BindingTargetKinds.Input : BindingTargetKinds.Parameter,
+                TargetName = pair.mapping.Parameter ?? pair.mapping.Input,
+                SourceNode = pair.binding.From,
+                SourceField = pair.mapping.Field,
+                SourceScope = pair.mapping.Scope,
+                Position = position
+            })
+            .ToList();
+
+    private static List<TileBinding> ToBindings(IEnumerable<TileBindingRow> rows)
+        => rows
+            .GroupBy(row => (row.SourceNode, row.TargetNode))
+            .Select(group => new TileBinding(
+                group.Key.SourceNode,
+                group.Key.TargetNode,
+                group
+                    .Select(row => row.TargetKind == BindingTargetKinds.Parameter
+                        ? new TileBindingMapping(row.SourceField, row.TargetName, null, row.SourceScope)
+                        : new TileBindingMapping(row.SourceField, null, row.TargetName, row.SourceScope))
+                    .ToList()))
             .ToList();
 
     private static List<TileFieldRow> ToFieldRows(Tile tile)
@@ -173,7 +206,10 @@ public sealed class PostgresTileRepository(
                     field.Transformations.Select(ToStep).ToList(),
                     field.Hidden,
                     field.Role))
-                .ToList()));
+                .ToList())
+        {
+            Bindings = ToBindings(tile.Bindings)
+        });
 
     private TransformationStep ToStep(TileFieldTransformationRow step)
     {

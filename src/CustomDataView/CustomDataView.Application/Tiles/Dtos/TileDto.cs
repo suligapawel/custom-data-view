@@ -1,3 +1,5 @@
+using CustomDataView.Application.Tiles.Contracts;
+
 namespace CustomDataView.Application.Tiles.Dtos;
 
 public sealed record TileDto(
@@ -6,4 +8,6 @@ public sealed record TileDto(
     string Display,
     IReadOnlyList<TileSourceDto> Sources,
     TileItemsDto Items,
-    IReadOnlyList<TileFieldDto> Fields);
+    IReadOnlyList<TileFieldDto> Fields,
+    IReadOnlyList<TileBindingDto> Bindings,
+    TileContract Contract);

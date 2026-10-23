@@ -48,6 +48,8 @@ public static class TileDefinitionValidator
             ValidateItems(input, sources, errors);
         }
 
+        TileBindingsValidator.Validate(input, errors);
+
         return errors;
     }
 

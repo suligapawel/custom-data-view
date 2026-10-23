@@ -23,5 +23,10 @@ public static class TileParameterValues
             .ToDictionary(declaration => declaration.Name, declaration => convert(parameters[declaration.Name]));
 
     private static JsonElement AsText(JsonElement value)
-        => value.ValueKind == JsonValueKind.Number ? JsonSerializer.SerializeToElement(value.GetRawText()) : value;
+        => value.ValueKind switch
+        {
+            JsonValueKind.Number or JsonValueKind.True or JsonValueKind.False => JsonSerializer.SerializeToElement(value.GetRawText()),
+            JsonValueKind.Array => JsonSerializer.SerializeToElement(value.EnumerateArray().Select(AsText).ToList()),
+            _ => value
+        };
 }

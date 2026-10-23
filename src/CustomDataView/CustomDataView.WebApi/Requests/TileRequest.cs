@@ -11,7 +11,8 @@ public sealed record TileRequest(
     string Display,
     IReadOnlyList<TileSourceRequest> Sources,
     TileItemsRequest Items,
-    IReadOnlyList<TileFieldRequest> Fields)
+    IReadOnlyList<TileFieldRequest> Fields,
+    IReadOnlyList<TileBindingRequest> Bindings)
 {
     public IDictionary<string, string[]> Validate() => TileDefinitionValidator.Validate(ToInput());
 
@@ -31,7 +32,17 @@ public sealed record TileRequest(
                     (field.Transformations ?? []).Select(ToInput).ToList(),
                     field.Hidden ?? false,
                     field.Role))
-                .ToList());
+                .ToList())
+        {
+            Bindings = (Bindings ?? [])
+                .Select(binding => new TileBindingInput(
+                    binding.From,
+                    binding.To,
+                    (binding.Map ?? [])
+                        .Select(mapping => new TileBindingMappingInput(mapping.Field, mapping.Parameter, mapping.Input, mapping.Scope))
+                        .ToList()))
+                .ToList()
+        };
 
     private static TransformationStepInput ToInput(TransformationStepRequest step)
         => new TransformationStepInput(
@@ -43,6 +54,10 @@ public sealed record TileRequest(
 public sealed record TileSourceRequest(string Key, string Kind, Guid? ConnectionId);
 
 public sealed record TileItemsRequest(string Source, string Path, string Key);
+
+public sealed record TileBindingRequest(string From, string To, IReadOnlyList<TileBindingMappingRequest> Map);
+
+public sealed record TileBindingMappingRequest(string Field, string Parameter, string Input, string Scope);
 
 public sealed record TileFieldRequest(
     string Source,
