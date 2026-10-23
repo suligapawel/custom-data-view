@@ -5,6 +5,11 @@
 Moduł CustomDataView pozwala zdefiniować, skąd i w jaki sposób mają być pobierane dane z zewnętrznych REST API oraz jak
 mają zostać zaprezentowane użytkownikowi. Przechowuje definicje połączeń, kafelków i widoków użytkownika,
 udostępnia katalog gotowych transformacji pól, a także umożliwia sprawdzenie, czy połączenie i definicja kafelka generują dane zgodne z oczekiwaniami.
+Kafelek jest samodzielnym, reużywalnym komponentem: buduje się sam na podstawie własnej definicji i wartości swoich
+wejść, ma typ wyświetlania (`table`, `list`, `details`, `summary`, `form`), z którego front wie, jak go pokazać, i może
+zawierać inne kafelki (kafelki złożone). Dane przechodzą między połączeniami, między kafelkami w kafelku i między
+kafelkami w widoku wyłącznie przez jawne wiązania kafelek → kafelek, a wartości wpisywane przez użytkownika pochodzą
+z kafelków-formularzy.
 Docelowe pobieranie danych i ich renderowanie należą do innych modułów i frontendu, które nie są częścią tego MVP.
 
 ## 2. Problem użytkownika
@@ -46,26 +51,92 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
 - Deklaracja parametru zawiera nazwę, informację, czy jest wymagany, oraz opcjonalną wartość domyślną. Wartości
   parametrów są przekazywane w czasie wykonania i podmieniane w szablonie.
 - Brak obsługi uwierzytelniania do zewnętrznych API.
-- Usunięcie połączenia używanego przez pole dowolnego kafelka jest blokowane.
+- Usunięcie połączenia używanego przez źródło dowolnego kafelka jest blokowane.
 
 3.3. Definicje kafelków
 
 - Dodawanie, odczyt listy, odczyt szczegółów, edycja i usuwanie definicji kafelka.
-- Kafelek zawiera nazwę oraz uporządkowaną listę pól (co najmniej jedno).
-- Pole kafelka wiąże dane ze źródłem: odwołanie do połączenia, ścieżka JSONPath, etykieta oraz uporządkowana lista
-  transformacji z katalogu wraz z wartościami ich parametrów (może być pusta). Pola jednego kafelka mogą korzystać z
-  różnych połączeń.
+- Kafelek jest samodzielnym, reużywalnym komponentem. Określa, co pokazuje i jak (typ wyświetlania, pola z rolami,
+  elementy, źródła danych, osadzone dzieci, wiązania wewnętrzne), ale nie wie, gdzie jest osadzony ani skąd dostaje
+  wejścia. Kafelki nic o sobie nie wiedzą; do innych kafelków odwołują się wyłącznie przez osadzenia dzieci.
+- Typ wyświetlania `display` jest wymagany:
+
+  | `display` | Dane | Jak wyświetla front | Wymaga w definicji |
+  |---|---|---|---|
+  | `table` | wiele elementów | wiersze i kolumny (kolumna = pole) | `items` z `key` |
+  | `list` | wiele elementów | element jako tytuł i opis | `items` z `key`, pole z rolą `title` |
+  | `details` | jeden rekord | pary etykieta–wartość | bez `items` |
+  | `summary` | jeden rekord | kilka wyróżnionych wartości | bez `items`, co najmniej jedno pole z rolą `primary` |
+  | `form` | wartości wpisane przez użytkownika | formularz | pola formularza; bez źródeł, `items`, dzieci i wiązań |
+
+- Opcjonalna rola pola (`role`): `title`, `subtitle`, `badge` dla `list`; `primary`, `secondary` dla `summary`. Rola
+  niezgodna z `display` to błąd walidacji; `table` i `details` nie przyjmują ról.
+- Źródła danych: lista z unikalnym w kafelku kluczem `key`. Źródło `connection` pobiera dane wskazanym połączeniem;
+  źródło `input` to wejście danych, przez które kafelek dostaje gotowy JSON (obiekt, tablicę albo wartość prostą),
+  a klucz źródła jest nazwą wejścia w kontrakcie kafelka. Kafelek może mieszać oba rodzaje źródeł.
+- Pole kafelka (poza formularzem) zawiera źródło (`source`), ścieżkę JSONPath, etykietę, opcjonalną rolę, flagę
+  `hidden` (domyślnie `false`) oraz uporządkowaną listę transformacji z katalogu wraz z wartościami ich parametrów
+  (może być pusta).
 - Ścieżka JSONPath obsługuje podzbiór składni: `$`, `.name`, `['name']`, `[n]` (także ujemny), `[*]` i `.*`. Ścieżka
   bez wildcardu wskazuje jedną wartość; ścieżka z wildcardem zwraca płaską tablicę dopasowań, a każdy jej element
   przechodzi przez łańcuch transformacji pola.
-- Usunięcie kafelka usuwa go ze wszystkich widoków; połączenia pozostają.
+- Etykieta pola jest unikalna w kafelku (porównanie bez rozróżniania wielkości liter, po przycięciu białych znaków).
+- Pole ukryte (`hidden: true`) nie jest pokazywane w podglądzie widoku na żadnym poziomie drzewa, ale jest zwracane
+  w podglądzie kafelka (z `"hidden": true`), przechodzi przez transformacje i może być źródłem wiązania.
+- Elementy (`items`) kafelka `table` i `list`: `source` (klucz źródła z tablicą elementów), `path` (JSONPath
+  z wildcardem, np. `$.cities[*]`) i `key` (etykieta pola identyfikującego element). Ścieżki pól są względne wobec
+  elementu, a pola pochodzą ze źródła `items.source`. Pole innego źródła jest dozwolone tylko z `hidden: true` i tylko
+  jako źródło wiązania źródło → źródło.
+- Kafelek `form` zbiera wartości od użytkownika i wystawia je jako swoje pola; nic nie pobiera i nie ma źródeł,
+  `items`, dzieci ani wiązań. Pole formularza ma unikalną `label`, `type` (`text`, `number`, `boolean`, `date` jako tekst
+  ISO 8601 `yyyy-MM-dd`), `required` (domyślnie `false`) i opcjonalne `default` zgodne z typem. Wartością pola jest
+  wartość podana w żądaniu podglądu dla tego osadzenia formularza, a bez niej `default`. Pole wymagane bez wartości
+  i bez `default` wstrzymuje cele swoich wiązań (`awaiting_input`); pole opcjonalne bez wartości oznacza brak wartości.
+  Wartość niezgodna z typem daje błąd pola `invalid_value`, a cele wiązań z tego pola dostają `dependency_failed`.
+- Osadzenia dzieci (`children`): `key` (unikalny w rodzicu, bez znaku `/`), `tileId` (samodzielny kafelek), `position`
+  (unikalna w rodzicu), opcjonalny `cssClass` (do 200 znaków, sposób ułożenia w rodzicu), `scope` (`tile` — jedna
+  instancja, `item` — instancja na element rodzica, tylko u rodzica z `items`) i `load` (`eager` — z rodzicem, `lazy` —
+  na żądanie frontu). Formularz może być osadzony tylko ze `scope: tile`. Ten sam kafelek może być osadzony kilka razy.
+  Pola kafelka wyświetlają się przed dziećmi, dzieci w kolejności `position`; dzieci `scope: item` trafiają do obszaru
+  elementu. Brak cykli zawierania i najwyżej 3 poziomy zagnieżdżenia (kafelek, dziecko, wnuk).
+- Wiązania w kafelku (`bindings`, opcjonalne): `from` → `to` z listą mapowań `map` (`field` — etykieta pola węzła
+  źródłowego, dokładnie jedno z `parameter` i `input`, opcjonalny `scope`). Węzły kafelka to jego źródła, osadzenia
+  dzieci i `parent` (pola samego kafelka); tworzą jedną przestrzeń nazw. Dozwolone pary: źródło → źródło
+  (`connection` → `connection`), dziecko `scope: tile` → źródło, `parent` → dziecko lub potomek, dziecko → dziecko lub
+  potomek. Cel może być wskazany ścieżką osadzeń (`shipping/carrier`, najwyżej 2 segmenty) i musi być wejściem
+  kafelka docelowego niezwiązanym przez kafelek pośredni. Zakres `scope`: brak (wartość pola), `selected` (domyślny dla
+  węzła z `items`; pole elementu wybranego przez użytkownika), `all` (lista wartości pola ze wszystkich elementów),
+  `item` (pole bieżącego elementu rodzica dla dziecka `scope: item`).
+- Walidacja wiązań kafelka: węzły istnieją, `from` i `to` są różne, para występuje najwyżej raz, `map` ma co najmniej
+  jedno mapowanie, `field` istnieje w węźle źródłowym (dla źródła pochodzi z tego źródła), `parameter` jest
+  zadeklarowany w połączeniu docelowym albo jest wejściem-parametrem kontraktu kafelka docelowego, `input` jest wejściem
+  danych celu, każde wejście celu ma najwyżej jedno źródło, `scope` jest zgodny ze źródłem, a wiązania nie tworzą cyklu
+  we wspólnym grafie źródeł i dzieci.
+- Kontrakt kafelka (sekcja `contract` w szczegółach) jest wyliczany z definicji: `parameters` (parametry połączeń
+  źródeł niezwiązane wiązaniem wewnętrznym w danym połączeniu), `inputs` (wejścia danych) i `outputs` (etykiety pól,
+  także ukrytych i pól formularza, oraz informacja, czy kafelek ma elementy). Kontrakt nie obejmuje niezwiązanych wejść
+  potomków.
+- Usunięcie kafelka jest blokowane (409 `tile_in_use` z listą widoków i kafelków), gdy kafelek jest źródłem wiązania
+  w jakimkolwiek widoku albo jest osadzony jako dziecko w innym kafelku. W pozostałych przypadkach usunięcie zdejmuje go
+  ze wszystkich widoków razem z wiązaniami, w których był celem; połączenia pozostają.
+- Edycja kafelka, która usuwa pole albo zmienia etykietę pola użytego jako źródło wiązania w widoku albo w rodzicu,
+  jest blokowana (409 `field_in_use` z listą widoków i kafelków). Zmiana ścieżki, źródła lub transformacji pola bez
+  zmiany etykiety nie jest blokowana. Usunięcie albo zmiana nazwy parametru, wejścia lub klucza osadzenia będącego
+  celem wiązania nie jest blokowana; w podglądzie wiązanie daje `invalid_binding`.
 
 3.4. Definicje widoków
 
 - Dodawanie, odczyt listy, odczyt szczegółów, edycja i usuwanie definicji widoku.
-- Widok zawiera nazwę oraz uporządkowaną listę kafelków: dla każdego kafelka jego pozycję w widoku i opcjonalną klasę
-  CSS (do 200 znaków), która opisuje sposób wyświetlenia kafelka przez frontend.
-- Walidacja: dany kafelek występuje w widoku najwyżej raz, pozycje są unikalne, kafelek musi istnieć.
+- Widok jest korzeniem drzewa osadzeń: zawiera nazwę, uporządkowaną listę osadzeń kafelków (`key` unikalny w widoku,
+  bez znaku `/`, `tileId`, `position`, opcjonalna klasa CSS do 200 znaków) i wiązania.
+- Walidacja: klucze i pozycje są unikalne, kafelek musi istnieć; ten sam kafelek może wystąpić w widoku kilka razy.
+- Wiązania widoku: `from` jest osadzeniem widoku, `to` osadzeniem albo ścieżką osadzeń do kafelka zagnieżdżonego
+  (najwyżej 3 segmenty); `field` istnieje w kafelku `from`, `parameter` i `input` są wejściami kafelka docelowego
+  niezwiązanymi przez kafelek pośredni; każde wejście celu ma najwyżej jedno źródło; `scope` to `selected` albo `all`
+  tylko dla kafelka `from` z `items`; wiązania nie tworzą cyklu. Zdjęcie osadzenia przy pozostawionym wiązaniu do niego
+  to błąd walidacji.
+- Wartości przechodzą między kafelkami wyłącznie przez jawne wiązanie kafelek → kafelek; wartości od użytkownika
+  pochodzą z kafelków `form`; kafelki nie znają się nawzajem. Bez wiązania nic nie jest przekazywane.
 
 3.5. Test i podgląd
 
@@ -73,17 +144,37 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
   wartościami parametrów przekazanymi w żądaniu testu. Sukces
   zwraca status HTTP odpowiedzi, czas odpowiedzi oraz pełną treść JSON (bez obcinania); niepowodzenie zwraca odpowiedź
   błędu z kodem (source_unavailable, unexpected_status, invalid_json, response_too_large).
-- Podgląd kafelka zwraca JSON kafelka wygenerowany zgodnie z definicją (zapisaną lub niezapisaną): dla każdego pola
-  etykietę i przetransformowaną wartość albo kod błędu. Wartości parametrów połączeń są przekazywane w żądaniu podglądu
-  (osobno dla każdego połączenia); kafelek ich nie przechowuje.
+- Podgląd kafelka (zapisanego i niezapisanego) zwraca JSON kafelka wygenerowany zgodnie z definicją: `display`, pola
+  (etykieta i przetransformowana wartość albo kod błędu) albo elementy (`itemKey`, `items` z kluczem, polami i dziećmi
+  `scope: item`, albo `itemsError`) oraz dzieci `scope: tile`. Żądanie podglądu kafelka przyjmuje opcjonalne `forms`
+  (wartości formularzy według adresu osadzenia formularza), `parameters` (wartości testowe albo doręczone dla
+  wejść-parametrów kontraktu), `inputs` (wejścia danych) i `descendants` (wartości doręczane potomkom według ścieżki).
+  Wartości testowe nie są źródłem wiązań; wiązanie w definicji wygrywa. Kafelek nie przechowuje wartości.
+- Podgląd widoku przyjmuje wyłącznie `forms` i zwraca osadzenia widoku w kolejności pozycji (`key`, `address`,
+  `tileId`, `cssClass`, stan); pola ukryte są pomijane na każdym poziomie drzewa.
+- Kolejność wykonania wynika z wiązań: węzły (źródła, dzieci, osadzenia widoku) są dzielone na fale, węzły jednej fali
+  wykonują się równolegle. Mapa wartości węzła to wartości doręczone uzupełnione wartościami z wiązań (wiązanie wygrywa,
+  najbliższe wiązanie wygrywa z wiązaniem przodka). Przekazywana jest wartość pola po transformacjach; `null` oznacza
+  brak wartości; liczby i wartości logiczne dla parametrów ścieżki i zapytania są zamieniane na tekst.
+- Wiązania zależne od działania użytkownika (`selected`) i dzieci `lazy` wykonuje front; pozostałe wykonuje serwer.
+  Każde osadzenie w odpowiedzi ma `address` (ścieżka instancji od korzenia, z kluczami elementów, np.
+  `orders[17]/shipping`) i stan: `data` (z zagnieżdżonym podglądem), `awaiting_input` (czeka na wybór albo na wymagane
+  pole formularza; `inputs` i `pending`), `awaiting_load` (`lazy` albo przekroczony limit; `inputs`) albo `error`
+  (`dependency_failed` z przyczyną albo `invalid_binding`). `inputs` ma kształt żądania podglądu kafelka, więc front
+  doładowuje osadzenie bez znajomości definicji rodzica.
+- Parametry są walidowane osobno dla każdego połączenia, tuż przed jego wywołaniem. Brak wymaganego parametru, zły typ
+  albo brak wejścia danych daje błąd pól tego źródła `invalid_parameters` ze szczegółami (parametr, komunikat, czy
+  wartość pochodzi z wiązania); pozostałe pola zwracają dane. Podgląd kafelka i widoku zwraca zawsze status 200 (zasada
+  częściowych wyników); walidacja kształtu samego żądania pozostaje.
 - Błąd źródła, brak wartości pod ścieżką lub błąd transformacji nie przerywa podglądu: zwracany jest częściowy wynik z
-  błędem per pole (source_unavailable, path_not_found, transformation_failed) i status HTTP 200.
-- Każde połączenie użyte w podglądzie kafelka jest wywoływane najwyżej raz.
-- Podgląd widoku zwraca układ widoku (kafelki w kolejności pozycji z klasą CSS) oraz podgląd każdego kafelka.
-  Wartości parametrów połączeń są przekazywane w żądaniu podglądu jako jedna płaska mapa (POST w treści, GET w adresie)
-  i trafiają do wszystkich kafelków. Błąd parametrów (np. brak wymaganego) dotyczy tylko kafelka, którego połączenia
-  go wymagają; pozostałe kafelki zwracają dane, a status HTTP to 200. Każdy kafelek wykonuje własny podgląd, więc
-  połączenie wspólne dla kilku kafelków może zostać wywołane kilka razy.
+  błędem per pole (source_unavailable, path_not_found, transformation_failed, invalid_parameters, dependency_failed,
+  invalid_binding).
+- Każde połączenie użyte w instancji kafelka jest wywoływane najwyżej raz, a wywołanie tego samego połączenia z tymi
+  samymi wartościami parametrów jest wykonywane raz na całe żądanie podglądu (bez przechowywania między żądaniami).
+- Limity podglądu (stałe w kodzie): 50 elementów na osadzenie `eager` ze `scope: item`, 200 wywołań zewnętrznych na
+  żądanie (po deduplikacji), 10 s na całe żądanie i 8 równoległych wywołań instancji dzieci. Osadzenia niewykonane
+  z powodu limitu dostają `awaiting_load`; źródła samego korzenia wykonują się zawsze. Czas podglądu rośnie z długością
+  łańcucha wiązań i głębokością drzewa.
 - Wyniki testów i podglądów nie są nigdzie zapisywane.
 - Żądania do zewnętrznych API mają globalny timeout i limit rozmiaru odpowiedzi.
 
@@ -109,18 +200,36 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
 - Edytor wizualny typu drag & drop.
 - Blokada adresów wewnętrznych (localhost, sieci prywatne) w testach połączeń; w MVP świadomie akceptowane ryzyko SSRF,
   ograniczone jedynie timeoutem i limitem rozmiaru odpowiedzi.
+- Agregaty, także w kafelku `summary`.
+- Wielokrotny wybór elementów, wybór zapisany w URL widoku i symulacja wyboru elementu na serwerze.
+- Dziecko wstawione między pola kafelka (`region`) i kafelki prywatne (widoczne tylko w rodzicu).
+- Połączenie widoku i kafelka w jedno pojęcie: widok pozostaje osobną encją na wspólnym modelu osadzeń i wiązań.
+- Składanie jednego parametru z kilku pól (szablon, np. `"{lat},{lon}"`) i różne wartości dla parametrów o tej samej
+  nazwie w różnych połączeniach jednego kafelka.
+- Wiązania widoku w podglądzie pojedynczego kafelka i limit długości łańcucha wiązań.
+- Wiązanie jako samodzielny, współdzielony zasób.
+- Renderowanie kafelków, obsługa wyboru elementów i formularzy we froncie; moduł dostarcza tylko kontrakt i odpowiedzi.
+- Formularz: listy wyboru, wiele wartości w jednym polu, walidacja wzorcem, wartości startowe z wiązań i formularz
+  zależny od innego kafelka.
+- Wartości przekazywane do kafelków poza wiązaniami (płaska mapa parametrów widoku, przekazywanie po nazwie).
 
 ## 5. Historyjki użytkowników
 
 Historyjki są uporządkowane w kolejności realizacji, od najmniejszych funkcjonalności: katalog transformacji pól,
-połączenia, kafelki, widoki. Każda grupa korzysta wyłącznie z grup wcześniejszych; blokada usuwania połączeń używanych
-przez kafelki należy do grupy kafelków.
+połączenia, kafelki, widoki, podgląd widoku (TEMP-001 … TEMP-029). Kolejna grupa, kafelki złożone i wiązania
+(TEMP-030 … TEMP-039), rozbudowuje kafelki i widoki etapami: unikalna etykieta i ukryte pole, walidacja parametrów per
+połączenie, typ wyświetlania i elementy, źródła z wiązaniami źródło → źródło, wejścia danych, formularze, dzieci
+`scope: tile`, dzieci `scope: item` z limitami, wiązania widoku i wybór elementu. Każda grupa korzysta wyłącznie z grup
+wcześniejszych; blokada usuwania połączeń używanych przez kafelki należy do grupy kafelków. Historyjki i scenariusze
+leżą w `docs/scenarios/scenario_TEMP-*`.
 
 ## 6. Metryki sukcesu
 
 - Użytkownik konfiguruje połączenie, kafelek z gotowymi transformacjami i widok bez zmian w kodzie aplikacji.
-- Podgląd kafelka korzystającego z szybkich źródeł zwraca wynik w czasie poniżej 2 s.
+- Podgląd kafelka korzystającego z szybkich źródeł zwraca wynik w czasie poniżej 2 s (dotyczy kafelków bez łańcuchów
+  wiązań i bez dzieci z własnymi połączeniami).
 - Awaria jednego źródła nie blokuje podglądu pól z pozostałych źródeł (100% podglądów z częściowym wynikiem zamiast
   błędu serwera).
 - Konfiguracja odtwarza się w całości po restarcie aplikacji.
 - 100% prób usunięcia używanych połączeń jest blokowanych z listą zależnych kafelków.
+- 100% prób usunięcia kafelka używanego jako źródło wiązania albo dziecko jest blokowanych z listą zależności.
