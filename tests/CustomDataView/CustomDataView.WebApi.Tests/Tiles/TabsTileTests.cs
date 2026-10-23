@@ -197,6 +197,19 @@ public class TabsTileTests : TileApiTests
         Assert.That(problem["errors"]!.AsObject().Select(error => error.Key), Does.Contain("children[2].tileId"), problem.ToJsonString());
     }
 
+    [Test(Description = $"{Dir} - #8")]
+    public async Task Given_AncestorBindingUsesFormFieldThroughPath_When_UserRemovesField_Then_EditIsBlocked()
+    {
+        var searchId = await CreateTile(Search(await CreateTile(Filters(lazyCountry: false))));
+
+        var response = await Client.PutAsJsonAsync($"{TilesUrl}/{nameFormId}", Form("Nazwa miasta", "Ulica", false));
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+        var problem = await response.Content.ReadFromJsonAsync<JsonObject>();
+        Assert.That(problem["fields"]!.AsArray().Select(field => field!.GetValue<string>()), Is.EqualTo(new[] { "Miasto" }), problem.ToJsonString());
+        Assert.That(problem["tiles"]!.AsArray().Select(tile => tile!["id"]!.GetValue<Guid>()), Is.EqualTo(new[] { searchId }), problem.ToJsonString());
+    }
+
     private async Task AssertRejected(JsonObject tile, string errorKey)
     {
         var response = await Client.PostAsJsonAsync(TilesUrl, tile);

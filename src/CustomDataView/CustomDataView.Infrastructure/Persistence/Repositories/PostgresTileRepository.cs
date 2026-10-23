@@ -121,7 +121,7 @@ public sealed class PostgresTileRepository(IDbContextFactory<CustomDataViewDbCon
     public IReadOnlyList<TileFieldUse> GetFieldUses(Guid tileId)
     {
         using var context = contextFactory.CreateDbContext();
-        return context.TileBindings
+        var uses = context.TileBindings
             .AsNoTracking()
             .Join(
                 context.TileChildren.Where(child => child.ChildTileId == tileId),
@@ -133,6 +133,40 @@ public sealed class PostgresTileRepository(IDbContextFactory<CustomDataViewDbCon
             .AsEnumerable()
             .Select(use => new TileFieldUse(new TileReference(use.Id, use.Name), use.SourceField))
             .ToList();
+        var pathBindings = context.TileBindings
+            .AsNoTracking()
+            .Where(binding => binding.SourceNode.Contains("/"))
+            .Join(context.Tiles, binding => binding.TileId, tile => tile.Id, (binding, tile) => new { binding.SourceNode, binding.SourceField, tile.Id, tile.Name })
+            .ToList();
+        if (pathBindings.Count == 0)
+        {
+            return uses;
+        }
+
+        var children = context.TileChildren
+            .AsNoTracking()
+            .Select(child => new { child.ParentTileId, child.Key, child.ChildTileId })
+            .AsEnumerable()
+            .ToDictionary(child => (child.ParentTileId, child.Key), child => child.ChildTileId);
+        uses.AddRange(pathBindings
+            .Where(binding => Resolve(binding.Id, binding.SourceNode) == tileId)
+            .Select(binding => new TileFieldUse(new TileReference(binding.Id, binding.Name), binding.SourceField)));
+        return uses.Distinct().ToList();
+
+        Guid? Resolve(Guid parent, string path)
+        {
+            Guid? resolved = parent;
+            foreach (var key in path.Split('/'))
+            {
+                resolved = children.TryGetValue((resolved.Value, key), out var child) ? child : null;
+                if (resolved is null)
+                {
+                    return null;
+                }
+            }
+
+            return resolved;
+        }
     }
 
     private static IQueryable<TileRow> WithFields(CustomDataViewDbContext context)

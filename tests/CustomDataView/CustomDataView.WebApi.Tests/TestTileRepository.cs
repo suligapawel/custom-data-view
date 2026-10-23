@@ -48,11 +48,29 @@ public sealed class TestTileRepository : ITileRepository
     public IReadOnlyList<TileFieldUse> GetFieldUses(Guid tileId)
         => tiles
             .SelectMany(tile => tile.Definition.Bindings
-                .Where(binding => tile.Definition.Children.Any(child => child.Key == binding.From && child.TileId == tileId))
+                .Where(binding => Resolve(tile, binding.From) == tileId)
                 .SelectMany(binding => binding.Map)
                 .Select(mapping => new TileFieldUse(new TileReference(tile.Id, tile.Definition.Name), mapping.Field)))
             .Distinct()
             .ToList();
+
+    private Guid? Resolve(Tile tile, string path)
+    {
+        Guid? resolved = null;
+        foreach (var key in path.Split('/'))
+        {
+            var child = tile?.Definition.Children.FirstOrDefault(candidate => candidate.Key == key);
+            if (child is null)
+            {
+                return null;
+            }
+
+            resolved = child.TileId;
+            tile = Get(child.TileId);
+        }
+
+        return resolved;
+    }
 
     public void Clear()
     {
