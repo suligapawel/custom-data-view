@@ -71,6 +71,19 @@ public class MapperTransformationTests : TileApiTests
         Assert.That(JsonNode.DeepEquals(Field(preview, "Poziom liczbowy")["value"], JsonValue.Create(8)), Is.True, preview.ToJsonString());
     }
 
+    [Test(Description = $"{Dir} - #4")]
+    public async Task Given_DictionaryKeyWrittenAsText_When_UserPreviewsTileWithNumberValue_Then_NumberFindsTextKey()
+    {
+        levelsResponse = """[{"from": "6", "to": "wysoki"}]""";
+        var levelsId = await CreateTile(await Levels());
+        var orderId = await CreateTile(Order(OrderField("$.level", "Poziom", Mapper(levelsId, "Na"))));
+        await LoadDictionariesOnStartup();
+
+        var preview = await Preview(orderId);
+
+        Assert.That(Value(preview, "Poziom"), Is.EqualTo("wysoki"), preview.ToJsonString());
+    }
+
     private Task LoadDictionariesOnStartup()
         => Factory.Services.GetRequiredService<DictionaryLoader>().LoadAll(CancellationToken.None);
 
