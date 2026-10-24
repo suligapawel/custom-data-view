@@ -20,7 +20,7 @@ public sealed class GetConnectionHandler(IConnectionRepository repository)
         return new ConnectionDto(
             connection.Id,
             definition.Name,
-            ConnectionMethods.Of(definition),
+            definition.Method,
             definition.Url,
             ToDtos(definition.PathParameters),
             ToDtos(definition.QueryParameters),

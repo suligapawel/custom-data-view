@@ -4,8 +4,6 @@ using System.Text.Json.Nodes;
 using CustomDataView.Application.Connections.Calls;
 using CustomDataView.Application.Connections.Validation;
 using CustomDataView.Application.Exceptions;
-using CustomDataView.Application.Tiles.Contracts;
-using CustomDataView.Application.Tiles.Validation;
 using CustomDataView.Domain.Dictionaries;
 using CustomDataView.Domain.Entities;
 using CustomDataView.Domain.Exceptions;
@@ -22,7 +20,6 @@ public sealed class TilePreviewer(
     IConnectionRepository connections,
     IConnectionFactory factory,
     ITransformationService transformations,
-    TileContracts contracts,
     TimeProvider time,
     CombinationService combinations)
 {
@@ -58,7 +55,7 @@ public sealed class TilePreviewer(
 
         var instance = new TileInstance(definition, delivered, address, this);
         var nodes = definition.Sources.Select(source => source.Key).Concat(definition.Children.Select(child => child.Key)).ToList();
-        var edges = TileBindingsValidator.Edges(definition, combinations).ToList();
+        var edges = definition.BindingEdges(combinations).ToList();
         if (definition.Items is not null)
         {
             edges.AddRange(definition.Children
@@ -115,7 +112,7 @@ public sealed class TilePreviewer(
         }
 
         var connection = connections.Get(source.ConnectionId.Value);
-        var declared = TileConnectionParameters.Names(connection.Definition);
+        var declared = connection.Definition.DeclaredNames;
         var undeclared = gate.Parameters.Keys.Where(name => !declared.Contains(name)).ToList();
         if (undeclared.Count > 0)
         {
@@ -153,11 +150,11 @@ public sealed class TilePreviewer(
                     gate.Parameters.ContainsKey(pagination.PageNumberParameter)));
             }
 
-            if (!TilePages.TryRead(values, pagination.PageSizeParameter, pagination.PageSize, TilePages.MaxPageSize, out var size))
+            if (!TilePages.TryRead(values, pagination.PageSizeParameter, pagination.PageSize, TilePagination.MaxPageSize, out var size))
             {
                 errors.Add(new TileParameterError(
                     pagination.PageSizeParameter,
-                    $"Rozmiar strony musi być liczbą całkowitą od 1 do {TilePages.MaxPageSize}.",
+                    $"Rozmiar strony musi być liczbą całkowitą od 1 do {TilePagination.MaxPageSize}.",
                     gate.Parameters.ContainsKey(pagination.PageSizeParameter)));
             }
 
@@ -235,9 +232,9 @@ public sealed class TilePreviewer(
 
     private TileFieldError InvalidBinding(TileDefinition definition, TileValues values)
     {
-        var contract = contracts.Of(definition);
+        var contract = definition.Contract(ConnectionOf);
         var undeclared = values.Bound
-            .Where(name => contract.Parameters.All(parameter => parameter.Name != name) && !contract.Inputs.Contains(name))
+            .Where(name => !contract.DeclaresParameter(name) && !contract.DeclaresInput(name))
             .Select(name => new TileParameterError(name, $"Wiązanie wskazuje parametr '{name}', którego kafelek nie deklaruje.", true));
         var missing = values.Descendants
             .Where(pair => pair.Value.Bound.Count > 0)
@@ -291,7 +288,7 @@ public sealed class TilePreviewer(
         var definition = instance.Definition;
         if (from == TileNodeKeys.Parent || definition.Sources.Any(source => source.Key == from))
         {
-            var field = definition.Fields.First(candidate => TileLabels.AreEqual(candidate.Label, mapping.Field));
+            var field = definition.Field(mapping.Field);
             if (!definition.IsItemField(field))
             {
                 return Value(instance.Field(field), field.Source, instance.Address);
@@ -472,7 +469,7 @@ public sealed class TilePreviewer(
                 definition,
                 TileActionScopes.Tile,
                 targets,
-                label => instance.Field(definition.Fields.First(field => TileLabels.AreEqual(field.Label, label))))
+                label => instance.Field(definition.Field(label)))
         };
         if (definition.Display == TileDisplays.Tabs)
         {
@@ -524,7 +521,9 @@ public sealed class TilePreviewer(
     }
 
     private TileContract TargetContract(Guid tileId)
-        => tiles.Get(tileId) is { } target ? contracts.Of(target.Definition) : new TileContract([], [], new TileContractOutputs([], false));
+        => tiles.Get(tileId) is { } target ? target.Definition.Contract(ConnectionOf) : TileContract.Empty;
+
+    private ConnectionDefinition ConnectionOf(Guid id) => connections.Get(id)?.Definition;
 
     private static TileEmbeddingPreview Embedding(
         TileChild child,
@@ -569,7 +568,7 @@ public sealed class TilePreviewer(
 
     private TileFieldPreview CombineField(TileDefinition definition, TileField field, Func<TileField, TileFieldPreview> preview)
     {
-        var inputs = combinations.Inputs(definition, field).Select(input => (Field: input, Preview: preview(input))).ToList();
+        var inputs = definition.InputsOf(field, combinations).Select(input => (Field: input, Preview: preview(input))).ToList();
         if (inputs.FirstOrDefault(candidate => candidate.Preview.Error is not null) is { Field: not null } failed)
         {
             return new TileFieldPreview(

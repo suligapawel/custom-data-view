@@ -15,4 +15,12 @@ public static class TileFieldRoles
             TileDisplays.Summary => [Primary, Secondary],
             _ => []
         };
+
+    public static string RequiredFor(string display)
+        => display switch
+        {
+            TileDisplays.List => Title,
+            TileDisplays.Summary => Primary,
+            _ => null
+        };
 }

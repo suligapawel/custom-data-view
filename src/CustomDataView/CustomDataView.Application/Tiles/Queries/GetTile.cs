@@ -1,6 +1,5 @@
 using CustomDataView.Application.Abstractions;
 using CustomDataView.Application.Exceptions;
-using CustomDataView.Application.Tiles.Contracts;
 using CustomDataView.Application.Tiles.Dtos;
 using CustomDataView.Domain.Repositories;
 
@@ -8,7 +7,7 @@ namespace CustomDataView.Application.Tiles.Queries;
 
 public sealed record GetTile(Guid Id) : IQuery<TileDto>;
 
-public sealed class GetTileHandler(ITileRepository repository, TileContracts contracts)
+public sealed class GetTileHandler(ITileRepository repository, IConnectionRepository connections)
 {
     public TileDto Handle(GetTile query)
     {
@@ -46,7 +45,7 @@ public sealed class GetTileHandler(ITileRepository repository, TileContracts con
                         .Select(mapping => new TileBindingMappingDto(mapping.Field, mapping.Parameter, mapping.Input, mapping.Scope))
                         .ToList()))
                 .ToList(),
-            contracts.Of(definition))
+            TileContractDto.From(definition.Contract(id => connections.Get(id)?.Definition)))
         {
             Pagination = definition.Pagination is { } pagination
                 ? new TilePaginationDto(pagination.PageNumberParameter, pagination.PageSizeParameter, pagination.PageSize, pagination.TotalPath)

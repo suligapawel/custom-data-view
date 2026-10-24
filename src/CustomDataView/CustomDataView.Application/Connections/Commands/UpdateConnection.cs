@@ -12,6 +12,7 @@ public sealed class UpdateConnectionHandler(IConnectionRepository repository)
     public void Handle(UpdateConnection command)
     {
         var connection = repository.Get(command.Id) ?? throw new NotFoundException(command.Id);
-        repository.Update(connection with { Definition = command.Definition });
+        connection.Redefine(command.Definition);
+        repository.Update(connection);
     }
 }

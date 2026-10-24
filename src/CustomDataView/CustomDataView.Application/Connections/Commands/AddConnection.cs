@@ -11,7 +11,7 @@ public sealed class AddConnectionHandler(IConnectionRepository repository)
 {
     public Guid Handle(AddConnection command)
     {
-        var connection = new Connection(Guid.NewGuid(), command.Definition);
+        var connection = Connection.Create(command.Definition);
         repository.Add(connection);
         return connection.Id;
     }

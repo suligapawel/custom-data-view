@@ -1,6 +1,4 @@
 using System.Text.Json.Nodes;
-using CustomDataView.Application.Tiles.Contracts;
-using CustomDataView.Domain.Policies;
 using CustomDataView.Domain.ValueObjects;
 
 namespace CustomDataView.Application.Tiles.Preview;
@@ -15,8 +13,8 @@ public static class TileActionValues
     {
         var undeclared = action.Map
             .Where(mapping => mapping.Parameter is not null
-                ? target.Parameters.All(parameter => parameter.Name != mapping.Parameter)
-                : !target.Inputs.Contains(mapping.Input))
+                ? !target.DeclaresParameter(mapping.Parameter)
+                : !target.DeclaresInput(mapping.Input))
             .Select(mapping => mapping.Parameter ?? mapping.Input)
             .Select(name => new TileParameterError(name, $"Akcja wskazuje wejście '{name}', którego kafelek docelowy nie deklaruje.", true))
             .ToList();
@@ -32,7 +30,7 @@ public static class TileActionValues
             var value = field(mapping.Field);
             if (value.Error is not null)
             {
-                var source = definition.Fields.First(candidate => TileLabels.AreEqual(candidate.Label, mapping.Field)).Source;
+                var source = definition.Field(mapping.Field).Source;
                 return Failed(action, new TileFieldError(
                     TileFieldErrorCodes.DependencyFailed,
                     Cause: new TileFieldErrorCause(source, value.Label, value.Error.Code)));

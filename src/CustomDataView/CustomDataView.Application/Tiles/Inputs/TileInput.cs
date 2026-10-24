@@ -27,13 +27,13 @@ public sealed record TileInput(
     public bool IsTabs => Display == TileDisplays.Tabs;
 
     public TileDefinition ToDefinition()
-        => IsForm ? ToFormDefinition() : ToDataDefinition();
-
-    private TileDefinition ToFormDefinition()
-        => new TileDefinition(Name, Display, [], null, [])
-        {
-            FormFields = Fields.Select(field => new TileFormField(field.Label, field.Type, field.Required, field.Default)).ToList()
-        };
+        => IsForm
+            ? ToDataDefinition() with
+            {
+                Fields = [],
+                FormFields = Fields.Select(field => new TileFormField(field.Label, field.Type, field.Required, field.Default)).ToList()
+            }
+            : ToDataDefinition();
 
     private TileDefinition ToDataDefinition()
         => new TileDefinition(

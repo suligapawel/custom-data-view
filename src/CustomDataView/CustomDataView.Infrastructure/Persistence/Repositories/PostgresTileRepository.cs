@@ -350,7 +350,7 @@ public sealed class PostgresTileRepository(IDbContextFactory<CustomDataViewDbCon
             .ToList();
 
     private static Tile ToTile(TileRow tile)
-        => new Tile(tile.Id, new TileDefinition(
+        => Tile.Restore(tile.Id, new TileDefinition(
             tile.Name,
             tile.Display,
             tile.Sources.Select(source => new TileSource(source.Key, source.Kind, source.ConnectionId)).ToList(),

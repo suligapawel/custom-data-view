@@ -8,8 +8,6 @@ namespace CustomDataView.Application.Tiles.Preview;
 
 public static class TilePages
 {
-    public const int MaxPageSize = 100;
-
     public static bool TryRead(
         IReadOnlyDictionary<string, JsonElement> values,
         string name,

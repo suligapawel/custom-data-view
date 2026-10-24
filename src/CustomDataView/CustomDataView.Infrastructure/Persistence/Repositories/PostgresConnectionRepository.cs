@@ -87,7 +87,7 @@ public sealed class PostgresConnectionRepository(IDbContextFactory<CustomDataVie
         {
             Id = connection.Id,
             Name = definition.Name,
-            Method = ConnectionMethods.Of(definition),
+            Method = definition.Method,
             Url = definition.Url,
             Body = (definition as PostConnectionDefinition)?.Body
         };
@@ -144,7 +144,7 @@ public sealed class PostgresConnectionRepository(IDbContextFactory<CustomDataVie
                 row.BodyParameters
                     .Select(parameter => new ParameterDeclaration(parameter.Name, parameter.Required, parameter.DefaultValue))
                     .ToList());
-        return new Connection(row.Id, definition);
+        return Connection.Restore(row.Id, definition);
     }
 
     private static string ToText(string defaultValue)

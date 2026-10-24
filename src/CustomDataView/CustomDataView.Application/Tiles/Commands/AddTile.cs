@@ -13,7 +13,7 @@ public sealed class AddTileHandler(ITileRepository repository, TileReferencesVal
     public Guid Handle(AddTile command)
     {
         referencesValidator.EnsureValid(command.Definition);
-        var tile = new Tile(Guid.NewGuid(), command.Definition);
+        var tile = Tile.Create(command.Definition);
         repository.Add(tile);
         return tile.Id;
     }

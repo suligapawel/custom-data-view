@@ -22,6 +22,12 @@ public sealed class CustomDataViewExceptionHandler : IExceptionHandler
             return true;
         }
 
+        if (exception is InvalidDefinitionException invalid)
+        {
+            await Results.ValidationProblem(invalid.Violations).ExecuteAsync(httpContext);
+            return true;
+        }
+
         if (exception is ConnectionInUseException inUse)
         {
             await Results.Conflict(new ConnectionInUseResponse(ConnectionInUseResponse.ConnectionInUseCode, inUse.Tiles))

@@ -17,7 +17,7 @@ public sealed record TileRequest(
     TilePaginationRequest Pagination,
     IReadOnlyList<TileActionRequest> Actions)
 {
-    public IDictionary<string, string[]> Validate() => TileDefinitionValidator.Validate(ToInput());
+    public IDictionary<string, string[]> Validate() => TileInputValidator.Validate(ToInput());
 
     public TileDefinition ToDefinition() => ToInput().ToDefinition();
 

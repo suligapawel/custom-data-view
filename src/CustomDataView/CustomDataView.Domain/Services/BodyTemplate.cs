@@ -24,6 +24,12 @@ public static partial class BodyTemplate
         return Resolve(body, values)?.ToJsonString() ?? "null";
     }
 
+    public static IReadOnlyList<string> PlaceholderNames(string body)
+    {
+        using var document = JsonDocument.Parse(body);
+        return PlaceholderNames(document.RootElement);
+    }
+
     public static IReadOnlyList<string> PlaceholderNames(JsonElement body)
     {
         var names = new List<string>();

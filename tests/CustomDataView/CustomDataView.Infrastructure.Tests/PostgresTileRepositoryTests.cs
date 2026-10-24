@@ -41,8 +41,8 @@ public class PostgresTileRepositoryTests
     [Test]
     public void Given_TwoSavedTiles_When_AllAreLoaded_Then_TheyAreInAddingOrder()
     {
-        var first = new Tile(Guid.NewGuid(), Definition("Klient", []));
-        var second = new Tile(Guid.NewGuid(), Definition("Kurs", []));
+        var first = Tile.Restore(Guid.NewGuid(), Definition("Klient", []));
+        var second = Tile.Restore(Guid.NewGuid(), Definition("Kurs", []));
 
         repository.Add(first);
         repository.Add(second);
@@ -57,7 +57,7 @@ public class PostgresTileRepositoryTests
     [Test]
     public void Given_SavedTileWithFieldsFromManyConnections_When_ItIsLoaded_Then_FieldsAreInDefinitionOrder()
     {
-        var tile = new Tile(Guid.NewGuid(), Definition("Klient i kurs",
+        var tile = Tile.Restore(Guid.NewGuid(), Definition("Klient i kurs",
         [
             new TileField("rate", "$.rate", "Kurs EUR", []),
             new TileField("customer", "$.name", "Nazwa", []),
@@ -73,7 +73,7 @@ public class PostgresTileRepositoryTests
     [Test]
     public void Given_FieldWithTransformationChain_When_TileIsLoaded_Then_KeysOrderAndParametersAreUnchanged()
     {
-        var tile = new Tile(Guid.NewGuid(), Definition("Klient",
+        var tile = Tile.Restore(Guid.NewGuid(), Definition("Klient",
         [
             new TileField("customer", "$.balance", "Saldo",
             [
@@ -92,23 +92,20 @@ public class PostgresTileRepositoryTests
     [Test]
     public void Given_TwoSavedTiles_When_FirstIsUpdated_Then_ItsDefinitionIsReplacedAndOrderIsKept()
     {
-        var first = new Tile(Guid.NewGuid(), Definition("Klient",
+        var first = Tile.Restore(Guid.NewGuid(), Definition("Klient",
         [
             new TileField("customer", "$.name", "Nazwa",
                 [new TransformationStep("round", "2")]),
             new TileField("customer", "$.balance", "Saldo", [])
         ]));
-        var second = new Tile(Guid.NewGuid(), Definition("Kurs", [new TileField("rate", "$.rate", "Kurs EUR", [])]));
+        var second = Tile.Restore(Guid.NewGuid(), Definition("Kurs", [new TileField("rate", "$.rate", "Kurs EUR", [])]));
         repository.Add(first);
         repository.Add(second);
-        var updated = first with
-        {
-            Definition = Definition("Klient VIP",
+        var updated = Tile.Restore(first.Id, Definition("Klient VIP",
             [
                 new TileField("rate", "$.address.city", "Miasto",
                     [new TransformationStep("suffix", " zł")])
-            ])
-        };
+            ]));
 
         repository.Update(updated);
 
@@ -118,7 +115,7 @@ public class PostgresTileRepositoryTests
     [Test]
     public void Given_SavedTileWithTransformations_When_ItIsDeleted_Then_ItIsGoneAndConnectionsRemain()
     {
-        var tile = new Tile(Guid.NewGuid(), Definition("Klient",
+        var tile = Tile.Restore(Guid.NewGuid(), Definition("Klient",
         [
             new TileField("customer", "$.balance", "Saldo",
                 [new TransformationStep("round", "2")])
@@ -135,13 +132,13 @@ public class PostgresTileRepositoryTests
     [Test]
     public void Given_TilesUsingConnections_When_TilesUsingConnectionAreLoaded_Then_DistinctTilesAreReturnedInAddingOrder()
     {
-        var customer = new Tile(Guid.NewGuid(), Definition("Klient",
+        var customer = Tile.Restore(Guid.NewGuid(), Definition("Klient",
         [
             new TileField("customer", "$.name", "Nazwa", []),
             new TileField("customer", "$.balance", "Saldo", [])
         ]));
-        var rate = new Tile(Guid.NewGuid(), Definition("Kurs", [new TileField("rate", "$.rate", "Kurs EUR", [])]));
-        var both = new Tile(Guid.NewGuid(), Definition("Klient i kurs",
+        var rate = Tile.Restore(Guid.NewGuid(), Definition("Kurs", [new TileField("rate", "$.rate", "Kurs EUR", [])]));
+        var both = Tile.Restore(Guid.NewGuid(), Definition("Klient i kurs",
         [
             new TileField("rate", "$.rate", "Kurs EUR", []),
             new TileField("customer", "$.name", "Nazwa", [])
@@ -158,7 +155,7 @@ public class PostgresTileRepositoryTests
     [Test]
     public void Given_TileUsingConnection_When_ConnectionIsDeletedDirectly_Then_DatabaseRejectsIt()
     {
-        repository.Add(new Tile(Guid.NewGuid(), Definition("Klient", [new TileField("customer", "$.name", "Nazwa", [])])));
+        repository.Add(Tile.Restore(Guid.NewGuid(), Definition("Klient", [new TileField("customer", "$.name", "Nazwa", [])])));
 
         Assert.Throws<PostgresException>(() => new PostgresConnectionRepository(TestDatabase.ContextFactory(dataSource)).Delete(customerConnectionId));
     }
@@ -166,19 +163,16 @@ public class PostgresTileRepositoryTests
     [Test]
     public void Given_ListTileWithItemsAndRoles_When_ItIsSavedAndUpdatedToSummary_Then_DisplayItemsAndRolesAreKept()
     {
-        var list = new Tile(Guid.NewGuid(), Definition("Miasta", [
+        var list = Tile.Restore(Guid.NewGuid(), Definition("Miasta", [
             new TileField("customer", "$.id", "ID", []),
             new TileField("customer", "$.name", "Miasto", [], Role: TileFieldRoles.Title)
         ]) with { Display = TileDisplays.List, Items = new TileItems("customer", "$.cities[*]", "ID") });
         repository.Add(list);
         var loaded = repository.Get(list.Id);
-        var summary = list with
+        var summary = Tile.Restore(list.Id, Definition("Saldo", [new TileField("rate", "$.rate", "Kurs", [], Role: TileFieldRoles.Primary)]) with
         {
-            Definition = Definition("Saldo", [new TileField("rate", "$.rate", "Kurs", [], Role: TileFieldRoles.Primary)]) with
-            {
-                Display = TileDisplays.Summary
-            }
-        };
+            Display = TileDisplays.Summary
+        });
 
         repository.Update(summary);
 
@@ -189,7 +183,7 @@ public class PostgresTileRepositoryTests
     [Test]
     public void Given_TileWithBindingsHavingManyMappings_When_ItIsLoaded_Then_BindingsAreGroupedInDefinitionOrder()
     {
-        var tile = new Tile(Guid.NewGuid(), Definition("Klient i kurs", [
+        var tile = Tile.Restore(Guid.NewGuid(), Definition("Klient i kurs", [
             new TileField("customer", "$.id", "ID", [], Hidden: true),
             new TileField("customer", "$.currency", "Waluta", [], Hidden: true),
             new TileField("rate", "$.rate", "Kurs", [])
@@ -212,7 +206,7 @@ public class PostgresTileRepositoryTests
     [Test]
     public void Given_FormTile_When_ItIsLoaded_Then_FormFieldsWithTypesAndDefaultsAreKept()
     {
-        var form = new Tile(Guid.NewGuid(), new TileDefinition("Filtry", TileDisplays.Form, [], null, [])
+        var form = Tile.Restore(Guid.NewGuid(), new TileDefinition("Filtry", TileDisplays.Form, [], null, [])
         {
             FormFields =
             [
@@ -230,24 +224,21 @@ public class PostgresTileRepositoryTests
     [Test]
     public void Given_TileWithChildrenAndChildBinding_When_ParentsAndFieldUsesAreLoaded_Then_ParentAndBoundFieldAreReturned()
     {
-        var child = new Tile(Guid.NewGuid(), Definition("Klient", [new TileField("customer", "$.id", "ID", [])]));
-        var parent = new Tile(Guid.NewGuid(), Definition("Kurs klienta", [new TileField("rate", "$.rate", "Kurs", [])]) with
-        {
-            Children =
-            [
-                new TileChild("customer", child.Id, 1, "col-6", TileChildScopes.Tile, TileChildLoads.Eager),
-                new TileChild("other", child.Id, 0, null, TileChildScopes.Tile, TileChildLoads.Lazy)
-            ],
-            Bindings = [new TileBinding("customer", "rate", [new TileBindingMapping("ID", "currency", null, null)])]
-        });
+        var child = Tile.Restore(Guid.NewGuid(), Definition("Klient", [new TileField("customer", "$.id", "ID", [])]));
+        var parent = Tile.Restore(Guid.NewGuid(), Definition("Kurs klienta", [new TileField("rate", "$.rate", "Kurs", [])]) with
+    {
+        Children =
+        [
+            new TileChild("customer", child.Id, 1, "col-6", TileChildScopes.Tile, TileChildLoads.Eager),
+            new TileChild("other", child.Id, 0, null, TileChildScopes.Tile, TileChildLoads.Lazy)
+        ],
+        Bindings = [new TileBinding("customer", "rate", [new TileBindingMapping("ID", "currency", null, null)])]
+    });
         repository.Add(child);
 
         repository.Add(parent);
 
-        Assert.That(Json(repository.Get(parent.Id)), Is.EqualTo(Json(parent with
-        {
-            Definition = parent.Definition with { Children = [.. parent.Definition.Children.OrderBy(embedded => embedded.Position)] }
-        })));
+        Assert.That(Json(repository.Get(parent.Id)), Is.EqualTo(Json(Tile.Restore(parent.Id, parent.Definition with { Children = [.. parent.Definition.Children.OrderBy(embedded => embedded.Position)] }))));
         Assert.That(repository.GetParents(child.Id), Is.EqualTo(new[] { new TileReference(parent.Id, "Kurs klienta") }));
         Assert.That(repository.GetFieldUses(child.Id), Is.EqualTo(new[] { new TileFieldUse(new TileReference(parent.Id, "Kurs klienta"), "ID") }));
         Assert.That(() => repository.Delete(child.Id), Throws.InstanceOf<PostgresException>());
@@ -256,8 +247,8 @@ public class PostgresTileRepositoryTests
     [Test]
     public void Given_PaginationTableWithActionAndTabsWithTitledTab_When_TheyAreSavedAndUpdated_Then_DefinitionsRoundTrip()
     {
-        var target = new Tile(Guid.NewGuid(), Definition("Klient", [new TileField("customer", "$.id", "ID", [])]));
-        var results = new Tile(Guid.NewGuid(), new TileDefinition(
+        var target = Tile.Restore(Guid.NewGuid(), Definition("Klient", [new TileField("customer", "$.id", "ID", [])]));
+        var results = Tile.Restore(Guid.NewGuid(), new TileDefinition(
             "Wyniki",
             TileDisplays.PaginationTable,
             [new TileSource("customer", TileSourceKinds.Connection, customerConnectionId)],
@@ -271,11 +262,8 @@ public class PostgresTileRepositoryTests
                 new TileAction("self", "Odśwież", TileActionTypes.Link, Guid.Empty, TileActionScopes.Tile, [])
             ]
         });
-        results = results with
-        {
-            Definition = results.Definition with { Actions = [results.Definition.Actions[0], results.Definition.Actions[1] with { TileId = results.Id }] }
-        };
-        var tabs = new Tile(Guid.NewGuid(), new TileDefinition("Filtry", TileDisplays.Tabs, [], null, [])
+        results = Tile.Restore(results.Id, results.Definition with { Actions = [results.Definition.Actions[0], results.Definition.Actions[1] with { TileId = results.Id }] });
+        var tabs = Tile.Restore(Guid.NewGuid(), new TileDefinition("Filtry", TileDisplays.Tabs, [], null, [])
         {
             Children = [new TileChild("results", results.Id, 0, null, TileChildScopes.Tile, TileChildLoads.Lazy, "Wyniki")]
         });
@@ -289,7 +277,7 @@ public class PostgresTileRepositoryTests
         Assert.That(repository.GetActionReferences(results.Id), Is.Empty);
         Assert.That(() => repository.Delete(target.Id), Throws.InstanceOf<PostgresException>());
 
-        var updated = results with { Definition = results.Definition with { Pagination = new TilePagination("page", "limit", 5, null), Actions = [] } };
+        var updated = Tile.Restore(results.Id, results.Definition with { Pagination = new TilePagination("page", "limit", 5, null), Actions = [] });
         repository.Update(updated);
 
         Assert.That(Json(repository.Get(results.Id)), Is.EqualTo(Json(updated)));
@@ -299,16 +287,16 @@ public class PostgresTileRepositoryTests
     [Test]
     public void Given_GrandparentBindingFromDescendantPath_When_FieldUsesAreLoaded_Then_GrandparentUseIsReturned()
     {
-        var form = new Tile(Guid.NewGuid(), Definition("Klient", [new TileField("customer", "$.id", "ID", [])]));
-        var tabs = new Tile(Guid.NewGuid(), new TileDefinition("Filtry", TileDisplays.Tabs, [], null, [])
+        var form = Tile.Restore(Guid.NewGuid(), Definition("Klient", [new TileField("customer", "$.id", "ID", [])]));
+        var tabs = Tile.Restore(Guid.NewGuid(), new TileDefinition("Filtry", TileDisplays.Tabs, [], null, [])
         {
             Children = [new TileChild("byId", form.Id, 0, null, TileChildScopes.Tile, TileChildLoads.Eager, "Po ID")]
         });
-        var search = new Tile(Guid.NewGuid(), Definition("Szukaj", [new TileField("rate", "$.rate", "Kurs", [])]) with
-        {
-            Children = [new TileChild("filters", tabs.Id, 0, null, TileChildScopes.Tile, TileChildLoads.Eager)],
-            Bindings = [new TileBinding("filters/byId", "rate", [new TileBindingMapping("ID", "currency", null, null)])]
-        });
+        var search = Tile.Restore(Guid.NewGuid(), Definition("Szukaj", [new TileField("rate", "$.rate", "Kurs", [])]) with
+    {
+        Children = [new TileChild("filters", tabs.Id, 0, null, TileChildScopes.Tile, TileChildLoads.Eager)],
+        Bindings = [new TileBinding("filters/byId", "rate", [new TileBindingMapping("ID", "currency", null, null)])]
+    });
         repository.Add(form);
         repository.Add(tabs);
         repository.Add(search);
@@ -320,7 +308,7 @@ public class PostgresTileRepositoryTests
     [Test]
     public void Given_TileWithLabelsDifferingInCaseAndSpaces_When_ItIsSaved_Then_DatabaseRejectsIt()
     {
-        var tile = new Tile(Guid.NewGuid(), Definition("Klient",
+        var tile = Tile.Restore(Guid.NewGuid(), Definition("Klient",
         [
             new TileField("customer", "$.name", "Nazwa", []),
             new TileField("customer", "$.balance", " NAZWA ", [])
@@ -349,7 +337,7 @@ public class PostgresTileRepositoryTests
     [Test]
     public void Given_TileWithCombinedFields_When_ItIsSavedAndUpdated_Then_CombinationsRoundTrip()
     {
-        var tile = new Tile(Guid.NewGuid(), Definition("Adres",
+        var tile = Tile.Restore(Guid.NewGuid(), Definition("Adres",
         [
             new TileField("customer", "$.street", "Ulica", [], Hidden: true),
             new TileField("customer", "$.city", "Miasto", [], Hidden: true),
@@ -364,17 +352,14 @@ public class PostgresTileRepositoryTests
 
         Assert.That(Json(repository.Get(tile.Id)), Is.EqualTo(Json(tile)));
 
-        var updated = tile with
+        var updated = Tile.Restore(tile.Id, tile.Definition with
         {
-            Definition = tile.Definition with
-            {
-                Fields =
-                [
-                    tile.Definition.Fields[0],
-                    new TileField(null, null, "Punkt", []) { Combination = new TileFieldCombination("object", null, ["Ulica"]) }
-                ]
-            }
-        };
+            Fields =
+            [
+                tile.Definition.Fields[0],
+                new TileField(null, null, "Punkt", []) { Combination = new TileFieldCombination("object", null, ["Ulica"]) }
+            ]
+        });
         repository.Update(updated);
 
         Assert.That(Json(repository.Get(tile.Id)), Is.EqualTo(Json(updated)));
@@ -384,7 +369,7 @@ public class PostgresTileRepositoryTests
 
     private Guid AddConnection(string name)
     {
-        var connection = new Connection(Guid.NewGuid(), new GetConnectionDefinition(name, "https://api.example.com", [], []));
+        var connection = Connection.Restore(Guid.NewGuid(), new GetConnectionDefinition(name, "https://api.example.com", [], []));
         new PostgresConnectionRepository(TestDatabase.ContextFactory(dataSource)).Add(connection);
         return connection.Id;
     }

@@ -14,7 +14,7 @@ public sealed class GetConnectionsHandler(IConnectionRepository repository)
             .Select(connection => new ConnectionSummaryDto(
                 connection.Id,
                 connection.Definition.Name,
-                ConnectionMethods.Of(connection.Definition),
+                connection.Definition.Method,
                 connection.Definition.Url))
             .ToList();
 }

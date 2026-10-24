@@ -33,7 +33,7 @@ public class PostgresConnectionRepositoryTests
     [Test]
     public void Given_SavedGetConnection_When_ItIsLoaded_Then_DefinitionIsUnchanged()
     {
-        var connection = new Connection(Guid.NewGuid(), new GetConnectionDefinition(
+        var connection = Connection.Restore(Guid.NewGuid(), new GetConnectionDefinition(
             "Sprzedawcy kontraktu",
             "https://api.example.com/contracts/{id}/sellers?units=metric",
             [new ParameterDeclaration("id", true, null)],
@@ -47,7 +47,7 @@ public class PostgresConnectionRepositoryTests
     [Test]
     public void Given_SavedPostConnection_When_ItIsLoaded_Then_BodyTemplateAndParametersAreUnchanged()
     {
-        var connection = new Connection(Guid.NewGuid(), new PostConnectionDefinition(
+        var connection = Connection.Restore(Guid.NewGuid(), new PostConnectionDefinition(
             "Wyszukiwanie sprzedawców",
             "https://api.example.com/sellers/search",
             [],
@@ -67,7 +67,7 @@ public class PostgresConnectionRepositoryTests
     [Test]
     public void Given_PostConnectionWithoutBody_When_ItIsLoaded_Then_BodyIsEmpty()
     {
-        var connection = new Connection(
+        var connection = Connection.Restore(
             Guid.NewGuid(),
             new PostConnectionDefinition("Odświeżenie", "https://api.example.com/refresh", [], [], null, []));
 
@@ -79,7 +79,7 @@ public class PostgresConnectionRepositoryTests
     [Test]
     public void Given_ParametersDeclaredInAnyOrder_When_ConnectionIsLoaded_Then_ParametersAreSortedByName()
     {
-        var connection = new Connection(Guid.NewGuid(), new GetConnectionDefinition(
+        var connection = Connection.Restore(Guid.NewGuid(), new GetConnectionDefinition(
             "Sprzedawcy",
             "https://api.example.com/sellers",
             [],
@@ -101,12 +101,12 @@ public class PostgresConnectionRepositoryTests
     [Test]
     public void Given_TwoSavedConnections_When_AllAreLoaded_Then_TheyAreInAddingOrderWithParameters()
     {
-        var first = new Connection(Guid.NewGuid(), new GetConnectionDefinition(
+        var first = Connection.Restore(Guid.NewGuid(), new GetConnectionDefinition(
             "Pierwsze",
             "https://api.example.com/{id}",
             [new ParameterDeclaration("id", true, null)],
             []));
-        var second = new Connection(Guid.NewGuid(), new PostConnectionDefinition(
+        var second = Connection.Restore(Guid.NewGuid(), new PostConnectionDefinition(
             "Drugie",
             "https://api.example.com/search",
             [],
@@ -126,26 +126,25 @@ public class PostgresConnectionRepositoryTests
     [Test]
     public void Given_SavedGetConnection_When_ItIsReplacedWithPostDefinition_Then_NewDefinitionIsLoadedAndPositionIsKept()
     {
-        var first = new Connection(Guid.NewGuid(), new GetConnectionDefinition(
+        var first = Connection.Restore(Guid.NewGuid(), new GetConnectionDefinition(
             "Pierwsze",
             "https://api.example.com/{id}",
             [new ParameterDeclaration("id", true, null)],
             [new ParameterDeclaration("page", false, "\"1\"")]));
-        var second = new Connection(
+        var second = Connection.Restore(
             Guid.NewGuid(),
             new GetConnectionDefinition("Drugie", "https://api.example.com/other", [], []));
         repository.Add(first);
         repository.Add(second);
-        var updated = first with
-        {
-            Definition = new PostConnectionDefinition(
+        var updated = Connection.Restore(
+            first.Id,
+            new PostConnectionDefinition(
                 "Pierwsze po edycji",
                 "https://api.example.com/search",
                 [],
                 [new ParameterDeclaration("units", false, "\"metric\"")],
                 """{"limit": "{limit}"}""",
-                [new ParameterDeclaration("limit", false, "5")])
-        };
+                [new ParameterDeclaration("limit", false, "5")]));
 
         repository.Update(updated);
 
@@ -157,7 +156,7 @@ public class PostgresConnectionRepositoryTests
     [Test]
     public void Given_SavedConnection_When_ItIsDeleted_Then_ConnectionAndParametersAreRemoved()
     {
-        var connection = new Connection(Guid.NewGuid(), new PostConnectionDefinition(
+        var connection = Connection.Restore(Guid.NewGuid(), new PostConnectionDefinition(
             "Wyszukiwanie",
             "https://api.example.com/{id}/search",
             [new ParameterDeclaration("id", true, null)],
