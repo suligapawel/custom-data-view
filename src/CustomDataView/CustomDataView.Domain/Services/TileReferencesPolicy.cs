@@ -1,6 +1,7 @@
 using CustomDataView.Domain.Dictionaries;
 using CustomDataView.Domain.Policies;
 using CustomDataView.Domain.Services.Combinations;
+using CustomDataView.Domain.Services.Transformations;
 using CustomDataView.Domain.ValueObjects;
 
 namespace CustomDataView.Domain.Services;
@@ -31,6 +32,10 @@ public sealed class TileReferencesPolicy(
                 {
                     violations.Set($"fields[{index}].transformations[{position}].key", $"Transformacja '{steps[position].Key}' nie istnieje w katalogu.");
                 }
+                else if (steps[position].Key == MapperTransformation.TransformationKey)
+                {
+                    CheckDictionaryReference(steps[position], $"fields[{index}].transformations[{position}].parameter", violations);
+                }
             }
         }
 
@@ -54,6 +59,14 @@ public sealed class TileReferencesPolicy(
     }
 
     private TileContract ContractOf(TileDefinition tile) => tile.Contract(connectionOf);
+
+    private static void CheckDictionaryReference(TransformationStep step, string path, DefinitionViolations violations)
+    {
+        if (!DictionaryReference.TryParse(step.Parameter, out _))
+        {
+            violations.Set(path, $"Parametr transformacji '{MapperTransformation.TransformationKey}' ma format '<tileId>:<etykieta pola wartości>'.");
+        }
+    }
 
     private void CheckCombination(TileDefinition definition, TileField field, string path, DefinitionViolations violations)
     {

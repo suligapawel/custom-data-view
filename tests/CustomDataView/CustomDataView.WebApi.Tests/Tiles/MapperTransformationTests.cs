@@ -301,6 +301,23 @@ public class MapperTransformationTests : TileApiTests
             Is.EqualTo(new[] { $"{StatusesUrl}?lang=pl" }));
     }
 
+    [TestCase("text")]
+    [Test(Description = $"{Dir} - #14")]
+    public async Task Given_InvalidDictionaryReference_When_UserSavesTile_Then_SaveIsRejected(string problem)
+    {
+        var statusesId = await CreateTile(Statuses());
+        var parameter = problem switch
+        {
+            _ => "Statusy zamówień"
+        };
+
+        var response = await Client.PostAsJsonAsync(TilesUrl, Order(OrderField("$.status", "Status", Transformation("mapper", parameter))));
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest), statusesId.ToString());
+        var errors = (await response.Content.ReadFromJsonAsync<JsonObject>())!["errors"]!.AsObject();
+        Assert.That(errors.Select(error => error.Key), Is.EqualTo(new[] { "fields[0].transformations[0].parameter" }), errors.ToJsonString());
+    }
+
     private Task LoadDictionariesOnStartup()
         => Factory.Services.GetRequiredService<DictionaryLoader>().LoadAll(CancellationToken.None);
 
