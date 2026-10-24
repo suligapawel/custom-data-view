@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using CustomDataView.Application.Dictionaries;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CustomDataView.WebApi.Tests.Tiles;
 
@@ -475,6 +476,54 @@ public class MapperTransformationTests : TileApiTests
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
         var errors = (await response.Content.ReadFromJsonAsync<JsonObject>())!["errors"]!.AsObject();
         Assert.That(errors.Select(error => error.Key), Is.EqualTo(new[] { "tile.fields[0].transformations[0].parameter" }), errors.ToJsonString());
+    }
+
+    [Test(Description = $"{Dir} - #19")]
+    public async Task Given_DictionarySourceNotResponding_When_ApplicationStarts_Then_RequestsAreServedBeforeDictionariesLoad()
+    {
+        var statusesId = await CreateTile(Statuses());
+        var orderId = await CreateTile(Order(OrderField("$.status", "Status", Mapper(statusesId, "Tłumaczenie"))));
+        var statusesResponds = new TaskCompletionSource();
+        var respond = Factory.ExternalApi.Respond;
+        Factory.ExternalApi.Respond = async (request, cancellationToken) =>
+        {
+            if (request.RequestUri!.AbsolutePath == "/statuses")
+            {
+                await statusesResponds.Task.WaitAsync(cancellationToken);
+            }
+
+            return await respond(request, cancellationToken);
+        };
+        using var service = new DictionaryLoadingService(
+            Factory.Services.GetRequiredService<DictionaryLoader>(),
+            new DictionaryLoadQueue(),
+            NullLogger<DictionaryLoadingService>.Instance);
+        using var stopping = new CancellationTokenSource();
+
+        var starting = service.StartAsync(stopping.Token);
+
+        Assert.That(starting.IsCompleted, Is.True);
+        var preview = await Preview(orderId);
+        Assert.That(Field(preview, "Status")["error"]?["reason"]?.GetValue<string>(), Is.EqualTo("dictionary_unavailable"), preview.ToJsonString());
+        statusesResponds.SetResult();
+        Assert.That(await StatusAfterBackgroundLoading(orderId), Is.EqualTo("Nowe"));
+        await stopping.CancelAsync();
+        await service.StopAsync(CancellationToken.None);
+    }
+
+    private async Task<string> StatusAfterBackgroundLoading(Guid orderId)
+    {
+        for (var attempt = 0; attempt < 50; attempt++)
+        {
+            if (Value(await Preview(orderId), "Status") is { } status)
+            {
+                return status;
+            }
+
+            await Task.Delay(100);
+        }
+
+        return null;
     }
 
     private Task LoadDictionariesOnStartup()
