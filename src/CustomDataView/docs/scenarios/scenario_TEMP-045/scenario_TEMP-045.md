@@ -191,8 +191,8 @@ Dla każdego kroku `mapper` w polu `fields[i].transformations[j]` naruszenie tra
 16. Usunięcie kafelka-słownika daje 409 `tile_in_use` z kafelkami używającymi słownika.
 17. Kafelek-słownik daje się wyświetlić podglądem jak każdy kafelek (jego połączenie jest wtedy wywoływane).
 18. Podgląd niezapisanego kafelka z `mapper` używa załadowanych słowników. Niczego nie zleca do załadowania, więc
-    słownik niezaładowany daje `dictionary_unavailable`, a parametr w złym formacie daje `invalid_parameter`
-    (podgląd niezapisanej definicji nie przechodzi walidacji zapisu).
+    słownik niezaładowany daje `dictionary_unavailable`. Parametr w złym formacie odrzuca podgląd błędem walidacji
+    (400), bo podgląd niezapisanej definicji przechodzi tę samą walidację odwołań co zapis.
 19. Uruchomienie aplikacji nie czeka na załadowanie słowników i nie zawodzi, gdy źródło słownika nie odpowiada.
 
 ## Endpoint

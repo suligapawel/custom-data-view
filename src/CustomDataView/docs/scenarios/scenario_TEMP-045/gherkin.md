@@ -292,8 +292,7 @@ And   słownik "Statusy zamówień" na pole "Waga" nie zostaje załadowany
 Given użytkownik nie zapisał jeszcze kafelka "Zamówienie" z polem "Status" ($.status) zamienianym słownikiem
       opisanym tekstem "Statusy zamówień" zamiast identyfikatora kafelka i pola
 When  użytkownik ogląda podgląd niezapisanej definicji kafelka "Zamówienie"
-Then  pole "Status" ma błąd transformacji "mapper" z powodem "zły parametr"
-And   pozostałe pola kafelka "Zamówienie" mają wartości
+Then  podgląd zostaje odrzucony z błędem walidacji parametru transformacji "mapper" pola "Status"
 ```
 
 ---

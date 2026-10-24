@@ -444,6 +444,27 @@ public class MapperTransformationTests : TileApiTests
             preview.ToJsonString());
     }
 
+    [Test(Description = $"{Dir} - #18")]
+    public async Task Given_OneLoadedDictionary_When_UserPreviewsUnsavedTile_Then_OnlyLoadedDictionaryIsUsedAndNothingIsLoaded()
+    {
+        var statusesId = await CreateTile(Statuses());
+        await CreateTile(Order(OrderField("$.status", "Status", Mapper(statusesId, "Tłumaczenie"))));
+        await LoadDictionariesOnStartup();
+        var draft = Order(
+            OrderField("$.status", "Status", Mapper(statusesId, "Tłumaczenie")),
+            OrderField("$.status", "Waga statusu", Mapper(statusesId, "Waga")));
+
+        var response = await Client.PostAsJsonAsync($"{TilesUrl}/preview", new { tile = draft });
+
+        response.EnsureSuccessStatusCode();
+        var preview = await response.Content.ReadFromJsonAsync<JsonObject>();
+        Assert.That(Value(preview, "Status"), Is.EqualTo("Nowe"), preview.ToJsonString());
+        Assert.That(Field(preview, "Waga statusu")["error"]?["reason"]?.GetValue<string>(), Is.EqualTo("dictionary_unavailable"));
+        await Factory.DictionaryLoads.ProcessPending();
+        var previewAfterLoading = await (await Client.PostAsJsonAsync($"{TilesUrl}/preview", new { tile = draft })).Content.ReadFromJsonAsync<JsonObject>();
+        Assert.That(Field(previewAfterLoading, "Waga statusu")["error"]?["reason"]?.GetValue<string>(), Is.EqualTo("dictionary_unavailable"));
+    }
+
     private Task LoadDictionariesOnStartup()
         => Factory.Services.GetRequiredService<DictionaryLoader>().LoadAll(CancellationToken.None);
 
