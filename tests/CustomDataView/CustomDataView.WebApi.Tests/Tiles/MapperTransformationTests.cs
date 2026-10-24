@@ -344,14 +344,41 @@ public class MapperTransformationTests : TileApiTests
     }
 
     [TestCase("remove-value-field")]
+    [TestCase("rename-value-field")]
+    [TestCase("details-without-items")]
+    [TestCase("pagination")]
+    [TestCase("mapper")]
+    [TestCase("required-parameter-source")]
+    [TestCase("input-source")]
     [Test(Description = $"{Dir} - #15")]
     public async Task Given_DictionaryUsedByTile_When_UserBreaksDictionaryTile_Then_EditIsBlocked(string change)
     {
         var statusesId = await CreateTile(Statuses());
         var orderId = await CreateTile(Order(OrderField("$.status", "Status", Mapper(statusesId, "Tłumaczenie"))));
-        var statuses = Statuses();
+        var statuses = change == "pagination" ? await PagedStatuses() : Statuses();
         switch (change)
         {
+            case "rename-value-field":
+                statuses["fields"]![1]!["label"] = "Nazwa";
+                break;
+            case "details-without-items":
+                statuses["display"] = "details";
+                statuses.Remove("items");
+                break;
+            case "mapper":
+                statuses["fields"]![2]!["transformations"] = new JsonArray(
+                    JsonSerializer.SerializeToNode(Mapper(await CreateTile(await Levels()), "Na"), JsonSerializerOptions.Web));
+                break;
+            case "required-parameter-source":
+                var languageSource = await StatusesWithLanguage(required: true);
+                languageSource["sources"]![0]!["key"] = "language";
+                statuses["sources"]!.AsArray().Add(languageSource["sources"]![0]!.DeepClone());
+                break;
+            case "input-source":
+                statuses["sources"]!.AsArray().Add(new JsonObject { ["key"] = "extra", ["kind"] = "input" });
+                break;
+            case "pagination":
+                break;
             default:
                 statuses["fields"]!.AsArray().RemoveAt(1);
                 break;
