@@ -244,6 +244,20 @@ public class MapperTransformationTests : TileApiTests
         Assert.That(Value(preview, "Status"), Is.EqualTo("Nowe"), preview.ToJsonString());
     }
 
+    [Test(Description = $"{Dir} - #11")]
+    public async Task Given_TileWithoutMapper_When_UserAddsMapperByEditingTile_Then_DictionaryIsLoadedInBackground()
+    {
+        var statusesId = await CreateTile(Statuses());
+        var orderId = await CreateTile(Order(OrderField("$.status", "Status")));
+        await LoadDictionariesOnStartup();
+
+        await UpdateTile(orderId, Order(OrderField("$.status", "Status", Mapper(statusesId, "Tłumaczenie"))));
+
+        await Factory.DictionaryLoads.ProcessPending();
+        var preview = await Preview(orderId);
+        Assert.That(Value(preview, "Status"), Is.EqualTo("Nowe"), preview.ToJsonString());
+    }
+
     [Test(Description = $"{Dir} - #12")]
     public async Task Given_LoadedDictionary_When_DictionaryTileIsSaved_Then_PreviousVersionWorksUntilReloadAndFailedReloadMakesItUnavailable()
     {

@@ -3,6 +3,7 @@ using CustomDataView.Application.Dictionaries;
 using CustomDataView.Application.Exceptions;
 using CustomDataView.Application.Tiles.Validation;
 using CustomDataView.Domain.Repositories;
+using CustomDataView.Domain.Services.Transformations;
 using CustomDataView.Domain.ValueObjects;
 
 namespace CustomDataView.Application.Tiles.Commands;
@@ -13,6 +14,7 @@ public sealed class UpdateTileHandler(
     ITileRepository repository,
     IConnectionRepository connections,
     TileReferencesValidator referencesValidator,
+    IMapperDictionaries dictionaries,
     IDictionaryLoadQueue dictionaryLoads)
 {
     public void Handle(UpdateTile command)
@@ -23,6 +25,9 @@ public sealed class UpdateTileHandler(
         tile.EnsureDictionariesKept(command.Definition, dictionaryUses, command.Definition.Contract(id => connections.Get(id)?.Definition));
         tile.Redefine(command.Definition, repository.GetFieldUses(command.Id));
         repository.Update(tile);
-        dictionaryLoads.Enqueue(dictionaryUses.Select(use => new DictionaryReference(command.Id, use.ValueLabel)));
+        dictionaryLoads.Enqueue([
+            .. command.Definition.DictionaryReferences().Where(reference => !dictionaries.TryGet(reference, out _)),
+            .. dictionaryUses.Select(use => new DictionaryReference(command.Id, use.ValueLabel))
+        ]);
     }
 }
