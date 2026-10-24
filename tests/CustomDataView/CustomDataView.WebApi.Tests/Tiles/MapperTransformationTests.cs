@@ -105,6 +105,21 @@ public class MapperTransformationTests : TileApiTests
         Assert.That(Value(preview, "Opis statusu"), Is.EqualTo("NOWE (1)"));
     }
 
+    [Test(Description = $"{Dir} - #6")]
+    public async Task Given_ListFieldMappedByDictionary_When_UserPreviewsTile_Then_EachElementIsMapped()
+    {
+        var statusesId = await CreateTile(Statuses());
+        var orderId = await CreateTile(Order(OrderField("$.statuses[*]", "Historia", Mapper(statusesId, "Tłumaczenie"))));
+        await LoadDictionariesOnStartup();
+
+        var preview = await Preview(orderId);
+
+        Assert.That(
+            JsonNode.DeepEquals(Field(preview, "Historia")["value"], JsonNode.Parse("""["Nowe", "Zrealizowane"]""")),
+            Is.True,
+            preview.ToJsonString());
+    }
+
     private Task LoadDictionariesOnStartup()
         => Factory.Services.GetRequiredService<DictionaryLoader>().LoadAll(CancellationToken.None);
 
