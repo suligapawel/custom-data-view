@@ -7,4 +7,6 @@ public static class TransformationFailureReasons
     public const string InvalidParameter = "invalid_parameter";
 
     public const string UnknownTransformation = "unknown_transformation";
+
+    public const string MissingDictionaryKey = "missing_dictionary_key";
 }

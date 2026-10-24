@@ -1,4 +1,5 @@
 using CustomDataView.Domain.Dictionaries;
+using CustomDataView.Domain.Exceptions;
 using CustomDataView.Domain.ValueObjects;
 
 namespace CustomDataView.Domain.Services.Transformations;
@@ -22,7 +23,8 @@ public sealed class MapperTransformation(IMapperDictionaries dictionaries) : Tra
     {
         DictionaryReference.TryParse(parameter, out var reference);
         dictionaries.TryGet(reference, out var dictionary);
-        dictionary.TryGet(TransformationValue.ToText(Key, value), out var mapped);
-        return mapped;
+        return dictionary.TryGet(TransformationValue.ToText(Key, value), out var mapped)
+            ? mapped
+            : throw new TransformationFailedException(Key, TransformationFailureReasons.MissingDictionaryKey);
     }
 }

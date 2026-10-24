@@ -26,6 +26,7 @@ public class MapperTransformationTests : TileApiTests
     private Guid statusesConnectionId;
     private Guid ordersConnectionId;
     private string levelsResponse = "[]";
+    private string orderResponse = OrderResponse;
 
     [SetUp]
     public async Task CreateDictionaryConnections()
@@ -33,7 +34,7 @@ public class MapperTransformationTests : TileApiTests
         Factory.ExternalApi.Respond = (request, _) => Task.FromResult(request.RequestUri!.AbsolutePath switch
         {
             "/statuses" => Json(StatusesResponse),
-            "/orders/1" => Json(OrderResponse),
+            "/orders/1" => Json(orderResponse),
             "/levels" => Json(levelsResponse),
             _ => new HttpResponseMessage(HttpStatusCode.NotFound)
         });
@@ -116,6 +117,26 @@ public class MapperTransformationTests : TileApiTests
 
         Assert.That(
             JsonNode.DeepEquals(Field(preview, "Historia")["value"], JsonNode.Parse("""["Nowe", "Zrealizowane"]""")),
+            Is.True,
+            preview.ToJsonString());
+    }
+
+    [Test(Description = $"{Dir} - #7")]
+    public async Task Given_ValueMissingFromDictionary_When_UserPreviewsTile_Then_FieldHasMissingKeyErrorAndOtherFieldsHaveValues()
+    {
+        orderResponse = """{"status": "LOST", "level": 6}""";
+        var statusesId = await CreateTile(Statuses());
+        var orderId = await CreateTile(Order(
+            OrderField("$.status", "Status", Mapper(statusesId, "Tłumaczenie")),
+            OrderField("$.level", "Poziom")));
+        await LoadDictionariesOnStartup();
+
+        var preview = await Preview(orderId);
+
+        Assert.That(
+            JsonNode.DeepEquals(
+                Field(preview, "Status"),
+                JsonNode.Parse("""{"label": "Status", "error": {"code": "transformation_failed", "transformation": "mapper", "reason": "missing_dictionary_key"}}""")),
             Is.True,
             preview.ToJsonString());
     }
