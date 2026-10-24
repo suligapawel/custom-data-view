@@ -155,6 +155,21 @@ public class MapperTransformationTests : TileApiTests
         Assert.That(Field(preview, "Poziom")["value"]!.GetValue<int>(), Is.EqualTo(6));
     }
 
+    [Test(Description = $"{Dir} - #8")]
+    public async Task Given_MissingInputValue_When_UserPreviewsTile_Then_FieldHasNeitherValueNorError()
+    {
+        var statusesId = await CreateTile(Statuses());
+        var orderId = await CreateTile(Order(OrderField("$.note", "Notatka", Mapper(statusesId, "Tłumaczenie"))));
+        await LoadDictionariesOnStartup();
+
+        var preview = await Preview(orderId);
+
+        Assert.That(
+            JsonNode.DeepEquals(Field(preview, "Notatka"), JsonNode.Parse("""{"label": "Notatka", "value": null}""")),
+            Is.True,
+            preview.ToJsonString());
+    }
+
     private Task LoadDictionariesOnStartup()
         => Factory.Services.GetRequiredService<DictionaryLoader>().LoadAll(CancellationToken.None);
 
