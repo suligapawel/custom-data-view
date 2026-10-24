@@ -195,10 +195,23 @@ public class MapperTransformationTests : TileApiTests
             Is.True,
             preview.ToJsonString());
         Assert.That(Field(preview, "Poziom")["value"]!.GetValue<int>(), Is.EqualTo(8));
+
+        statusesAvailable = true;
+        await UpdateTile(statusesId, Statuses());
+        await Factory.DictionaryLoads.ProcessPending();
+        var previewAfterSave = await Preview(orderId);
+
+        Assert.That(Value(previewAfterSave, "Status"), Is.EqualTo("Nowe"), previewAfterSave.ToJsonString());
     }
 
     private Task LoadDictionariesOnStartup()
         => Factory.Services.GetRequiredService<DictionaryLoader>().LoadAll(CancellationToken.None);
+
+    private async Task UpdateTile(Guid id, JsonObject tile)
+    {
+        var response = await Client.PutAsJsonAsync($"{TilesUrl}/{id}", tile);
+        response.EnsureSuccessStatusCode();
+    }
 
     private int StatusRequests() => Factory.ExternalApi.Requests.Count(request => request.Url == StatusesUrl);
 

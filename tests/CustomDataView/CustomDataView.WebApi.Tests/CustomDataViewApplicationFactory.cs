@@ -17,11 +17,14 @@ public class CustomDataViewApplicationFactory : WebApplicationFactory<Program>
 
     public TestTimeProvider Time { get; } = new();
 
+    public TestDictionaryLoadQueue DictionaryLoads => Services.GetRequiredService<TestDictionaryLoadQueue>();
+
     public void Reset()
     {
         Services.GetRequiredService<TestConnectionRepository>().Clear();
         Services.GetRequiredService<TestTileRepository>().Clear();
         Services.GetRequiredService<MapperDictionaries>().Clear();
+        DictionaryLoads.Clear();
         ExternalApi.Reset();
         Time.Reset();
         var options = Services.GetRequiredService<IOptions<ExternalApiOptions>>().Value;
@@ -43,6 +46,8 @@ public class CustomDataViewApplicationFactory : WebApplicationFactory<Program>
             services.AddSingleton<IConnectionRepository>(provider => provider.GetRequiredService<TestConnectionRepository>());
             services.AddSingleton<TestTileRepository>();
             services.AddSingleton<ITileRepository>(provider => provider.GetRequiredService<TestTileRepository>());
+            services.AddSingleton<TestDictionaryLoadQueue>();
+            services.AddSingleton<IDictionaryLoadQueue>(provider => provider.GetRequiredService<TestDictionaryLoadQueue>());
             services.AddHttpClient(ExternalApiClient.HttpClientName)
                 .ConfigurePrimaryHttpMessageHandler(() => ExternalApi)
                 .SetHandlerLifetime(Timeout.InfiniteTimeSpan);

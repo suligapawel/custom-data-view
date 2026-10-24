@@ -60,6 +60,14 @@ public sealed class TestTileRepository : ITileRepository
             .Distinct()
             .ToList();
 
+    public IReadOnlyList<TileDictionaryUse> GetDictionaryUses(Guid tileId)
+        => tiles
+            .SelectMany(tile => tile.Definition.DictionaryReferences()
+                .Where(reference => reference.TileId == tileId)
+                .Distinct()
+                .Select(reference => new TileDictionaryUse(new TileReference(tile.Id, tile.Definition.Name), reference.ValueLabel)))
+            .ToList();
+
     private Guid? Resolve(Tile tile, string path)
     {
         Guid? resolved = null;

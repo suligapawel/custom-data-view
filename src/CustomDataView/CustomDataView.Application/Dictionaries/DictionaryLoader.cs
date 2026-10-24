@@ -9,10 +9,12 @@ namespace CustomDataView.Application.Dictionaries;
 
 public sealed class DictionaryLoader(ITileRepository tiles, TilePreviewer previewer, MapperDictionaries dictionaries)
 {
-    public async Task LoadAll(CancellationToken cancellationToken)
+    public Task LoadAll(CancellationToken cancellationToken)
+        => Load(tiles.GetAll().SelectMany(tile => tile.Definition.DictionaryReferences()), cancellationToken);
+
+    public async Task Load(IEnumerable<DictionaryReference> references, CancellationToken cancellationToken)
     {
-        var references = tiles.GetAll().SelectMany(tile => tile.Definition.DictionaryReferences()).Distinct();
-        foreach (var group in references.GroupBy(reference => reference.TileId))
+        foreach (var group in references.Distinct().GroupBy(reference => reference.TileId))
         {
             await Load(group.Key, group.ToList(), cancellationToken);
         }

@@ -17,6 +17,7 @@ public static class DependencyInjection
         services.AddSingleton<TileReferencesValidator>();
         services.AddSingleton<TilePreviewer>();
         services.AddSingleton<DictionaryLoader>();
+        services.AddSingleton<IDictionaryLoadQueue, DictionaryLoadQueue>();
         services.AddSingleton(TimeProvider.System);
         return services;
     }

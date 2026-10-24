@@ -1,6 +1,8 @@
 using System.Text.Json.Nodes;
 using CustomDataView.Domain.Entities;
+using CustomDataView.Domain.Policies;
 using CustomDataView.Domain.Repositories;
+using CustomDataView.Domain.Services.Transformations;
 using CustomDataView.Domain.ValueObjects;
 using CustomDataView.Infrastructure.Persistence.Rows;
 using Microsoft.EntityFrameworkCore;
@@ -143,6 +145,25 @@ public sealed class PostgresTileRepository(IDbContextFactory<CustomDataViewDbCon
             .OrderBy(tile => tile.CreatedAt)
             .ThenBy(tile => tile.Id)
             .Select(tile => new TileReference(tile.Id, tile.Name))
+            .ToList();
+    }
+
+    public IReadOnlyList<TileDictionaryUse> GetDictionaryUses(Guid tileId)
+    {
+        using var context = contextFactory.CreateDbContext();
+        var prefix = $"{tileId:D}:";
+        return context.Set<TileFieldTransformationRow>()
+            .AsNoTracking()
+            .Where(step => step.Key == MapperTransformation.TransformationKey && step.Parameter.StartsWith(prefix))
+            .Join(context.Tiles, step => step.TileId, tile => tile.Id, (step, tile) => new { tile.Id, tile.Name, tile.CreatedAt, step.Parameter })
+            .OrderBy(use => use.CreatedAt)
+            .ThenBy(use => use.Id)
+            .AsEnumerable()
+            .Select(use => DictionaryReference.TryParse(use.Parameter, out var reference)
+                ? new TileDictionaryUse(new TileReference(use.Id, use.Name), reference.ValueLabel)
+                : null)
+            .Where(use => use is not null)
+            .DistinctBy(use => (use.Tile.Id, TileLabels.Normalize(use.ValueLabel)))
             .ToList();
     }
 

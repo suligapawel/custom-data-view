@@ -14,4 +14,5 @@ public interface ITileRepository
     IReadOnlyList<TileReference> GetParents(Guid tileId);
     IReadOnlyList<TileReference> GetActionReferences(Guid tileId);
     IReadOnlyList<TileFieldUse> GetFieldUses(Guid tileId);
+    IReadOnlyList<TileDictionaryUse> GetDictionaryUses(Guid tileId);
 }
