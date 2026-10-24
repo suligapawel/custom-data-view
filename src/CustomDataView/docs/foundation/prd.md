@@ -39,7 +39,13 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
     - suffix(text) - doklejenie tekstu po wartości,
     - uppercase - zamiana tekstu na wielkie litery,
     - lowercase - zamiana tekstu na małe litery,
-    - truncate(max_length) - przycięcie tekstu do maksymalnej liczby znaków.
+    - truncate(max_length) - przycięcie tekstu do maksymalnej liczby znaków,
+    - mapper(dictionary) - zamiana wartości na wartość ze słownika; parametr `"<tileId>:<etykieta pola wartości>"`
+      wskazuje kafelek-słownik (kafelek z `items`, kluczem słownika jest pole `items.key`) i pole elementu z wartością.
+- Słowniki transformacji `mapper` są ładowane do pamięci aplikacji raz po starcie (ze wszystkich odwołań `mapper`)
+  oraz w tle po zapisie kafelka-słownika albo kafelka z niezaładowanym odwołaniem; nie są odświeżane okresowo.
+  Klucze są porównywane jako tekst, a wartość zachowuje typ. Brak klucza daje błąd `transformation_failed`
+  z powodem `missing_dictionary_key`, a niezaładowany słownik — z powodem `dictionary_unavailable`.
 - Użytkownik może odczytać katalog dostępnych transformacji wraz z opisem parametru.
 - Kombinatory pól są predefiniowane w kodzie jak transformacje, ale składają jedną wartość z wartości kilku pól
   kafelka. Kombinator implementuje wspólny interfejs, ma klucz, nazwę, opis, najwyżej jeden parametr (tekst) i sam
@@ -248,7 +254,10 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
   konfiguracji.
 - Frontend renderujący kafelki.
 - Źródła danych inne niż REST (SQL, GraphQL, pliki).
-- Harmonogramy pobierania, cache i historia wyników testów.
+- Harmonogramy pobierania, cache wyników połączeń i historia wyników testów (wyjątek: słowniki transformacji
+  `mapper` trzymane w pamięci aplikacji).
+- Słowniki stałe (enumy) bez endpointu i źródło kafelka `static`, okresowe odświeżanie słowników i ich przeładowanie
+  po zmianie połączenia.
 - Definiowanie, edycja i usuwanie transformacji i kombinatorów przez użytkownika; nowe dodaje się wyłącznie w kodzie.
 - Test transformacji na przykładowej wartości; efekt transformacji jest widoczny w podglądzie kafelka.
 - Operacje arytmetyczne i agregaty na tablicach w transformacjach.
@@ -276,7 +285,7 @@ złożone i wiązania (TEMP-030 … TEMP-039), rozbudowuje kafelki etapami: unik
 parametrów per połączenie, typ wyświetlania i elementy, źródła z wiązaniami źródło → źródło, wejścia danych, formularze,
 dzieci `scope: tile`, dzieci `scope: item` z limitami, usunięcie widoków na rzecz kafelków złożonych i wybór elementu. TEMP-040 dodaje filtr w ścieżce JSONPath, a TEMP-041 …
 TEMP-043 zakładki, tabelę ze stronicowaniem i akcje przejścia do kafelka (wyszukiwarka z filtrami). TEMP-044 dodaje
-kombinatory pól (pola złożone z kilku pól kafelka).
+kombinatory pól (pola złożone z kilku pól kafelka), a TEMP-045 transformację `mapper` ze słownikami z kafelków.
 Każda grupa korzysta wyłącznie z grup wcześniejszych; blokada usuwania połączeń używanych przez kafelki należy do grupy
 kafelków. Historyjki i scenariusze leżą w `docs/scenarios/scenario_TEMP-*`.
 
