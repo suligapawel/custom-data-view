@@ -56,9 +56,12 @@ public sealed class Tile
         }
     }
 
-    public void EnsureCanBeDeleted(IReadOnlyList<TileReference> parents, IReadOnlyList<TileReference> actionSources)
+    public void EnsureCanBeDeleted(
+        IReadOnlyList<TileReference> parents,
+        IReadOnlyList<TileReference> actionSources,
+        IReadOnlyList<TileReference> dictionaryUsers)
     {
-        var references = parents.Concat(actionSources).DistinctBy(reference => reference.Id).ToList();
+        var references = parents.Concat(actionSources).Concat(dictionaryUsers).DistinctBy(reference => reference.Id).ToList();
         if (references.Count > 0)
         {
             throw new TileInUseException(Id, references);

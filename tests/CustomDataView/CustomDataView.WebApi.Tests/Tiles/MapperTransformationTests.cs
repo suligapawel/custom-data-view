@@ -411,6 +411,22 @@ public class MapperTransformationTests : TileApiTests
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
     }
 
+    [Test(Description = $"{Dir} - #16")]
+    public async Task Given_DictionaryUsedByTile_When_UserDeletesDictionaryTile_Then_DeleteIsBlocked()
+    {
+        var statusesId = await CreateTile(Statuses());
+        var orderId = await CreateTile(Order(OrderField("$.status", "Status", Mapper(statusesId, "Tłumaczenie"))));
+
+        var response = await Client.DeleteAsync($"{TilesUrl}/{statusesId}");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+        Assert.That(
+            JsonNode.DeepEquals(
+                await response.Content.ReadFromJsonAsync<JsonObject>(),
+                JsonNode.Parse($$"""{"code": "tile_in_use", "tiles": [{"id": "{{orderId}}", "name": "Zamówienie"}]}""")),
+            Is.True);
+    }
+
     private Task LoadDictionariesOnStartup()
         => Factory.Services.GetRequiredService<DictionaryLoader>().LoadAll(CancellationToken.None);
 

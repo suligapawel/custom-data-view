@@ -86,7 +86,7 @@ public class TileTests
         var tile = Tile.Create(Customer("Nazwa"));
         var shipping = new TileReference(Guid.NewGuid(), "Dostawa");
 
-        var exception = Assert.Throws<TileInUseException>(() => tile.EnsureCanBeDeleted([shipping], []));
+        var exception = Assert.Throws<TileInUseException>(() => tile.EnsureCanBeDeleted([shipping], [], []));
 
         Assert.That(exception!.TileId, Is.EqualTo(tile.Id));
         Assert.That(exception.Tiles, Is.EqualTo(new[] { shipping }));
@@ -99,7 +99,7 @@ public class TileTests
         var results = new TileReference(Guid.NewGuid(), "Wyniki");
         var search = new TileReference(Guid.NewGuid(), "Wyszukiwarka");
 
-        var exception = Assert.Throws<TileInUseException>(() => tile.EnsureCanBeDeleted([results], [results, search]));
+        var exception = Assert.Throws<TileInUseException>(() => tile.EnsureCanBeDeleted([results], [results, search], []));
 
         Assert.That(exception!.Tiles, Is.EqualTo(new[] { results, search }));
     }
@@ -109,7 +109,7 @@ public class TileTests
     {
         var tile = Tile.Create(Customer("Nazwa"));
 
-        Assert.DoesNotThrow(() => tile.EnsureCanBeDeleted([], []));
+        Assert.DoesNotThrow(() => tile.EnsureCanBeDeleted([], [], []));
     }
 
     private static TileDefinition Customer(params string[] labels)

@@ -11,7 +11,10 @@ public sealed class DeleteTileHandler(ITileRepository repository)
     public void Handle(DeleteTile command)
     {
         var tile = repository.Get(command.Id) ?? throw new NotFoundException(command.Id);
-        tile.EnsureCanBeDeleted(repository.GetParents(command.Id), repository.GetActionReferences(command.Id));
+        tile.EnsureCanBeDeleted(
+            repository.GetParents(command.Id),
+            repository.GetActionReferences(command.Id),
+            repository.GetDictionaryUses(command.Id).Select(use => use.Tile).ToList());
         repository.Delete(command.Id);
     }
 }
