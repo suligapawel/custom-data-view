@@ -194,6 +194,7 @@ public class MapperTransformationTests : TileApiTests
                 JsonNode.Parse("""{"label": "Status", "error": {"code": "transformation_failed", "transformation": "mapper", "reason": "dictionary_unavailable"}}""")),
             Is.True,
             preview.ToJsonString());
+        Assert.That(Field(preview, "Poziom")["value"]!.GetValue<int>(), Is.EqualTo(8));
     }
 
     private Task LoadDictionariesOnStartup()
