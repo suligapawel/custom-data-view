@@ -305,6 +305,7 @@ public class MapperTransformationTests : TileApiTests
     [TestCase("missing-tile")]
     [TestCase("self")]
     [TestCase("no-items")]
+    [TestCase("missing-label")]
     [Test(Description = $"{Dir} - #14")]
     public async Task Given_InvalidDictionaryReference_When_UserSavesTile_Then_SaveIsRejected(string problem)
     {
@@ -318,6 +319,7 @@ public class MapperTransformationTests : TileApiTests
         {
             "text" => "Statusy zamówień",
             "missing-tile" => $"{Guid.NewGuid()}:Tłumaczenie",
+            "missing-label" => $"{dictionaryId}:Kolor",
             _ => $"{dictionaryId}:Tłumaczenie"
         };
 

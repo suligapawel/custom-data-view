@@ -47,12 +47,16 @@ public sealed partial record TileDefinition(
             .Select(step => DictionaryReference.TryParse(step.Parameter, out var reference) ? reference : null)
             .Where(reference => reference is not null);
 
-    public IReadOnlyList<string> DictionaryViolations()
+    public IReadOnlyList<string> DictionaryViolations(string valueLabel)
     {
         var violations = new List<string>();
         if (Items is null)
         {
             violations.Add("Kafelek-słownik musi mieć elementy.");
+        }
+        else if (Field(valueLabel) is not { } valueField || !IsItemField(valueField))
+        {
+            violations.Add($"Pole '{valueLabel}' nie jest polem elementu kafelka-słownika.");
         }
 
         return violations;
