@@ -306,6 +306,7 @@ public class MapperTransformationTests : TileApiTests
     [TestCase("self")]
     [TestCase("no-items")]
     [TestCase("missing-label")]
+    [TestCase("required-parameter")]
     [Test(Description = $"{Dir} - #14")]
     public async Task Given_InvalidDictionaryReference_When_UserSavesTile_Then_SaveIsRejected(string problem)
     {
@@ -313,6 +314,7 @@ public class MapperTransformationTests : TileApiTests
         var dictionaryId = problem switch
         {
             "no-items" => await CreateTile(Order(OrderField("$.status", "Tłumaczenie"))),
+            "required-parameter" => await CreateTile(await StatusesWithLanguage(required: true)),
             _ => statusesId
         };
         var parameter = problem switch
@@ -361,6 +363,20 @@ public class MapperTransformationTests : TileApiTests
                 .. fields
             ])
         };
+
+    private async Task<JsonObject> StatusesWithLanguage(bool required)
+    {
+        var connectionId = await CreateConnection(new
+        {
+            name = "Statusy w języku",
+            method = "GET",
+            url = StatusesUrl,
+            queryParameters = new[] { new { name = "lang", required } }
+        });
+        var statuses = Statuses();
+        statuses["sources"]![0]!["connectionId"] = connectionId;
+        return statuses;
+    }
 
     private async Task<Guid> CreateStatusInfoTile()
     {

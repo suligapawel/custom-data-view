@@ -47,7 +47,7 @@ public sealed partial record TileDefinition(
             .Select(step => DictionaryReference.TryParse(step.Parameter, out var reference) ? reference : null)
             .Where(reference => reference is not null);
 
-    public IReadOnlyList<string> DictionaryViolations(string valueLabel)
+    public IReadOnlyList<string> DictionaryViolations(string valueLabel, TileContract contract)
     {
         var violations = new List<string>();
         if (Items is null)
@@ -57,6 +57,11 @@ public sealed partial record TileDefinition(
         else if (Field(valueLabel) is not { } valueField || !IsItemField(valueField))
         {
             violations.Add($"Pole '{valueLabel}' nie jest polem elementu kafelka-słownika.");
+        }
+
+        if (contract.Parameters.Any(parameter => parameter.Required))
+        {
+            violations.Add("Kafelek-słownik nie może mieć wymaganych parametrów.");
         }
 
         return violations;

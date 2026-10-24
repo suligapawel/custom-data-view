@@ -74,7 +74,7 @@ public sealed class TileReferencesPolicy(
         {
             violations.Set(path, $"Kafelek '{reference.TileId}' nie istnieje.");
         }
-        else if (dictionary.DictionaryViolations(reference.ValueLabel) is { Count: > 0 } dictionaryViolations)
+        else if (dictionary.DictionaryViolations(reference.ValueLabel, ContractOf(dictionary)) is { Count: > 0 } dictionaryViolations)
         {
             violations.Set(path, [.. dictionaryViolations]);
         }
