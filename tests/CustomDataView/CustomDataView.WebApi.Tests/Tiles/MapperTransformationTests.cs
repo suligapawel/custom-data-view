@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using CustomDataView.Application.Dictionaries;
+using CustomDataView.Domain.ValueObjects;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -506,6 +507,29 @@ public class MapperTransformationTests : TileApiTests
         var preview = await Preview(orderId);
         Assert.That(Field(preview, "Status")["error"]?["reason"]?.GetValue<string>(), Is.EqualTo("dictionary_unavailable"), preview.ToJsonString());
         statusesResponds.SetResult();
+        Assert.That(await StatusAfterBackgroundLoading(orderId), Is.EqualTo("Nowe"));
+        await stopping.CancelAsync();
+        await service.StopAsync(CancellationToken.None);
+    }
+
+    [Test(Description = $"{Dir} - #11")]
+    public async Task Given_RunningApplication_When_DictionaryLoadIsRequested_Then_BackgroundServiceLoadsItDespiteEarlierFailure()
+    {
+        var statusesId = await CreateTile(Statuses());
+        var orderId = await CreateTile(Order(OrderField("$.status", "Status", Mapper(statusesId, "Tłumaczenie"))));
+        var queue = new DictionaryLoadQueue();
+        using var service = new DictionaryLoadingService(
+            Factory.Services.GetRequiredService<DictionaryLoader>(),
+            queue,
+            NullLogger<DictionaryLoadingService>.Instance);
+        using var stopping = new CancellationTokenSource();
+        await service.StartAsync(stopping.Token);
+        Assert.That(await StatusAfterBackgroundLoading(orderId), Is.EqualTo("Nowe"));
+        Factory.Services.GetRequiredService<MapperDictionaries>().Clear();
+
+        queue.Enqueue([new DictionaryReference(Guid.NewGuid(), "Tłumaczenie")]);
+        queue.Enqueue([new DictionaryReference(statusesId, "Tłumaczenie")]);
+
         Assert.That(await StatusAfterBackgroundLoading(orderId), Is.EqualTo("Nowe"));
         await stopping.CancelAsync();
         await service.StopAsync(CancellationToken.None);

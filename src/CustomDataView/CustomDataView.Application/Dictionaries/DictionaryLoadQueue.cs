@@ -16,4 +16,7 @@ public sealed class DictionaryLoadQueue : IDictionaryLoadQueue
             channel.Writer.TryWrite(batch);
         }
     }
+
+    public IAsyncEnumerable<IReadOnlyList<DictionaryReference>> ReadAll(CancellationToken cancellationToken)
+        => channel.Reader.ReadAllAsync(cancellationToken);
 }
