@@ -40,10 +40,11 @@ public sealed partial record TileDefinition(
 
     public bool IsItemField(TileField field) => Items is not null && (field.Source == Items.Source || field.IsCombined);
 
+    private IEnumerable<TransformationStep> MapperSteps
+        => Fields.SelectMany(tileField => tileField.Transformations).Where(step => step.Key == MapperTransformation.TransformationKey);
+
     public IEnumerable<DictionaryReference> DictionaryReferences()
-        => Fields
-            .SelectMany(field => field.Transformations)
-            .Where(step => step.Key == MapperTransformation.TransformationKey)
+        => MapperSteps
             .Select(step => DictionaryReference.TryParse(step.Parameter, out var reference) ? reference : null)
             .Where(reference => reference is not null);
 
@@ -69,7 +70,7 @@ public sealed partial record TileDefinition(
             violations.Add("Kafelek-słownik nie może mieć stronicowania.");
         }
 
-        if (Fields.SelectMany(field => field.Transformations).Any(step => step.Key == MapperTransformation.TransformationKey))
+        if (MapperSteps.Any())
         {
             violations.Add("Kafelek-słownik nie może sam używać słowników.");
         }

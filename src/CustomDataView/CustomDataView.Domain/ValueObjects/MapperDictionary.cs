@@ -13,13 +13,13 @@ public sealed class MapperDictionary
         this.entries = entries;
     }
 
-    public static bool TryBuild(IEnumerable<(string Key, JsonNode Value)> entries, out MapperDictionary dictionary)
+    public static bool TryBuild(IEnumerable<(object Key, JsonNode Value)> entries, out MapperDictionary dictionary)
     {
         dictionary = null;
         var collected = new Dictionary<string, JsonNode>(StringComparer.Ordinal);
         foreach (var (key, value) in entries)
         {
-            if (!collected.TryAdd(key, value))
+            if (!TryKey(key, out var text) || !collected.TryAdd(text, value))
             {
                 return false;
             }
@@ -27,6 +27,12 @@ public sealed class MapperDictionary
 
         dictionary = new MapperDictionary(collected.ToFrozenDictionary(StringComparer.Ordinal));
         return true;
+    }
+
+    public static bool TryKey(object value, out string key)
+    {
+        key = value is null or JsonNode ? null : TransformationValue.ToText(MapperTransformation.TransformationKey, value);
+        return key is not null;
     }
 
     public bool TryGet(string key, out object value)
