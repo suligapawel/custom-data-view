@@ -465,6 +465,18 @@ public class MapperTransformationTests : TileApiTests
         Assert.That(Field(previewAfterLoading, "Waga statusu")["error"]?["reason"]?.GetValue<string>(), Is.EqualTo("dictionary_unavailable"));
     }
 
+    [Test(Description = $"{Dir} - #18")]
+    public async Task Given_MapperParameterInWrongFormat_When_UserPreviewsUnsavedTile_Then_PreviewIsRejected()
+    {
+        var draft = Order(OrderField("$.status", "Status", Transformation("mapper", "Statusy zamówień")));
+
+        var response = await Client.PostAsJsonAsync($"{TilesUrl}/preview", new { tile = draft });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        var errors = (await response.Content.ReadFromJsonAsync<JsonObject>())!["errors"]!.AsObject();
+        Assert.That(errors.Select(error => error.Key), Is.EqualTo(new[] { "tile.fields[0].transformations[0].parameter" }), errors.ToJsonString());
+    }
+
     private Task LoadDictionariesOnStartup()
         => Factory.Services.GetRequiredService<DictionaryLoader>().LoadAll(CancellationToken.None);
 
