@@ -154,7 +154,8 @@ Examples:
   | [{"key": "NEW", "translation": "Nowe"}, {"key": "NEW", "translation": "Inne"}]        | błąd transformacji z powodem "słownik niedostępny" |
   | [{"key": "NEW", "translation": "Nowe"}, {"translation": "Bez klucza"}]                | błąd transformacji z powodem "słownik niedostępny" |
   | [{"key": "NEW"}]                                                                      | błąd transformacji z powodem "słownik niedostępny" |
-  | [{"key": null, "translation": "Pusty"}, {"key": "NEW", "translation": "Nowe"}]        | wartość "Nowe"                                    |
+  | [{"key": null, "translation": "Pusty"}, {"key": null, "translation": "Inny"},
+     {"key": "NEW", "translation": "Nowe"}]                                                | wartość "Nowe"                                    |
 ```
 
 #### Scenario #11

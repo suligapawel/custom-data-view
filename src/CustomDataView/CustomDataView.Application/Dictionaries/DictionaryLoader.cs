@@ -39,7 +39,7 @@ public sealed class DictionaryLoader(ITileRepository tiles, TilePreviewer previe
                 continue;
             }
 
-            var entries = preview.Items.Select(item => (
+            var entries = preview.Items.Where(item => item.Key is not null).Select(item => (
                 Key: TransformationValue.ToText(null, TransformationValue.FromJson(item.Key)),
                 Value: Field(item, reference.ValueLabel).Value));
             if (MapperDictionary.TryBuild(entries, out var dictionary))
