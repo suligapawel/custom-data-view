@@ -64,6 +64,11 @@ public sealed partial record TileDefinition(
             violations.Add("Kafelek-słownik nie może mieć wymaganych parametrów ani wejść danych.");
         }
 
+        if (Pagination is not null)
+        {
+            violations.Add("Kafelek-słownik nie może mieć stronicowania.");
+        }
+
         return violations;
     }
 

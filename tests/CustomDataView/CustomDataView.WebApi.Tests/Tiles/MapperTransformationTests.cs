@@ -308,6 +308,7 @@ public class MapperTransformationTests : TileApiTests
     [TestCase("missing-label")]
     [TestCase("required-parameter")]
     [TestCase("required-input")]
+    [TestCase("pagination")]
     [Test(Description = $"{Dir} - #14")]
     public async Task Given_InvalidDictionaryReference_When_UserSavesTile_Then_SaveIsRejected(string problem)
     {
@@ -317,6 +318,7 @@ public class MapperTransformationTests : TileApiTests
             "no-items" => await CreateTile(Order(OrderField("$.status", "Tłumaczenie"))),
             "required-parameter" => await CreateTile(await StatusesWithLanguage(required: true)),
             "required-input" => await CreateTile(StatusesFromInput()),
+            "pagination" => await CreateTile(await PagedStatuses()),
             _ => statusesId
         };
         var parameter = problem switch
@@ -377,6 +379,22 @@ public class MapperTransformationTests : TileApiTests
         });
         var statuses = Statuses();
         statuses["sources"]![0]!["connectionId"] = connectionId;
+        return statuses;
+    }
+
+    private async Task<JsonObject> PagedStatuses()
+    {
+        var connectionId = await CreateConnection(new
+        {
+            name = "Statusy stronicowane",
+            method = "GET",
+            url = StatusesUrl,
+            queryParameters = new[] { new { name = "pageNumber", required = false }, new { name = "pageSize", required = false } }
+        });
+        var statuses = Statuses();
+        statuses["display"] = "pagination_table";
+        statuses["sources"]![0]!["connectionId"] = connectionId;
+        statuses["pagination"] = new JsonObject { ["pageSize"] = 10 };
         return statuses;
     }
 
