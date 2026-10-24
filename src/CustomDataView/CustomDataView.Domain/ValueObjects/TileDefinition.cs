@@ -1,6 +1,7 @@
 using CustomDataView.Domain.Dictionaries;
 using CustomDataView.Domain.Policies;
 using CustomDataView.Domain.Services;
+using CustomDataView.Domain.Services.Transformations;
 
 namespace CustomDataView.Domain.ValueObjects;
 
@@ -38,6 +39,24 @@ public sealed partial record TileDefinition(
     public TileChild Child(string key) => Children.FirstOrDefault(child => child.Key == key);
 
     public bool IsItemField(TileField field) => Items is not null && (field.Source == Items.Source || field.IsCombined);
+
+    public IEnumerable<DictionaryReference> DictionaryReferences()
+        => Fields
+            .SelectMany(field => field.Transformations)
+            .Where(step => step.Key == MapperTransformation.TransformationKey)
+            .Select(step => DictionaryReference.TryParse(step.Parameter, out var reference) ? reference : null)
+            .Where(reference => reference is not null);
+
+    public TileDefinition AsDictionarySource()
+        => this with
+        {
+            Sources = Sources.Where(source => source.Key == Items.Source).ToList(),
+            Fields = Fields.Where(IsItemField).ToList(),
+            Children = [],
+            Bindings = [],
+            Actions = [],
+            Pagination = null
+        };
 
     public IReadOnlySet<string> BoundInputs(string node)
         => Bindings

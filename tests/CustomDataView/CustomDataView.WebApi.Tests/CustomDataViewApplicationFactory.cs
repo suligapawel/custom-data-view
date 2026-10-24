@@ -1,3 +1,4 @@
+using CustomDataView.Application.Dictionaries;
 using CustomDataView.Domain.Repositories;
 using CustomDataView.Infrastructure.ExternalApi;
 using Microsoft.AspNetCore.Hosting;
@@ -20,6 +21,7 @@ public class CustomDataViewApplicationFactory : WebApplicationFactory<Program>
     {
         Services.GetRequiredService<TestConnectionRepository>().Clear();
         Services.GetRequiredService<TestTileRepository>().Clear();
+        Services.GetRequiredService<MapperDictionaries>().Clear();
         ExternalApi.Reset();
         Time.Reset();
         var options = Services.GetRequiredService<IOptions<ExternalApiOptions>>().Value;

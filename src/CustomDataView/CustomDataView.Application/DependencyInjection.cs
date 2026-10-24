@@ -1,3 +1,4 @@
+using CustomDataView.Application.Dictionaries;
 using CustomDataView.Application.Tiles.Preview;
 using CustomDataView.Application.Tiles.Validation;
 using CustomDataView.Domain.Services;
@@ -15,6 +16,7 @@ public static class DependencyInjection
         services.AddCustomDataViewCombinations();
         services.AddSingleton<TileReferencesValidator>();
         services.AddSingleton<TilePreviewer>();
+        services.AddSingleton<DictionaryLoader>();
         services.AddSingleton(TimeProvider.System);
         return services;
     }
@@ -24,6 +26,8 @@ public static class DependencyInjection
         services.AddSingleton<ITransformation, DateFormatTransformation>();
         services.AddSingleton<ITransformation, LowercaseTransformation>();
         services.AddSingleton<ITransformation, MapperTransformation>();
+        services.AddSingleton<MapperDictionaries>();
+        services.AddSingleton<IMapperDictionaries>(provider => provider.GetRequiredService<MapperDictionaries>());
         services.AddSingleton<ITransformation, PrefixTransformation>();
         services.AddSingleton<ITransformation, RoundTransformation>();
         services.AddSingleton<ITransformation, SuffixTransformation>();
