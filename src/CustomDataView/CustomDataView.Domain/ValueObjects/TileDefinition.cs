@@ -59,9 +59,9 @@ public sealed partial record TileDefinition(
             violations.Add($"Pole '{valueLabel}' nie jest polem elementu kafelka-słownika.");
         }
 
-        if (contract.Parameters.Any(parameter => parameter.Required))
+        if (contract.Parameters.Any(parameter => parameter.Required) || contract.Inputs.Count > 0)
         {
-            violations.Add("Kafelek-słownik nie może mieć wymaganych parametrów.");
+            violations.Add("Kafelek-słownik nie może mieć wymaganych parametrów ani wejść danych.");
         }
 
         return violations;

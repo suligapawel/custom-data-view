@@ -307,6 +307,7 @@ public class MapperTransformationTests : TileApiTests
     [TestCase("no-items")]
     [TestCase("missing-label")]
     [TestCase("required-parameter")]
+    [TestCase("required-input")]
     [Test(Description = $"{Dir} - #14")]
     public async Task Given_InvalidDictionaryReference_When_UserSavesTile_Then_SaveIsRejected(string problem)
     {
@@ -315,6 +316,7 @@ public class MapperTransformationTests : TileApiTests
         {
             "no-items" => await CreateTile(Order(OrderField("$.status", "Tłumaczenie"))),
             "required-parameter" => await CreateTile(await StatusesWithLanguage(required: true)),
+            "required-input" => await CreateTile(StatusesFromInput()),
             _ => statusesId
         };
         var parameter = problem switch
@@ -375,6 +377,13 @@ public class MapperTransformationTests : TileApiTests
         });
         var statuses = Statuses();
         statuses["sources"]![0]!["connectionId"] = connectionId;
+        return statuses;
+    }
+
+    private JsonObject StatusesFromInput()
+    {
+        var statuses = Statuses();
+        statuses["sources"] = new JsonArray(new JsonObject { ["key"] = "statuses", ["kind"] = "input" });
         return statuses;
     }
 
