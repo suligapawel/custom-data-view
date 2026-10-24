@@ -135,6 +135,9 @@ albo źródło i ścieżkę, albo wiersz w `tile_field_combinations`, sprawdza a
 
 PK: `(tile_id, field_label, position)`. FK: `(tile_id, field_label)` → `tile_fields (tile_id, label)`
 `ON DELETE CASCADE`.
+Transformacja `mapper` (TEMP-045) zapisuje w `parameter` odwołanie do słownika `"<tileId>:<etykieta pola wartości>"`.
+Użycia kafelka jako słownika (blokady edycji i usuwania, przeładowanie po zapisie) odczytuje zapytanie
+`key = 'mapper' AND parameter LIKE '<tileId>:%'`; schemat się nie zmienia, a słowniki żyją tylko w pamięci aplikacji.
 
 ### custom_data_view.tile_field_combinations
 

@@ -42,3 +42,7 @@ tabeli odczytów.
 W odpowiedzi podglądu panel zwraca swoje pola i dwa osadzenia (`days`, `station`) ze stanem `data`; osadzenie
 `station` zawiera zagnieżdżony podgląd etykiety z osadzeniem `readings` pod adresem `station/readings`. Prognoza
 korzenia i tabeli `days` ma te same wartości parametrów, więc połączenie jest wywoływane raz.
+8. `07-dictionaries.http` (niezależny od 01–06, korzysta z `FakeCityEndpoints`) — transformacja `mapper` (TEMP-045):
+   kafelek-słownik „Słownik miast” (identyfikator → nazwa), kafelek „Miasto po identyfikatorze” zamieniający
+   identyfikator na nazwę, podgląd po załadowaniu słownika w tle, brak klucza (`missing_dictionary_key`),
+   odrzucony parametr i blokada edycji słownika (`dictionary_in_use`).

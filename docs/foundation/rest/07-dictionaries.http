@@ -1,0 +1,131 @@
+# Transformacja mapper (TEMP-045): wartość pola zamieniana na wartość ze słownika z innego kafelka.
+# Korzysta z deweloperskiego API miast (FakeCityEndpoints). Niezależne od plików 01–06.
+#
+# Słownik miast (table)              elementy: $.cities[*], klucz „ID” → wartość „Nazwa”
+# Miasto po identyfikatorze (details) pole „Miasto” = $.id zamienione słownikiem na nazwę
+#
+# Słowniki ładują się w tle po starcie aplikacji i po zapisie kafelka z nowym odwołaniem — po utworzeniu kafelka
+# „Miasto po identyfikatorze” odczekaj chwilę przed podglądem.
+
+### Połączenie „Wszystkie miasta” (słownik, parametr opcjonalny z wartością domyślną)
+POST {{host}}/api/custom-data-view/connections
+Content-Type: application/json
+
+{
+  "name": "Wszystkie miasta",
+  "method": "GET",
+  "url": "{{host}}/api/fake/cities",
+  "queryParameters": [ { "name": "pageSize", "required": false, "defaultValue": "100" } ]
+}
+
+> {%
+    client.global.set("dictionaryConnectionId", response.body.id);
+%}
+
+### Połączenie „Miasto (słowniki)”
+POST {{host}}/api/custom-data-view/connections
+Content-Type: application/json
+
+{
+  "name": "Miasto (słowniki)",
+  "method": "GET",
+  "url": "{{host}}/api/fake/cities/{city_id}",
+  "pathParameters": [ { "name": "city_id", "required": true } ]
+}
+
+> {%
+    client.global.set("dictionaryCityConnectionId", response.body.id);
+%}
+
+### Kafelek-słownik „Słownik miast”
+POST {{host}}/api/custom-data-view/tiles
+Content-Type: application/json
+
+{
+  "name": "Słownik miast",
+  "display": "table",
+  "sources": [ { "key": "cities", "kind": "connection", "connectionId": "{{dictionaryConnectionId}}" } ],
+  "items": { "source": "cities", "path": "$.cities[*]", "key": "ID" },
+  "fields": [
+    { "source": "cities", "path": "$.id", "label": "ID" },
+    { "source": "cities", "path": "$.name", "label": "Nazwa", "transformations": [ { "key": "uppercase" } ] },
+    { "source": "cities", "path": "$.country", "label": "Kraj" }
+  ]
+}
+
+> {%
+    client.global.set("cityDictionaryId", response.body.id);
+%}
+
+### Kafelek „Miasto po identyfikatorze” (zleca załadowanie słownika w tle)
+POST {{host}}/api/custom-data-view/tiles
+Content-Type: application/json
+
+{
+  "name": "Miasto po identyfikatorze",
+  "display": "details",
+  "sources": [ { "key": "city", "kind": "connection", "connectionId": "{{dictionaryCityConnectionId}}" } ],
+  "fields": [
+    { "source": "city", "path": "$.id", "label": "ID" },
+    { "source": "city", "path": "$.id", "label": "Miasto",
+      "transformations": [ { "key": "mapper", "parameter": "{{cityDictionaryId}}:Nazwa" } ] },
+    { "source": "city", "path": "$.id", "label": "Kraj",
+      "transformations": [ { "key": "mapper", "parameter": "{{cityDictionaryId}}:Kraj" } ] }
+  ]
+}
+
+> {%
+    client.global.set("cityByIdTileId", response.body.id);
+%}
+
+### Podgląd: „Miasto” = „KRAKÓW”, „Kraj” = „Polska”; połączenie słownika nie jest wywoływane
+GET {{host}}/api/custom-data-view/tiles/{{cityByIdTileId}}/preview?city_id=1
+
+### Podgląd miasta spoza słownika: API zwraca 404, więc pola mają source_unavailable
+GET {{host}}/api/custom-data-view/tiles/{{cityByIdTileId}}/preview?city_id=99
+
+### Podgląd szkicu z identyfikatorem spoza słownika: „Miasto” ma reason missing_dictionary_key
+POST {{host}}/api/custom-data-view/tiles/preview
+Content-Type: application/json
+
+{
+  "tile": {
+    "name": "Miasto ze stałej",
+    "display": "details",
+    "sources": [ { "key": "city", "kind": "connection", "connectionId": "{{dictionaryCityConnectionId}}" } ],
+    "fields": [
+      { "source": "city", "path": "$.population", "label": "Miasto",
+        "transformations": [ { "key": "mapper", "parameter": "{{cityDictionaryId}}:Nazwa" } ] }
+    ]
+  },
+  "parameters": { "city_id": 1 }
+}
+
+### Odrzucony zapis: parametr mappera w złym formacie (400)
+POST {{host}}/api/custom-data-view/tiles
+Content-Type: application/json
+
+{
+  "name": "Błędny słownik",
+  "display": "details",
+  "sources": [ { "key": "city", "kind": "connection", "connectionId": "{{dictionaryCityConnectionId}}" } ],
+  "fields": [
+    { "source": "city", "path": "$.id", "label": "Miasto",
+      "transformations": [ { "key": "mapper", "parameter": "Słownik miast" } ] }
+  ]
+}
+
+### Zablokowana edycja słownika: usunięcie pola „Nazwa” daje 409 dictionary_in_use
+PUT {{host}}/api/custom-data-view/tiles/{{cityDictionaryId}}
+Content-Type: application/json
+
+{
+  "name": "Słownik miast",
+  "display": "table",
+  "sources": [ { "key": "cities", "kind": "connection", "connectionId": "{{dictionaryConnectionId}}" } ],
+  "items": { "source": "cities", "path": "$.cities[*]", "key": "ID" },
+  "fields": [
+    { "source": "cities", "path": "$.id", "label": "ID" },
+    { "source": "cities", "path": "$.country", "label": "Kraj" }
+  ]
+}

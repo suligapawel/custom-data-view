@@ -56,6 +56,14 @@ Pełna lista kroków przed wdrożeniem jest w `docs/foundation/pre-deployment.md
   listy), `template` (wzorzec z etykietami w klamrach, np. `"{Ulica} {Nr}, {Miasto}"`), `object` (obiekt z kluczami
   równymi etykietom) i `coalesce` (pierwsza wartość różna od `null`). Wejściami są inne pola kafelka po transformacjach,
   zwykle ukryte; w kafelku z elementami — pola elementu.
+- **Słowniki** (`mapper`): transformacja `{ "key": "mapper", "parameter": "<tileId>:<etykieta pola wartości>" }`
+  zamienia wartość pola na wartość ze słownika. Słownikiem jest zwykły kafelek z `items`: kluczem jest pole
+  `items.key`, a wartością wskazane pole elementu (po transformacjach; liczba zostaje liczbą, klucze porównywane są
+  jako tekst). Słowniki ładują się do pamięci w tle po starcie aplikacji (ze wszystkich odwołań `mapper`) i po
+  zapisie kafelka-słownika albo kafelka z nowym odwołaniem; nie są odświeżane okresowo. Brak klucza daje
+  `transformation_failed` z powodem `missing_dictionary_key`, a niezaładowany słownik — `dictionary_unavailable`.
+  Kafelek-słownik nie może mieć wymaganych parametrów ani wejść, stronicowania ani własnych kroków `mapper`; edycja,
+  która psuje odwołania, daje 409 `dictionary_in_use`, a usunięcie — 409 `tile_in_use`.
 - **Dzieci** to osadzenia innych kafelków (`key`, `tileId`, `position`, `cssClass`, `scope`: `tile`/`item`,
   `load`: `eager`/`lazy`), najwyżej 3 poziomy. Każde dziecko ma własny `display`; pola rodzica wyświetlają się przed
   dziećmi. Kafelek złożony pełni rolę widoku — osobnych widoków nie ma.
@@ -212,3 +220,5 @@ wywołań instancji dzieci. Osadzenia ponad limit dostają `awaiting_load`.
 | Usunięcie połączenia używanego przez źródło kafelka | 409 `connection_in_use` z listą kafelków |
 | Usunięcie kafelka osadzonego w innym kafelku | 409 `tile_in_use` z listą rodziców |
 | Edycja usuwająca albo zmieniająca etykietę pola użytego w wiązaniu rodzica | 409 `field_in_use` z polami i rodzicami |
+| Edycja kafelka-słownika psująca odwołania `mapper` | 409 `dictionary_in_use` z polami wartości i kafelkami |
+| Usunięcie kafelka używanego jako słownik | 409 `tile_in_use` z kafelkami używającymi słownika |
