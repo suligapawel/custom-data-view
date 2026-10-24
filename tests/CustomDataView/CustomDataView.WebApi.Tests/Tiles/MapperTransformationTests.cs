@@ -226,6 +226,20 @@ public class MapperTransformationTests : TileApiTests
             preview.ToJsonString());
     }
 
+    [Test(Description = $"{Dir} - #11")]
+    public async Task Given_NoTileUsedDictionaryOnStartup_When_UserSavesTileWithMapper_Then_DictionaryIsLoadedInBackground()
+    {
+        var statusesId = await CreateTile(Statuses());
+        await LoadDictionariesOnStartup();
+
+        var orderId = await CreateTile(Order(OrderField("$.status", "Status", Mapper(statusesId, "Tłumaczenie"))));
+
+        Assert.That(StatusRequests(), Is.Zero);
+        await Factory.DictionaryLoads.ProcessPending();
+        var preview = await Preview(orderId);
+        Assert.That(Value(preview, "Status"), Is.EqualTo("Nowe"), preview.ToJsonString());
+    }
+
     private Task LoadDictionariesOnStartup()
         => Factory.Services.GetRequiredService<DictionaryLoader>().LoadAll(CancellationToken.None);
 
