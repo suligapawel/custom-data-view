@@ -126,9 +126,18 @@ public class MapperTransformationTests : TileApiTests
     {
         orderResponse = """{"status": "LOST", "level": 6}""";
         var statusesId = await CreateTile(Statuses());
-        var orderId = await CreateTile(Order(
+        var infoId = await CreateStatusInfoTile();
+        var order = Order(
             OrderField("$.status", "Status", Mapper(statusesId, "Tłumaczenie")),
-            OrderField("$.level", "Poziom")));
+            OrderField("$.level", "Poziom"));
+        order["children"] = new JsonArray(new JsonObject { ["key"] = "info", ["tileId"] = infoId, ["position"] = 0 });
+        order["bindings"] = new JsonArray(new JsonObject
+        {
+            ["from"] = "parent",
+            ["to"] = "info",
+            ["map"] = new JsonArray(new JsonObject { ["field"] = "Status", ["parameter"] = "status" })
+        });
+        var orderId = await CreateTile(order);
         await LoadDictionariesOnStartup();
 
         var preview = await Preview(orderId);
@@ -139,6 +148,11 @@ public class MapperTransformationTests : TileApiTests
                 JsonNode.Parse("""{"label": "Status", "error": {"code": "transformation_failed", "transformation": "mapper", "reason": "missing_dictionary_key"}}""")),
             Is.True,
             preview.ToJsonString());
+        var info = preview["children"]![0]!;
+        Assert.That(info["state"]!.GetValue<string>(), Is.EqualTo("error"));
+        Assert.That(info["error"]!["code"]!.GetValue<string>(), Is.EqualTo("dependency_failed"));
+        Assert.That(info["error"]!["cause"]!["field"]!.GetValue<string>(), Is.EqualTo("Status"));
+        Assert.That(Field(preview, "Poziom")["value"]!.GetValue<int>(), Is.EqualTo(6));
     }
 
     private Task LoadDictionariesOnStartup()
@@ -161,6 +175,24 @@ public class MapperTransformationTests : TileApiTests
                 .. fields
             ])
         };
+
+    private async Task<Guid> CreateStatusInfoTile()
+    {
+        var infoConnectionId = await CreateConnection(new
+        {
+            name = "Opis statusu",
+            method = "GET",
+            url = "https://api.example.com/status-info",
+            queryParameters = new[] { new { name = "status", required = true } }
+        });
+        return await CreateTile(new JsonObject
+        {
+            ["name"] = "Opis statusu",
+            ["display"] = "details",
+            ["sources"] = new JsonArray(new JsonObject { ["key"] = "info", ["kind"] = "connection", ["connectionId"] = infoConnectionId }),
+            ["fields"] = new JsonArray(SourceField("info", "$.description", "Opis", []))
+        });
+    }
 
     private async Task<JsonObject> Levels()
     {
