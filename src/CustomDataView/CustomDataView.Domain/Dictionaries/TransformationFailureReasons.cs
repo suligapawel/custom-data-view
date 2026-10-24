@@ -9,4 +9,6 @@ public static class TransformationFailureReasons
     public const string UnknownTransformation = "unknown_transformation";
 
     public const string MissingDictionaryKey = "missing_dictionary_key";
+
+    public const string DictionaryUnavailable = "dictionary_unavailable";
 }

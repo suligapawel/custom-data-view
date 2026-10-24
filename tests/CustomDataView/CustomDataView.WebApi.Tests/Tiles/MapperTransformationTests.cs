@@ -25,15 +25,19 @@ public class MapperTransformationTests : TileApiTests
 
     private Guid statusesConnectionId;
     private Guid ordersConnectionId;
-    private string levelsResponse = "[]";
-    private string orderResponse = OrderResponse;
+    private string levelsResponse;
+    private string orderResponse;
+    private bool statusesAvailable;
 
     [SetUp]
     public async Task CreateDictionaryConnections()
     {
+        levelsResponse = "[]";
+        orderResponse = OrderResponse;
+        statusesAvailable = true;
         Factory.ExternalApi.Respond = (request, _) => Task.FromResult(request.RequestUri!.AbsolutePath switch
         {
-            "/statuses" => Json(StatusesResponse),
+            "/statuses" when statusesAvailable => Json(StatusesResponse),
             "/orders/1" => Json(orderResponse),
             "/levels" => Json(levelsResponse),
             _ => new HttpResponseMessage(HttpStatusCode.NotFound)
@@ -166,6 +170,28 @@ public class MapperTransformationTests : TileApiTests
 
         Assert.That(
             JsonNode.DeepEquals(Field(preview, "Notatka"), JsonNode.Parse("""{"label": "Notatka", "value": null}""")),
+            Is.True,
+            preview.ToJsonString());
+    }
+
+    [Test(Description = $"{Dir} - #9")]
+    public async Task Given_DictionarySourceDownOnStartup_When_TileIsSavedAgain_Then_DictionaryBecomesAvailable()
+    {
+        levelsResponse = """[{"from": 6, "to": 8}]""";
+        var statusesId = await CreateTile(Statuses());
+        var levelsId = await CreateTile(await Levels());
+        var orderId = await CreateTile(Order(
+            OrderField("$.status", "Status", Mapper(statusesId, "Tłumaczenie")),
+            OrderField("$.level", "Poziom", Mapper(levelsId, "Na"))));
+        statusesAvailable = false;
+        await LoadDictionariesOnStartup();
+
+        var preview = await Preview(orderId);
+
+        Assert.That(
+            JsonNode.DeepEquals(
+                Field(preview, "Status"),
+                JsonNode.Parse("""{"label": "Status", "error": {"code": "transformation_failed", "transformation": "mapper", "reason": "dictionary_unavailable"}}""")),
             Is.True,
             preview.ToJsonString());
     }

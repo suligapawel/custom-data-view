@@ -22,7 +22,11 @@ public sealed class MapperTransformation(IMapperDictionaries dictionaries) : Tra
     protected override object Transform(object value, string parameter)
     {
         DictionaryReference.TryParse(parameter, out var reference);
-        dictionaries.TryGet(reference, out var dictionary);
+        if (!dictionaries.TryGet(reference, out var dictionary))
+        {
+            throw new TransformationFailedException(Key, TransformationFailureReasons.DictionaryUnavailable);
+        }
+
         return dictionary.TryGet(TransformationValue.ToText(Key, value), out var mapped)
             ? mapped
             : throw new TransformationFailedException(Key, TransformationFailureReasons.MissingDictionaryKey);

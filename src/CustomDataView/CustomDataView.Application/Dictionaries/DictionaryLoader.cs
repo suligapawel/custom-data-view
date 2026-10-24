@@ -25,6 +25,11 @@ public sealed class DictionaryLoader(ITileRepository tiles, TilePreviewer previe
             definition.AsDictionarySource(),
             TilePreviewValues.Of(new Dictionary<string, JsonElement>()),
             cancellationToken);
+        if (preview.Items is null)
+        {
+            return;
+        }
+
         foreach (var reference in references)
         {
             dictionaries.Set(reference, MapperDictionary.Build(preview.Items.Select(item => (
