@@ -350,6 +350,7 @@ public class MapperTransformationTests : TileApiTests
     [TestCase("mapper")]
     [TestCase("required-parameter-source")]
     [TestCase("input-source")]
+    [TestCase("change-items-key")]
     [Test(Description = $"{Dir} - #15")]
     public async Task Given_DictionaryUsedByTile_When_UserBreaksDictionaryTile_Then_EditIsBlocked(string change)
     {
@@ -376,6 +377,9 @@ public class MapperTransformationTests : TileApiTests
                 break;
             case "input-source":
                 statuses["sources"]!.AsArray().Add(new JsonObject { ["key"] = "extra", ["kind"] = "input" });
+                break;
+            case "change-items-key":
+                statuses["items"]!["key"] = "Waga";
                 break;
             case "pagination":
                 break;

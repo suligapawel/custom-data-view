@@ -43,7 +43,10 @@ public sealed class Tile
 
     public void EnsureDictionariesKept(TileDefinition definition, IReadOnlyList<TileDictionaryUse> dictionaryUses, TileContract contract)
     {
-        var broken = dictionaryUses.Where(use => definition.DictionaryViolations(use.ValueLabel, contract).Count > 0).ToList();
+        var keyChanged = !TileLabels.AreEqual(definition.Items?.Key, Definition.Items?.Key);
+        var broken = dictionaryUses
+            .Where(use => keyChanged || definition.DictionaryViolations(use.ValueLabel, contract).Count > 0)
+            .ToList();
         if (broken.Count > 0)
         {
             throw new DictionaryInUseException(
