@@ -1,3 +1,4 @@
+using CustomDataView.Domain.ValueObjects;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -11,20 +12,25 @@ public sealed class DictionaryLoadingService(
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         await Task.Yield();
-        await loader.LoadAll(stoppingToken);
+        await LoadSafely(() => loader.LoadAll(stoppingToken), []);
         await foreach (var references in queue.ReadAll(stoppingToken))
         {
-            try
-            {
-                await loader.Load(references, stoppingToken);
-            }
-            catch (Exception exception) when (exception is not OperationCanceledException)
-            {
-                logger.LogWarning(
-                    "Dictionary loading failed for tiles {TileIds} with {ExceptionType}.",
-                    references.Select(reference => reference.TileId).Distinct(),
-                    exception.GetType().Name);
-            }
+            await LoadSafely(() => loader.Load(references, stoppingToken), references);
+        }
+    }
+
+    private async Task LoadSafely(Func<Task> load, IReadOnlyList<DictionaryReference> references)
+    {
+        try
+        {
+            await load();
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            logger.LogWarning(
+                "Dictionary loading failed for tiles {TileIds} with {ExceptionType}.",
+                references.Select(reference => reference.TileId).Distinct(),
+                exception.GetType().Name);
         }
     }
 }

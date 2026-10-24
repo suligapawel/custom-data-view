@@ -535,6 +535,27 @@ public class MapperTransformationTests : TileApiTests
         await service.StopAsync(CancellationToken.None);
     }
 
+    [Test(Description = $"{Dir} - #19")]
+    public async Task Given_TilesUnavailableOnStartup_When_ApplicationStarts_Then_BackgroundServiceKeepsServingLoadRequests()
+    {
+        var statusesId = await CreateTile(Statuses());
+        var orderId = await CreateTile(Order(OrderField("$.status", "Status", Mapper(statusesId, "Tłumaczenie"))));
+        var queue = new DictionaryLoadQueue();
+        using var service = new DictionaryLoadingService(
+            Factory.Services.GetRequiredService<DictionaryLoader>(),
+            queue,
+            NullLogger<DictionaryLoadingService>.Instance);
+        using var stopping = new CancellationTokenSource();
+        Factory.Services.GetRequiredService<TestTileRepository>().FailsToListTiles = true;
+
+        await service.StartAsync(stopping.Token);
+        queue.Enqueue([new DictionaryReference(statusesId, "Tłumaczenie")]);
+
+        Assert.That(await StatusAfterBackgroundLoading(orderId), Is.EqualTo("Nowe"));
+        await stopping.CancelAsync();
+        await service.StopAsync(CancellationToken.None);
+    }
+
     private async Task<string> StatusAfterBackgroundLoading(Guid orderId)
     {
         for (var attempt = 0; attempt < 50; attempt++)

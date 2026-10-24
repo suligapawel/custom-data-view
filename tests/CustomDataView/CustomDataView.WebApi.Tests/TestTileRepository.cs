@@ -14,7 +14,9 @@ public sealed class TestTileRepository : ITileRepository
 
     public Tile Get(Guid id) => tiles.SingleOrDefault(tile => tile.Id == id);
 
-    public IReadOnlyList<Tile> GetAll() => tiles.ToList();
+    public bool FailsToListTiles { get; set; }
+
+    public IReadOnlyList<Tile> GetAll() => FailsToListTiles ? throw new InvalidOperationException("Tiles are unavailable.") : tiles.ToList();
 
     public void Update(Tile tile)
     {
@@ -88,6 +90,7 @@ public sealed class TestTileRepository : ITileRepository
 
     public void Clear()
     {
+        FailsToListTiles = false;
         tiles.Clear();
     }
 }
