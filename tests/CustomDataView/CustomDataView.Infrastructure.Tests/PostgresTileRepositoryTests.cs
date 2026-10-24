@@ -2,6 +2,7 @@ using CustomDataView.Domain.Dictionaries;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using CustomDataView.Domain.Entities;
+using CustomDataView.Domain.Policies;
 using CustomDataView.Domain.Repositories;
 using CustomDataView.Domain.Services.Transformations;
 using CustomDataView.Domain.ValueObjects;
@@ -316,6 +317,38 @@ public class PostgresTileRepositoryTests
 
         Assert.That(() => repository.Add(tile), Throws.InstanceOf<Microsoft.EntityFrameworkCore.DbUpdateException>());
         Assert.That(repository.Get(tile.Id), Is.Null);
+    }
+
+    [Test]
+    public void Given_TilesMappingWithDictionaries_When_DictionaryUsesAreLoaded_Then_DistinctTilesAndValueLabelsOfThatDictionaryAreReturned()
+    {
+        var dictionary = Tile.Restore(Guid.NewGuid(), Definition("Statusy", []));
+        var otherDictionary = Tile.Restore(Guid.NewGuid(), Definition("Poziomy", []));
+        var orders = Tile.Restore(Guid.NewGuid(), Definition("Zamówienia",
+        [
+            new TileField("customer", "$.status", "Status", [new TransformationStep("mapper", $"{dictionary.Id}:Tłumaczenie")]),
+            new TileField("customer", "$.previous", "Poprzedni", [new TransformationStep("mapper", $"{dictionary.Id}: tłumaczenie ")]),
+            new TileField("customer", "$.weight", "Waga", [new TransformationStep("mapper", $"{dictionary.Id}:Waga")]),
+            new TileField("customer", "$.level", "Poziom", [new TransformationStep("mapper", $"{otherDictionary.Id}:Na")])
+        ]));
+        var invoices = Tile.Restore(Guid.NewGuid(), Definition("Faktury",
+        [
+            new TileField("customer", "$.status", "Status", [new TransformationStep("uppercase"), new TransformationStep("mapper", $"{dictionary.Id}:Tłumaczenie")])
+        ]));
+        repository.Add(dictionary);
+        repository.Add(otherDictionary);
+        repository.Add(orders);
+        repository.Add(invoices);
+
+        var uses = repository.GetDictionaryUses(dictionary.Id);
+
+        Assert.That(uses.Select(use => (use.Tile.Id, use.Tile.Name, TileLabels.Normalize(use.ValueLabel))), Is.EquivalentTo(new[]
+        {
+            (orders.Id, "Zamówienia", "tłumaczenie"),
+            (orders.Id, "Zamówienia", "waga"),
+            (invoices.Id, "Faktury", "tłumaczenie")
+        }));
+        Assert.That(repository.GetDictionaryUses(invoices.Id), Is.Empty);
     }
 
     private TileDefinition Definition(string name, IReadOnlyList<TileField> fields)

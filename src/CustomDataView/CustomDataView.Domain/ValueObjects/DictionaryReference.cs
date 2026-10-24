@@ -12,6 +12,7 @@ public sealed record DictionaryReference(Guid TileId, string ValueLabel)
         if (parameter is null
             || parameter.Length <= GuidLength
             || parameter[GuidLength] != ':'
+            || string.IsNullOrWhiteSpace(parameter[(GuidLength + 1)..])
             || !Guid.TryParseExact(parameter[..GuidLength], "D", out var tileId))
         {
             return false;
