@@ -42,6 +42,8 @@ public class MapperTransformationTests : TileApiTests
             "/statuses" when statusesAvailable => Json(statusesResponse),
             "/orders/1" => Json(orderResponse),
             "/levels" => Json(levelsResponse),
+            "/categories" => Json("""{"name": "Sprzedaż"}"""),
+            "/status-details" => Json("""{"description": "Szczegóły"}"""),
             _ => new HttpResponseMessage(HttpStatusCode.NotFound)
         });
         statusesConnectionId = await CreateConnection(new { name = "Statusy", method = "GET", url = StatusesUrl });
@@ -261,6 +263,42 @@ public class MapperTransformationTests : TileApiTests
 
         var preview = await Preview(orderId);
         Assert.That(Field(preview, "Status")["error"]?["reason"]?.GetValue<string>(), Is.EqualTo("dictionary_unavailable"), preview.ToJsonString());
+    }
+
+    [Test(Description = $"{Dir} - #13")]
+    public async Task Given_DictionaryTileWithOtherSourcesAndChildren_When_DictionariesAreLoaded_Then_OnlyItemsSourceIsCalledWithDefaultParameters()
+    {
+        var statusesWithLanguageId = await CreateConnection(new
+        {
+            name = "Statusy",
+            method = "GET",
+            url = StatusesUrl,
+            queryParameters = new[] { new { name = "lang", required = false, defaultValue = "pl" } }
+        });
+        var categoriesId = await CreateConnection(new { name = "Kategorie", method = "GET", url = "https://api.example.com/categories" });
+        var detailsConnectionId = await CreateConnection(new { name = "Szczegóły", method = "GET", url = "https://api.example.com/status-details" });
+        var detailsId = await CreateTile(new JsonObject
+        {
+            ["name"] = "Szczegóły statusu",
+            ["display"] = "details",
+            ["sources"] = new JsonArray(new JsonObject { ["key"] = "details", ["kind"] = "connection", ["connectionId"] = detailsConnectionId }),
+            ["fields"] = new JsonArray(SourceField("details", "$.description", "Opis", []))
+        });
+        var category = SourceField("categories", "$.name", "Kategoria", []);
+        category["hidden"] = true;
+        var statuses = Statuses(category);
+        statuses["sources"]![0]!["connectionId"] = statusesWithLanguageId;
+        statuses["sources"]!.AsArray().Add(new JsonObject { ["key"] = "categories", ["kind"] = "connection", ["connectionId"] = categoriesId });
+        statuses["children"] = new JsonArray(new JsonObject { ["key"] = "details", ["tileId"] = detailsId, ["position"] = 0 });
+        var statusesId = await CreateTile(statuses);
+        await CreateTile(Order(OrderField("$.status", "Status", Mapper(statusesId, "Tłumaczenie"))));
+        var requestsBeforeLoading = Factory.ExternalApi.Requests.Count;
+
+        await LoadDictionariesOnStartup();
+
+        Assert.That(
+            Factory.ExternalApi.Requests.Skip(requestsBeforeLoading).Select(request => request.Url),
+            Is.EqualTo(new[] { $"{StatusesUrl}?lang=pl" }));
     }
 
     private Task LoadDictionariesOnStartup()
