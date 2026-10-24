@@ -10,7 +10,7 @@ namespace CustomDataView.Application.Tests.Transformations;
 public class TransformationCatalogTests
 {
     [Test(Description = "scenario_TEMP-001-006 - #1")]
-    public void Given_ConfiguredModule_When_UserBrowsesCatalog_Then_SevenTransformationsAreSortedByKey()
+    public void Given_ConfiguredModule_When_UserBrowsesCatalog_Then_EightTransformationsAreSortedByKey()
     {
         var handler = CreateHandler();
 
@@ -18,12 +18,12 @@ public class TransformationCatalogTests
 
         Assert.That(
             transformations.Select(transformation => transformation.Key),
-            Is.EqualTo(new[] { "date_format", "lowercase", "prefix", "round", "suffix", "truncate", "uppercase" }));
+            Is.EqualTo(new[] { "date_format", "lowercase", "mapper", "prefix", "round", "suffix", "truncate", "uppercase" }));
         Assert.That(
             transformations.Select(transformation => transformation.Name),
             Is.EqualTo(new[]
             {
-                "Formatowanie daty", "Małe litery", "Prefiks", "Zaokrąglenie", "Sufiks", "Przycięcie tekstu", "Wielkie litery"
+                "Formatowanie daty", "Małe litery", "Słownik", "Prefiks", "Zaokrąglenie", "Sufiks", "Przycięcie tekstu", "Wielkie litery"
             }));
         Assert.That(transformations.Select(transformation => transformation.Description), Has.All.Not.Empty);
         Assert.That(
@@ -43,6 +43,7 @@ public class TransformationCatalogTests
         Assert.That(parameters["prefix"], Is.EqualTo(new TransformationParameterDto("text", "string")));
         Assert.That(parameters["suffix"], Is.EqualTo(new TransformationParameterDto("text", "string")));
         Assert.That(parameters["truncate"], Is.EqualTo(new TransformationParameterDto("max_length", "integer")));
+        Assert.That(parameters["mapper"], Is.EqualTo(new TransformationParameterDto("dictionary", "string")));
         Assert.That(parameters["uppercase"], Is.Null);
         Assert.That(parameters["lowercase"], Is.Null);
     }
@@ -59,7 +60,7 @@ public class TransformationCatalogTests
                 .Where(IsCommand),
             Is.Empty);
         Assert.Throws<NotSupportedException>(() => transformations.Clear());
-        Assert.That(handler.Handle(new GetTransformations()), Has.Count.EqualTo(7));
+        Assert.That(handler.Handle(new GetTransformations()), Has.Count.EqualTo(8));
     }
 
     private static GetTransformationsHandler CreateHandler()

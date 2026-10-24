@@ -104,7 +104,7 @@ public interface IMapperDictionaries
 - `MapperTransformation(IMapperDictionaries dictionaries) : Transformation`
   - `Key = "mapper"`, `Name = "Słownik"`.
   - Opis: „Zamienia wartość na wartość ze słownika z kafelka.”
-  - `Parameter = new("dictionary", "text")`.
+  - `Parameter = new("dictionary", TransformationParameterTypes.String)`.
 - `Transform(value, parameter)` (dla `null` klasa bazowa zwraca `null` bez wywołania):
   1. Parametru nie da się odczytać przez `DictionaryReference.TryParse`: `invalid_parameter`.
   2. Wartości nie da się zamienić przez `DictionaryKey.TryFrom` (obiekt, tablica): `invalid_value`.
@@ -160,7 +160,7 @@ Dla każdego kroku `mapper` w polu `fields[i].transformations[j]` naruszenie tra
 
 ## Kryteria akceptacji
 
-1. Katalog transformacji zawiera `mapper` z nazwą, opisem i parametrem `dictionary` (`text`).
+1. Katalog transformacji zawiera `mapper` z nazwą, opisem i parametrem `dictionary` (`string`).
 2. Po starcie aplikacji pole `$.status` z `mapper` wskazującym kafelek „Statusy zamówień” i pole „Tłumaczenie”
    zamienia `NEW` na „Nowe”. Podgląd nie wywołuje połączenia słownika.
 3. Wartość słownika zachowuje typ: słownik z liczbą 8 dla klucza 6 zamienia liczbę 6 na liczbę 8. Kolejna
@@ -203,7 +203,7 @@ Nowych endpointów nie ma.
 
 ```json
 { "key": "mapper", "name": "Słownik", "description": "Zamienia wartość na wartość ze słownika z kafelka.",
-  "parameter": { "name": "dictionary", "type": "text" } }
+  "parameter": { "name": "dictionary", "type": "string" } }
 ```
 
 Podgląd pola z brakującym kluczem i z niezaładowanym słownikiem:

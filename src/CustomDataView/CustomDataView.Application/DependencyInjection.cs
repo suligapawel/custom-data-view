@@ -23,6 +23,7 @@ public static class DependencyInjection
     {
         services.AddSingleton<ITransformation, DateFormatTransformation>();
         services.AddSingleton<ITransformation, LowercaseTransformation>();
+        services.AddSingleton<ITransformation, MapperTransformation>();
         services.AddSingleton<ITransformation, PrefixTransformation>();
         services.AddSingleton<ITransformation, RoundTransformation>();
         services.AddSingleton<ITransformation, SuffixTransformation>();
