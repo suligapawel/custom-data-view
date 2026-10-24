@@ -25,6 +25,7 @@ public class MapperTransformationTests : TileApiTests
 
     private Guid statusesConnectionId;
     private Guid ordersConnectionId;
+    private string levelsResponse = "[]";
 
     [SetUp]
     public async Task CreateDictionaryConnections()
@@ -33,6 +34,7 @@ public class MapperTransformationTests : TileApiTests
         {
             "/statuses" => Json(StatusesResponse),
             "/orders/1" => Json(OrderResponse),
+            "/levels" => Json(levelsResponse),
             _ => new HttpResponseMessage(HttpStatusCode.NotFound)
         });
         statusesConnectionId = await CreateConnection(new { name = "Statusy", method = "GET", url = StatusesUrl });
@@ -51,6 +53,22 @@ public class MapperTransformationTests : TileApiTests
 
         Assert.That(Value(preview, "Status"), Is.EqualTo("Nowe"), preview.ToJsonString());
         Assert.That(StatusRequests(), Is.EqualTo(requestsBeforePreview));
+    }
+
+    [Test(Description = $"{Dir} - #3")]
+    public async Task Given_DictionaryWithNumberValue_When_UserPreviewsTile_Then_MappedValueStaysNumber()
+    {
+        levelsResponse = """[{"from": 6, "to": 8}]""";
+        var levelsId = await CreateTile(await Levels());
+        var orderId = await CreateTile(Order(
+            OrderField("$.level", "Poziom", Mapper(levelsId, "Na"), Transformation("suffix", " pkt")),
+            OrderField("$.level", "Poziom liczbowy", Mapper(levelsId, "Na"))));
+        await LoadDictionariesOnStartup();
+
+        var preview = await Preview(orderId);
+
+        Assert.That(Value(preview, "Poziom"), Is.EqualTo("8 pkt"), preview.ToJsonString());
+        Assert.That(JsonNode.DeepEquals(Field(preview, "Poziom liczbowy")["value"], JsonValue.Create(8)), Is.True, preview.ToJsonString());
     }
 
     private Task LoadDictionariesOnStartup()
@@ -73,6 +91,19 @@ public class MapperTransformationTests : TileApiTests
                 .. fields
             ])
         };
+
+    private async Task<JsonObject> Levels()
+    {
+        var levelsConnectionId = await CreateConnection(new { name = "Poziomy", method = "GET", url = "https://api.example.com/levels" });
+        return new JsonObject
+        {
+            ["name"] = "Mapa poziomów",
+            ["display"] = "table",
+            ["sources"] = new JsonArray(new JsonObject { ["key"] = "levels", ["kind"] = "connection", ["connectionId"] = levelsConnectionId }),
+            ["items"] = new JsonObject { ["source"] = "levels", ["path"] = "$[*]", ["key"] = "Z" },
+            ["fields"] = new JsonArray(SourceField("levels", "$.from", "Z", []), SourceField("levels", "$.to", "Na", []))
+        };
+    }
 
     private JsonObject Order(params JsonObject[] fields)
         => new()
