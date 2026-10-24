@@ -240,6 +240,29 @@ public class MapperTransformationTests : TileApiTests
         Assert.That(Value(preview, "Status"), Is.EqualTo("Nowe"), preview.ToJsonString());
     }
 
+    [Test(Description = $"{Dir} - #12")]
+    public async Task Given_LoadedDictionary_When_DictionaryTileIsSaved_Then_PreviousVersionWorksUntilReloadAndFailedReloadMakesItUnavailable()
+    {
+        var statusesId = await CreateTile(Statuses());
+        var orderId = await CreateTile(Order(OrderField("$.status", "Status", Mapper(statusesId, "Tłumaczenie"))));
+        await LoadDictionariesOnStartup();
+        var uppercaseStatuses = Statuses();
+        uppercaseStatuses["fields"]![1]!["transformations"] = new JsonArray(new JsonObject { ["key"] = "uppercase" });
+
+        await UpdateTile(statusesId, uppercaseStatuses);
+
+        Assert.That(Value(await Preview(orderId), "Status"), Is.EqualTo("Nowe"));
+        await Factory.DictionaryLoads.ProcessPending();
+        Assert.That(Value(await Preview(orderId), "Status"), Is.EqualTo("NOWE"));
+
+        statusesAvailable = false;
+        await UpdateTile(statusesId, uppercaseStatuses);
+        await Factory.DictionaryLoads.ProcessPending();
+
+        var preview = await Preview(orderId);
+        Assert.That(Field(preview, "Status")["error"]?["reason"]?.GetValue<string>(), Is.EqualTo("dictionary_unavailable"), preview.ToJsonString());
+    }
+
     private Task LoadDictionariesOnStartup()
         => Factory.Services.GetRequiredService<DictionaryLoader>().LoadAll(CancellationToken.None);
 

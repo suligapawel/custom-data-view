@@ -13,5 +13,7 @@ public sealed class MapperDictionaries : IMapperDictionaries
 
     public void Set(DictionaryReference reference, MapperDictionary dictionary) => dictionaries[reference] = dictionary;
 
+    public void Remove(DictionaryReference reference) => dictionaries.TryRemove(reference, out _);
+
     public void Clear() => dictionaries.Clear();
 }

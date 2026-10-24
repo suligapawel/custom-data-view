@@ -27,26 +27,33 @@ public sealed class DictionaryLoader(ITileRepository tiles, TilePreviewer previe
             definition.AsDictionarySource(),
             TilePreviewValues.Of(new Dictionary<string, JsonElement>()),
             cancellationToken);
-        if (preview.Items is null || preview.Items.Any(item => Field(item, definition.Items.Key).Error is not null))
-        {
-            return;
-        }
-
+        var items = preview.Items is null || preview.Items.Any(item => Field(item, definition.Items.Key).Error is not null)
+            ? null
+            : preview.Items;
         foreach (var reference in references)
         {
-            if (preview.Items.Any(item => Field(item, reference.ValueLabel).Error is not null))
-            {
-                continue;
-            }
-
-            var entries = preview.Items.Where(item => item.Key is not null).Select(item => (
-                Key: TransformationValue.ToText(null, TransformationValue.FromJson(item.Key)),
-                Value: Field(item, reference.ValueLabel).Value));
-            if (MapperDictionary.TryBuild(entries, out var dictionary))
+            if (Build(items, reference) is { } dictionary)
             {
                 dictionaries.Set(reference, dictionary);
             }
+            else
+            {
+                dictionaries.Remove(reference);
+            }
         }
+    }
+
+    private static MapperDictionary Build(IReadOnlyList<TileItemPreview> items, DictionaryReference reference)
+    {
+        if (items is null || items.Any(item => Field(item, reference.ValueLabel).Error is not null))
+        {
+            return null;
+        }
+
+        var entries = items.Where(item => item.Key is not null).Select(item => (
+            Key: TransformationValue.ToText(null, TransformationValue.FromJson(item.Key)),
+            Value: Field(item, reference.ValueLabel).Value));
+        return MapperDictionary.TryBuild(entries, out var dictionary) ? dictionary : null;
     }
 
     private static TileFieldPreview Field(TileItemPreview item, string label)
