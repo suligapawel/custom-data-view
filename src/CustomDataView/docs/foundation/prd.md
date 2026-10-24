@@ -43,9 +43,17 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
     - mapper(dictionary) - zamiana wartości na wartość ze słownika; parametr `"<tileId>:<etykieta pola wartości>"`
       wskazuje kafelek-słownik (kafelek z `items`, kluczem słownika jest pole `items.key`) i pole elementu z wartością.
 - Słowniki transformacji `mapper` są ładowane do pamięci aplikacji raz po starcie (ze wszystkich odwołań `mapper`)
-  oraz w tle po zapisie kafelka-słownika albo kafelka z niezaładowanym odwołaniem; nie są odświeżane okresowo.
+  oraz w tle po zapisie kafelka-słownika albo kafelka z niezaładowanym odwołaniem; nie są odświeżane okresowo, a start
+  aplikacji i zapis nie czekają na ich źródła. Podgląd (także niezapisanej definicji) korzysta tylko z załadowanych
+  słowników i niczego nie ładuje. Ładowanie wykonuje tylko źródło elementów i pola elementu kafelka-słownika
+  z domyślnymi wartościami parametrów. Do końca przeładowania działa poprzednia wersja słownika; nieudane
+  ładowanie (błąd źródła, błąd pola klucza lub wartości w dowolnym elemencie, powtórzony klucz) oznacza słownik
+  niezaładowany. Element z kluczem `null` jest pomijany.
   Klucze są porównywane jako tekst, a wartość zachowuje typ. Brak klucza daje błąd `transformation_failed`
   z powodem `missing_dictionary_key`, a niezaładowany słownik — z powodem `dictionary_unavailable`.
+- Zapis kafelka (i podgląd niezapisanej definicji) z `mapper` jest odrzucany, gdy parametr ma zły format albo wskazany
+  kafelek nie istnieje, jest samym kafelkiem, nie ma `items`, nie ma wskazanego pola wśród pól elementu, ma wymagane
+  parametry lub wejścia danych, stronicowanie albo sam używa `mapper`.
 - Użytkownik może odczytać katalog dostępnych transformacji wraz z opisem parametru.
 - Kombinatory pól są predefiniowane w kodzie jak transformacje, ale składają jedną wartość z wartości kilku pól
   kafelka. Kombinator implementuje wspólny interfejs, ma klucz, nazwę, opis, najwyżej jeden parametr (tekst) i sam
@@ -170,8 +178,11 @@ Rola: użytkownik konfigurujący widoki danych (bez uwierzytelniania; w MVP wszy
   źródeł niezwiązane wiązaniem wewnętrznym w danym połączeniu), `inputs` (wejścia danych) i `outputs` (etykiety pól,
   także ukrytych i pól formularza, oraz informacja, czy kafelek ma elementy). Kontrakt nie obejmuje niezwiązanych wejść
   potomków.
-- Usunięcie kafelka osadzonego jako dziecko w innym kafelku albo wskazanego przez akcję jest blokowane (409
-  `tile_in_use` z listą kafelków); połączenia pozostają.
+- Usunięcie kafelka osadzonego jako dziecko w innym kafelku, wskazanego przez akcję albo używanego jako słownik
+  transformacji `mapper` jest blokowane (409 `tile_in_use` z listą kafelków); połączenia pozostają.
+- Edycja kafelka używanego jako słownik, po której przestałby spełniać warunki słownika (usunięcie lub zmiana etykiety
+  pola wartości, zmiana `items.key`, usunięcie `items`, wymagany parametr lub wejście danych, stronicowanie, własny
+  `mapper`), jest blokowana (409 `dictionary_in_use` z listą pól wartości i kafelków).
 - Edycja kafelka, która usuwa pole albo zmienia etykietę pola użytego jako źródło wiązania w rodzicu albo w przodku
   (ścieżka `from`), jest blokowana
   (409 `field_in_use` z listą pól i kafelków). Zmiana ścieżki, źródła lub transformacji pola bez
@@ -298,4 +309,4 @@ kafelków. Historyjki i scenariusze leżą w `docs/scenarios/scenario_TEMP-*`.
   błędu serwera).
 - Konfiguracja odtwarza się w całości po restarcie aplikacji.
 - 100% prób usunięcia używanych połączeń jest blokowanych z listą zależnych kafelków.
-- 100% prób usunięcia kafelka używanego jako źródło wiązania albo dziecko jest blokowanych z listą zależności.
+- 100% prób usunięcia kafelka używanego jako źródło wiązania, dziecko albo słownik jest blokowanych z listą zależności.
