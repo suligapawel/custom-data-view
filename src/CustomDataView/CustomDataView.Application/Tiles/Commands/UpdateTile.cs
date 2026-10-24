@@ -11,6 +11,7 @@ public sealed record UpdateTile(Guid Id, TileDefinition Definition) : ICommand;
 
 public sealed class UpdateTileHandler(
     ITileRepository repository,
+    IConnectionRepository connections,
     TileReferencesValidator referencesValidator,
     IDictionaryLoadQueue dictionaryLoads)
 {
@@ -18,8 +19,10 @@ public sealed class UpdateTileHandler(
     {
         var tile = repository.Get(command.Id) ?? throw new NotFoundException(command.Id);
         referencesValidator.EnsureValid(command.Definition, command.Id);
+        var dictionaryUses = repository.GetDictionaryUses(command.Id);
+        tile.EnsureDictionariesKept(command.Definition, dictionaryUses, command.Definition.Contract(id => connections.Get(id)?.Definition));
         tile.Redefine(command.Definition, repository.GetFieldUses(command.Id));
         repository.Update(tile);
-        dictionaryLoads.Enqueue(repository.GetDictionaryUses(command.Id).Select(use => new DictionaryReference(command.Id, use.ValueLabel)));
+        dictionaryLoads.Enqueue(dictionaryUses.Select(use => new DictionaryReference(command.Id, use.ValueLabel)));
     }
 }

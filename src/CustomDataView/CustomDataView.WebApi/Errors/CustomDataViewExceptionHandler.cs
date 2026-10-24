@@ -52,6 +52,16 @@ public sealed class CustomDataViewExceptionHandler : IExceptionHandler
             return true;
         }
 
+        if (exception is DictionaryInUseException dictionaryInUse)
+        {
+            await Results.Conflict(new DictionaryInUseResponse(
+                    DictionaryInUseResponse.DictionaryInUseCode,
+                    dictionaryInUse.Fields,
+                    dictionaryInUse.Tiles))
+                .ExecuteAsync(httpContext);
+            return true;
+        }
+
         if (exception is BadHttpRequestException badRequest)
         {
             await Results.Problem(statusCode: badRequest.StatusCode, title: "Nieprawidłowe żądanie.").ExecuteAsync(httpContext);

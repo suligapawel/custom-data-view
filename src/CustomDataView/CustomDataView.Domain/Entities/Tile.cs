@@ -41,6 +41,18 @@ public sealed class Tile
         Definition = definition;
     }
 
+    public void EnsureDictionariesKept(TileDefinition definition, IReadOnlyList<TileDictionaryUse> dictionaryUses, TileContract contract)
+    {
+        var broken = dictionaryUses.Where(use => definition.DictionaryViolations(use.ValueLabel, contract).Count > 0).ToList();
+        if (broken.Count > 0)
+        {
+            throw new DictionaryInUseException(
+                Id,
+                broken.Select(use => use.ValueLabel).DistinctBy(TileLabels.Normalize).ToList(),
+                broken.Select(use => use.Tile).Distinct().ToList());
+        }
+    }
+
     public void EnsureCanBeDeleted(IReadOnlyList<TileReference> parents, IReadOnlyList<TileReference> actionSources)
     {
         var references = parents.Concat(actionSources).DistinctBy(reference => reference.Id).ToList();

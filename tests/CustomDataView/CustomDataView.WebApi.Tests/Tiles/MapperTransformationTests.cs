@@ -343,6 +343,30 @@ public class MapperTransformationTests : TileApiTests
             errors.ToJsonString());
     }
 
+    [TestCase("remove-value-field")]
+    [Test(Description = $"{Dir} - #15")]
+    public async Task Given_DictionaryUsedByTile_When_UserBreaksDictionaryTile_Then_EditIsBlocked(string change)
+    {
+        var statusesId = await CreateTile(Statuses());
+        var orderId = await CreateTile(Order(OrderField("$.status", "Status", Mapper(statusesId, "Tłumaczenie"))));
+        var statuses = Statuses();
+        switch (change)
+        {
+            default:
+                statuses["fields"]!.AsArray().RemoveAt(1);
+                break;
+        }
+
+        var response = await Client.PutAsJsonAsync($"{TilesUrl}/{statusesId}", statuses);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+        Assert.That(
+            JsonNode.DeepEquals(
+                await response.Content.ReadFromJsonAsync<JsonObject>(),
+                JsonNode.Parse($$"""{"code": "dictionary_in_use", "fields": ["Tłumaczenie"], "tiles": [{"id": "{{orderId}}", "name": "Zamówienie"}]}""")),
+            Is.True);
+    }
+
     private Task LoadDictionariesOnStartup()
         => Factory.Services.GetRequiredService<DictionaryLoader>().LoadAll(CancellationToken.None);
 
