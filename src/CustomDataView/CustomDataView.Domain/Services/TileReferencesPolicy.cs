@@ -60,11 +60,15 @@ public sealed class TileReferencesPolicy(
 
     private TileContract ContractOf(TileDefinition tile) => tile.Contract(connectionOf);
 
-    private static void CheckDictionaryReference(TransformationStep step, string path, DefinitionViolations violations)
+    private void CheckDictionaryReference(TransformationStep step, string path, DefinitionViolations violations)
     {
-        if (!DictionaryReference.TryParse(step.Parameter, out _))
+        if (!DictionaryReference.TryParse(step.Parameter, out var reference))
         {
             violations.Set(path, $"Parametr transformacji '{MapperTransformation.TransformationKey}' ma format '<tileId>:<etykieta pola wartości>'.");
+        }
+        else if (tree.Tile(reference.TileId) is null)
+        {
+            violations.Set(path, $"Kafelek '{reference.TileId}' nie istnieje.");
         }
     }
 

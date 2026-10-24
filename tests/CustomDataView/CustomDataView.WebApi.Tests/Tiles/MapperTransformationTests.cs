@@ -302,12 +302,14 @@ public class MapperTransformationTests : TileApiTests
     }
 
     [TestCase("text")]
+    [TestCase("missing-tile")]
     [Test(Description = $"{Dir} - #14")]
     public async Task Given_InvalidDictionaryReference_When_UserSavesTile_Then_SaveIsRejected(string problem)
     {
         var statusesId = await CreateTile(Statuses());
         var parameter = problem switch
         {
+            "missing-tile" => $"{Guid.NewGuid()}:Tłumaczenie",
             _ => "Statusy zamówień"
         };
 
