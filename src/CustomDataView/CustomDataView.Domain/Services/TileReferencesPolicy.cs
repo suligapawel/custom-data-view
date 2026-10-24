@@ -70,9 +70,13 @@ public sealed class TileReferencesPolicy(
         {
             violations.Set(path, "Kafelek nie może być własnym słownikiem.");
         }
-        else if (tree.Tile(reference.TileId) is null)
+        else if (tree.Tile(reference.TileId) is not { } dictionary)
         {
             violations.Set(path, $"Kafelek '{reference.TileId}' nie istnieje.");
+        }
+        else if (dictionary.DictionaryViolations() is { Count: > 0 } dictionaryViolations)
+        {
+            violations.Set(path, [.. dictionaryViolations]);
         }
     }
 

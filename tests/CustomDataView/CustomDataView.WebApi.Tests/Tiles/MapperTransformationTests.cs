@@ -304,15 +304,21 @@ public class MapperTransformationTests : TileApiTests
     [TestCase("text")]
     [TestCase("missing-tile")]
     [TestCase("self")]
+    [TestCase("no-items")]
     [Test(Description = $"{Dir} - #14")]
     public async Task Given_InvalidDictionaryReference_When_UserSavesTile_Then_SaveIsRejected(string problem)
     {
         var statusesId = await CreateTile(Statuses());
+        var dictionaryId = problem switch
+        {
+            "no-items" => await CreateTile(Order(OrderField("$.status", "Tłumaczenie"))),
+            _ => statusesId
+        };
         var parameter = problem switch
         {
+            "text" => "Statusy zamówień",
             "missing-tile" => $"{Guid.NewGuid()}:Tłumaczenie",
-            "self" => $"{statusesId}:Tłumaczenie",
-            _ => "Statusy zamówień"
+            _ => $"{dictionaryId}:Tłumaczenie"
         };
 
         var response = problem == "self"

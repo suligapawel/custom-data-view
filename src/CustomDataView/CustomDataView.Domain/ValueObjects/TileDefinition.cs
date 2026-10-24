@@ -47,6 +47,17 @@ public sealed partial record TileDefinition(
             .Select(step => DictionaryReference.TryParse(step.Parameter, out var reference) ? reference : null)
             .Where(reference => reference is not null);
 
+    public IReadOnlyList<string> DictionaryViolations()
+    {
+        var violations = new List<string>();
+        if (Items is null)
+        {
+            violations.Add("Kafelek-słownik musi mieć elementy.");
+        }
+
+        return violations;
+    }
+
     public TileDefinition AsDictionarySource()
         => this with
         {
