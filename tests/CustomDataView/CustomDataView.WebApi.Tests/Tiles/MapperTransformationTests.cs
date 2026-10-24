@@ -84,6 +84,27 @@ public class MapperTransformationTests : TileApiTests
         Assert.That(Value(preview, "Poziom"), Is.EqualTo("wysoki"), preview.ToJsonString());
     }
 
+    [Test(Description = $"{Dir} - #5")]
+    public async Task Given_DictionaryFieldsWithTransformationAndCombination_When_UserPreviewsTile_Then_DictionaryHoldsTransformedValues()
+    {
+        var statuses = Statuses(new JsonObject
+        {
+            ["label"] = "Opis",
+            ["combine"] = new JsonObject { ["key"] = "template", ["parameter"] = "{Tłumaczenie} ({Waga})" }
+        });
+        statuses["fields"]![1]!["transformations"] = new JsonArray(new JsonObject { ["key"] = "uppercase" });
+        var statusesId = await CreateTile(statuses);
+        var orderId = await CreateTile(Order(
+            OrderField("$.status", "Status", Mapper(statusesId, "Tłumaczenie")),
+            OrderField("$.status", "Opis statusu", Mapper(statusesId, "Opis"))));
+        await LoadDictionariesOnStartup();
+
+        var preview = await Preview(orderId);
+
+        Assert.That(Value(preview, "Status"), Is.EqualTo("NOWE"), preview.ToJsonString());
+        Assert.That(Value(preview, "Opis statusu"), Is.EqualTo("NOWE (1)"));
+    }
+
     private Task LoadDictionariesOnStartup()
         => Factory.Services.GetRequiredService<DictionaryLoader>().LoadAll(CancellationToken.None);
 
