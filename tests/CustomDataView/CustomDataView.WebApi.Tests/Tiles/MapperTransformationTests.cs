@@ -427,6 +427,23 @@ public class MapperTransformationTests : TileApiTests
             Is.True);
     }
 
+    [Test(Description = $"{Dir} - #17")]
+    public async Task Given_DictionaryUsedByTile_When_UserPreviewsDictionaryTile_Then_ItShowsItemsFromItsConnection()
+    {
+        var statusesId = await CreateTile(Statuses());
+        await CreateTile(Order(OrderField("$.status", "Status", Mapper(statusesId, "Tłumaczenie"))));
+
+        var preview = await Preview(statusesId);
+
+        Assert.That(StatusRequests(), Is.EqualTo(1));
+        Assert.That(
+            preview["items"]!.AsArray().Select(item => (
+                Key: item!["fields"]![0]!["value"]!.GetValue<string>(),
+                Translation: item["fields"]![1]!["value"]!.GetValue<string>())),
+            Is.EqualTo(new[] { ("NEW", "Nowe"), ("DONE", "Zrealizowane") }),
+            preview.ToJsonString());
+    }
+
     private Task LoadDictionariesOnStartup()
         => Factory.Services.GetRequiredService<DictionaryLoader>().LoadAll(CancellationToken.None);
 
