@@ -303,6 +303,7 @@ public class MapperTransformationTests : TileApiTests
 
     [TestCase("text")]
     [TestCase("missing-tile")]
+    [TestCase("self")]
     [Test(Description = $"{Dir} - #14")]
     public async Task Given_InvalidDictionaryReference_When_UserSavesTile_Then_SaveIsRejected(string problem)
     {
@@ -310,14 +311,20 @@ public class MapperTransformationTests : TileApiTests
         var parameter = problem switch
         {
             "missing-tile" => $"{Guid.NewGuid()}:Tłumaczenie",
+            "self" => $"{statusesId}:Tłumaczenie",
             _ => "Statusy zamówień"
         };
 
-        var response = await Client.PostAsJsonAsync(TilesUrl, Order(OrderField("$.status", "Status", Transformation("mapper", parameter))));
+        var response = problem == "self"
+            ? await Client.PutAsJsonAsync($"{TilesUrl}/{statusesId}", Statuses(StatusField("$.key", "Opis", Transformation("mapper", parameter))))
+            : await Client.PostAsJsonAsync(TilesUrl, Order(OrderField("$.status", "Status", Transformation("mapper", parameter))));
 
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest), statusesId.ToString());
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
         var errors = (await response.Content.ReadFromJsonAsync<JsonObject>())!["errors"]!.AsObject();
-        Assert.That(errors.Select(error => error.Key), Is.EqualTo(new[] { "fields[0].transformations[0].parameter" }), errors.ToJsonString());
+        Assert.That(
+            errors.Select(error => error.Key),
+            Is.EqualTo(new[] { $"fields[{(problem == "self" ? 3 : 0)}].transformations[0].parameter" }),
+            errors.ToJsonString());
     }
 
     private Task LoadDictionariesOnStartup()

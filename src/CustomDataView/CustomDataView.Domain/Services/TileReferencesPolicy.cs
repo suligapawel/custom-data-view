@@ -34,7 +34,7 @@ public sealed class TileReferencesPolicy(
                 }
                 else if (steps[position].Key == MapperTransformation.TransformationKey)
                 {
-                    CheckDictionaryReference(steps[position], $"fields[{index}].transformations[{position}].parameter", violations);
+                    CheckDictionaryReference(steps[position], tileId, $"fields[{index}].transformations[{position}].parameter", violations);
                 }
             }
         }
@@ -60,11 +60,15 @@ public sealed class TileReferencesPolicy(
 
     private TileContract ContractOf(TileDefinition tile) => tile.Contract(connectionOf);
 
-    private void CheckDictionaryReference(TransformationStep step, string path, DefinitionViolations violations)
+    private void CheckDictionaryReference(TransformationStep step, Guid? tileId, string path, DefinitionViolations violations)
     {
         if (!DictionaryReference.TryParse(step.Parameter, out var reference))
         {
             violations.Set(path, $"Parametr transformacji '{MapperTransformation.TransformationKey}' ma format '<tileId>:<etykieta pola wartości>'.");
+        }
+        else if (reference.TileId == tileId)
+        {
+            violations.Set(path, "Kafelek nie może być własnym słownikiem.");
         }
         else if (tree.Tile(reference.TileId) is null)
         {
