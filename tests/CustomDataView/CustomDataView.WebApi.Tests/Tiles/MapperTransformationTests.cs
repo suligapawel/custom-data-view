@@ -207,6 +207,7 @@ public class MapperTransformationTests : TileApiTests
     }
 
     [TestCase("""[{"key": "NEW", "translation": "Nowe"}, {"key": "NEW", "translation": "Inne"}]""", null)]
+    [TestCase("""[{"key": "NEW", "translation": "Nowe"}, {"translation": "Bez klucza"}]""", null)]
     [Test(Description = $"{Dir} - #10")]
     public async Task Given_InvalidDictionaryData_When_UserPreviewsTile_Then_DictionaryIsNotLoaded(string data, string expectedStatus)
     {

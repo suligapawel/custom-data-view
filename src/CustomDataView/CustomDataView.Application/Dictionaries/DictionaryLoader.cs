@@ -27,7 +27,7 @@ public sealed class DictionaryLoader(ITileRepository tiles, TilePreviewer previe
             definition.AsDictionarySource(),
             TilePreviewValues.Of(new Dictionary<string, JsonElement>()),
             cancellationToken);
-        if (preview.Items is null)
+        if (preview.Items is null || preview.Items.Any(item => Field(item, definition.Items.Key).Error is not null))
         {
             return;
         }
@@ -36,11 +36,14 @@ public sealed class DictionaryLoader(ITileRepository tiles, TilePreviewer previe
         {
             var entries = preview.Items.Select(item => (
                 Key: TransformationValue.ToText(null, TransformationValue.FromJson(item.Key)),
-                Value: item.Fields.First(field => TileLabels.AreEqual(field.Label, reference.ValueLabel)).Value));
+                Value: Field(item, reference.ValueLabel).Value));
             if (MapperDictionary.TryBuild(entries, out var dictionary))
             {
                 dictionaries.Set(reference, dictionary);
             }
         }
     }
+
+    private static TileFieldPreview Field(TileItemPreview item, string label)
+        => item.Fields.First(field => TileLabels.AreEqual(field.Label, label));
 }
