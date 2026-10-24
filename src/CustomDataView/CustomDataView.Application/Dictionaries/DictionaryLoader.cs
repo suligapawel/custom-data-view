@@ -34,9 +34,13 @@ public sealed class DictionaryLoader(ITileRepository tiles, TilePreviewer previe
 
         foreach (var reference in references)
         {
-            dictionaries.Set(reference, MapperDictionary.Build(preview.Items.Select(item => (
+            var entries = preview.Items.Select(item => (
                 Key: TransformationValue.ToText(null, TransformationValue.FromJson(item.Key)),
-                Value: item.Fields.First(field => TileLabels.AreEqual(field.Label, reference.ValueLabel)).Value))));
+                Value: item.Fields.First(field => TileLabels.AreEqual(field.Label, reference.ValueLabel)).Value));
+            if (MapperDictionary.TryBuild(entries, out var dictionary))
+            {
+                dictionaries.Set(reference, dictionary);
+            }
         }
     }
 }

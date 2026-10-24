@@ -28,6 +28,7 @@ public class MapperTransformationTests : TileApiTests
     private string levelsResponse;
     private string orderResponse;
     private bool statusesAvailable;
+    private string statusesResponse;
 
     [SetUp]
     public async Task CreateDictionaryConnections()
@@ -35,9 +36,10 @@ public class MapperTransformationTests : TileApiTests
         levelsResponse = "[]";
         orderResponse = OrderResponse;
         statusesAvailable = true;
+        statusesResponse = StatusesResponse;
         Factory.ExternalApi.Respond = (request, _) => Task.FromResult(request.RequestUri!.AbsolutePath switch
         {
-            "/statuses" when statusesAvailable => Json(StatusesResponse),
+            "/statuses" when statusesAvailable => Json(statusesResponse),
             "/orders/1" => Json(orderResponse),
             "/levels" => Json(levelsResponse),
             _ => new HttpResponseMessage(HttpStatusCode.NotFound)
@@ -202,6 +204,23 @@ public class MapperTransformationTests : TileApiTests
         var previewAfterSave = await Preview(orderId);
 
         Assert.That(Value(previewAfterSave, "Status"), Is.EqualTo("Nowe"), previewAfterSave.ToJsonString());
+    }
+
+    [TestCase("""[{"key": "NEW", "translation": "Nowe"}, {"key": "NEW", "translation": "Inne"}]""", null)]
+    [Test(Description = $"{Dir} - #10")]
+    public async Task Given_InvalidDictionaryData_When_UserPreviewsTile_Then_DictionaryIsNotLoaded(string data, string expectedStatus)
+    {
+        statusesResponse = data;
+        var statusesId = await CreateTile(Statuses());
+        var orderId = await CreateTile(Order(OrderField("$.status", "Status", Mapper(statusesId, "Tłumaczenie"))));
+        await LoadDictionariesOnStartup();
+
+        var preview = await Preview(orderId);
+
+        Assert.That(
+            Field(preview, "Status")["error"]?["reason"]?.GetValue<string>() ?? Value(preview, "Status"),
+            Is.EqualTo(expectedStatus ?? "dictionary_unavailable"),
+            preview.ToJsonString());
     }
 
     private Task LoadDictionariesOnStartup()

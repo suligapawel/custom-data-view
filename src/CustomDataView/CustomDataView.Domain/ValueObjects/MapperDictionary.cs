@@ -13,8 +13,21 @@ public sealed class MapperDictionary
         this.entries = entries;
     }
 
-    public static MapperDictionary Build(IEnumerable<(string Key, JsonNode Value)> entries)
-        => new(entries.ToFrozenDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal));
+    public static bool TryBuild(IEnumerable<(string Key, JsonNode Value)> entries, out MapperDictionary dictionary)
+    {
+        dictionary = null;
+        var collected = new Dictionary<string, JsonNode>(StringComparer.Ordinal);
+        foreach (var (key, value) in entries)
+        {
+            if (!collected.TryAdd(key, value))
+            {
+                return false;
+            }
+        }
+
+        dictionary = new MapperDictionary(collected.ToFrozenDictionary(StringComparer.Ordinal));
+        return true;
+    }
 
     public bool TryGet(string key, out object value)
     {
