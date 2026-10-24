@@ -398,6 +398,19 @@ public class MapperTransformationTests : TileApiTests
             Is.True);
     }
 
+    [Test(Description = $"{Dir} - #15")]
+    public async Task Given_DictionaryUsedByTile_When_UserRenamesOtherField_Then_EditIsSaved()
+    {
+        var statusesId = await CreateTile(Statuses());
+        await CreateTile(Order(OrderField("$.status", "Status", Mapper(statusesId, "Tłumaczenie"))));
+        var statuses = Statuses();
+        statuses["fields"]![2]!["label"] = "Kolejność";
+
+        var response = await Client.PutAsJsonAsync($"{TilesUrl}/{statusesId}", statuses);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+    }
+
     private Task LoadDictionariesOnStartup()
         => Factory.Services.GetRequiredService<DictionaryLoader>().LoadAll(CancellationToken.None);
 
