@@ -34,6 +34,11 @@ public sealed class DictionaryLoader(ITileRepository tiles, TilePreviewer previe
 
         foreach (var reference in references)
         {
+            if (preview.Items.Any(item => Field(item, reference.ValueLabel).Error is not null))
+            {
+                continue;
+            }
+
             var entries = preview.Items.Select(item => (
                 Key: TransformationValue.ToText(null, TransformationValue.FromJson(item.Key)),
                 Value: Field(item, reference.ValueLabel).Value));
