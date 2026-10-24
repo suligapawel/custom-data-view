@@ -309,6 +309,7 @@ public class MapperTransformationTests : TileApiTests
     [TestCase("required-parameter")]
     [TestCase("required-input")]
     [TestCase("pagination")]
+    [TestCase("dictionary-with-mapper")]
     [Test(Description = $"{Dir} - #14")]
     public async Task Given_InvalidDictionaryReference_When_UserSavesTile_Then_SaveIsRejected(string problem)
     {
@@ -319,6 +320,7 @@ public class MapperTransformationTests : TileApiTests
             "required-parameter" => await CreateTile(await StatusesWithLanguage(required: true)),
             "required-input" => await CreateTile(StatusesFromInput()),
             "pagination" => await CreateTile(await PagedStatuses()),
+            "dictionary-with-mapper" => await CreateTile(Statuses(StatusField("$.key", "Opis", Mapper(await CreateTile(await Levels()), "Na")))),
             _ => statusesId
         };
         var parameter = problem switch

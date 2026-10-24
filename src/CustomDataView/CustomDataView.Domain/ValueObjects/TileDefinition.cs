@@ -69,6 +69,11 @@ public sealed partial record TileDefinition(
             violations.Add("Kafelek-słownik nie może mieć stronicowania.");
         }
 
+        if (Fields.SelectMany(field => field.Transformations).Any(step => step.Key == MapperTransformation.TransformationKey))
+        {
+            violations.Add("Kafelek-słownik nie może sam używać słowników.");
+        }
+
         return violations;
     }
 
