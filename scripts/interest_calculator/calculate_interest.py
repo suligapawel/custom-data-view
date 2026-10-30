@@ -4,22 +4,27 @@ Wylicza odsetki dla obiektów wczytanych z pliku Excel i wpisuje je do tego same
 
 Przebieg:
   1. Wczytuje z pliku Excel obiekty (id, data do) ze wskazanych kolumn (adresy liter, np. A, CC).
-     Wiersze, w których kolumna filtra ma wartość 'NIE', są pomijane.
+     Wiersz jest pomijany, jeśli pasuje do któregokolwiek filtra wykluczającego KOLUMNA=WARTOŚĆ
+     (np. A=NIE, BA=1, CC=TAK). Porównanie ignoruje wielkość liter i spacje na brzegach.
   2. Dla każdego obiektu pobiera dane finansowe:
        {FINANCE_BASE_URL}/latest/api/Finance/get/{id}?format=Tabular
      i uzupełnia pola:
-       capital   <- $.LocalCurrencyData.Rows[DisplayName == 'Kapitał wym.'].CurrentValue
+       capital   <- $.LocalCurrencyData.Rows[DisplayName zaczyna się od 'Kapitał'].CurrentValue
        date_from <- $.LocalCurrencyData.Rows[DisplayName == 'Odsetki liczone od'].CurrentValue
   3. W tej samej iteracji pobiera wyliczone odsetki:
        {INTEREST_BASE_URL}/latest/api/interest?InterestValue={capital}&From={date_from}&To={date_to}&InterestType=2
      z nagłówkiem Authorization: Bearer <token> i z odpowiedzi bierze:
        interest  <- $.sumOfActiveInterest
-  4. Wpisuje odsetki do kolumny odsetek w pliku źródłowym, w wierszu z tym samym id.
+  4. Wpisuje do pliku źródłowego, w wierszu z tym samym id, kapitał i datę "odsetki od dnia"
+     (gdy udało się pobrać dane finansowe) oraz odsetki (gdy udało się je wyliczyć).
      Przed zapisem tworzy kopię zapasową pliku.
 
 Przykład:
   python calculate_interest.py --input ~/dane/umowy.xlsx --id-column A --date-to-column CC \\
-      --filter-column D --interest-column E
+      --capital-column F --date-from-column G --interest-column E --exclude "A=NIE" --exclude "BA=1" --exclude "CC=TAK"
+
+Filtry można też podać jednym parametrem, rozdzielone średnikiem: --exclude "A=NIE; BA=1; CC=TAK".
+Zamiast '=' można użyć '->' (np. "A -> NIE"). Bez --exclude skrypt zapyta o filtry (Enter = brak).
 
 Domyślnie dane zaczynają się od wiersza 2 (wiersz 1 to nagłówek); zmienia to --first-row.
 Token Bearer jest zawsze pobierany interaktywnie przy uruchomieniu (wpisywanie niewidoczne).
@@ -49,14 +54,13 @@ FINANCE_URL_TEMPLATE = "{base}/latest/api/Finance/get/{id}?format=Tabular"
 INTEREST_URL_TEMPLATE = "{base}/latest/api/interest"
 INTEREST_TYPE = 2
 
-CAPITAL_DISPLAY_NAME = "Kapitał wym."
+CAPITAL_DISPLAY_NAME_PREFIX = "Kapitał"
 DATE_FROM_DISPLAY_NAME = "Odsetki liczone od"
 INTEREST_FIELD = "sumOfActiveInterest"
 
-SKIP_FILTER_VALUE = "NIE"
-
 REQUEST_TIMEOUT_SECONDS = 30
 DATE_FORMAT = "%Y-%m-%d"
+EXCEL_DATE_FORMAT = "yyyy-mm-dd"
 
 log = logging.getLogger("interest_calculator")
 
@@ -79,8 +83,38 @@ class FinanceItem:
 class Columns:
     id: str
     date_to: str
-    filter: str
+    capital: str
+    date_from: str
     interest: str
+
+
+@dataclass
+class ExcludeFilter:
+    column: str
+    value: str
+
+    def matches(self, row):
+        return normalize_value(cell_value(row, column_index(self.column))) == self.value
+
+    def __str__(self):
+        return f"{self.column}={self.value}"
+
+
+def parse_filters(texts):
+    filters = []
+    for text in texts:
+        for part in text.split(";"):
+            part = part.strip()
+            if not part:
+                continue
+            separator = "->" if "->" in part else "="
+            column, found, value = part.partition(separator)
+            if not found or not column.strip():
+                raise ValueError(f"Nieprawidłowy filtr: '{part}' (oczekiwano KOLUMNA=WARTOŚĆ, np. A=NIE)")
+            column = column.strip().upper()
+            column_index(column)
+            filters.append(ExcludeFilter(column=column, value=normalize_value(value)))
+    return filters
 
 
 # --- Excel ------------------------------------------------------------------
@@ -101,21 +135,35 @@ def normalize_id(value):
     return str(value).strip()
 
 
+def normalize_value(value):
+    if isinstance(value, bool):
+        return "TAK" if value else "NIE"
+    if isinstance(value, str):
+        text = value.strip()
+        try:
+            number = float(text.replace(",", "."))
+        except ValueError:
+            return text.upper()
+        return normalize_id(number)
+    return normalize_id(value).upper()
+
+
 def cell_value(row, index):
     return row[index - 1] if index - 1 < len(row) else None
 
 
-def load_items(path, sheet_name, columns, first_row):
+def load_items(path, sheet_name, columns, filters, first_row):
     id_index = column_index(columns.id)
     date_to_index = column_index(columns.date_to)
-    filter_index = column_index(columns.filter)
 
     log.info("Wczytywanie pliku: %s", path)
     workbook = load_workbook(path, read_only=True, data_only=True)
     try:
         sheet = workbook[sheet_name] if sheet_name else workbook.active
-        log.info("Arkusz: %s, kolumny: id=%s, data do=%s, filtr=%s, odsetki=%s, od wiersza: %d",
-                 sheet.title, columns.id, columns.date_to, columns.filter, columns.interest, first_row)
+        log.info("Arkusz: %s, kolumny: id=%s, data do=%s, kapitał=%s, odsetki od dnia=%s, odsetki=%s, od wiersza: %d",
+                 sheet.title, columns.id, columns.date_to, columns.capital, columns.date_from, columns.interest,
+                 first_row)
+        log.info("Filtry wykluczające: %s", ", ".join(map(str, filters)) or "brak")
 
         items = []
         skipped_by_filter = 0
@@ -124,16 +172,16 @@ def load_items(path, sheet_name, columns, first_row):
             if not item_id:
                 log.debug("Wiersz %d pominięty: brak id", row_number)
                 continue
-            if str(cell_value(row, filter_index) or "").strip().upper() == SKIP_FILTER_VALUE:
-                log.debug("Wiersz %d (id=%s) pominięty: filtr '%s'", row_number, item_id, SKIP_FILTER_VALUE)
+            matched = next((f for f in filters if f.matches(row)), None)
+            if matched:
+                log.debug("Wiersz %d (id=%s) pominięty: filtr %s", row_number, item_id, matched)
                 skipped_by_filter += 1
                 continue
             items.append(FinanceItem(row_number=row_number, id=item_id, date_to=cell_value(row, date_to_index)))
     finally:
         workbook.close()
 
-    log.info("Wczytano %d obiektów do przetworzenia (pominięte przez filtr '%s': %d)",
-             len(items), SKIP_FILTER_VALUE, skipped_by_filter)
+    log.info("Wczytano %d obiektów do przetworzenia (pominięte przez filtry: %d)", len(items), skipped_by_filter)
     return items
 
 
@@ -144,35 +192,46 @@ def backup_file(path):
     return backup_path
 
 
-def write_interest(path, sheet_name, columns, items):
-    to_write = [item for item in items if item.status == "OK"]
+def write_results(path, sheet_name, columns, items):
+    to_write = [item for item in items if item.capital is not None and item.date_from is not None]
     if not to_write:
-        log.warning("Brak wyliczonych odsetek do zapisania - plik źródłowy nie został zmieniony")
+        log.warning("Brak danych do zapisania - plik źródłowy nie został zmieniony")
         return
 
     backup_file(path)
     workbook = load_workbook(path, keep_vba=path.suffix.lower() == ".xlsm")
     sheet = workbook[sheet_name] if sheet_name else workbook.active
     id_index = column_index(columns.id)
+    capital_index = column_index(columns.capital)
+    date_from_index = column_index(columns.date_from)
     interest_index = column_index(columns.interest)
 
-    written = 0
+    written_finance = 0
+    written_interest = 0
     for item in to_write:
         row_id = normalize_id(sheet.cell(row=item.row_number, column=id_index).value)
         if row_id != item.id:
             item.status = "BŁĄD"
             item.error = f"Id w wierszu {item.row_number} ('{row_id}') nie zgadza się z obiektem"
-            log.error("id=%s - %s, odsetki nie zostały wpisane", item.id, item.error)
+            log.error("id=%s - %s, dane nie zostały wpisane", item.id, item.error)
             continue
-        sheet.cell(row=item.row_number, column=interest_index).value = item.interest
-        written += 1
+        sheet.cell(row=item.row_number, column=capital_index).value = item.capital
+        date_cell = sheet.cell(row=item.row_number, column=date_from_index)
+        date_cell.value = datetime.strptime(item.date_from, DATE_FORMAT).date()
+        date_cell.number_format = EXCEL_DATE_FORMAT
+        written_finance += 1
+        if item.status == "OK":
+            sheet.cell(row=item.row_number, column=interest_index).value = item.interest
+            written_interest += 1
 
     try:
         workbook.save(path)
     except PermissionError:
         log.error("Nie można zapisać pliku %s - zamknij go w Excelu i uruchom skrypt ponownie", path)
         raise
-    log.info("Wpisano odsetki dla %d wierszy do kolumny %s w pliku: %s", written, columns.interest, path)
+    log.info("Wpisano kapitał i odsetki od dnia dla %d wierszy (kolumny %s, %s) oraz odsetki dla %d wierszy "
+             "(kolumna %s) w pliku: %s",
+             written_finance, columns.capital, columns.date_from, written_interest, columns.interest, path)
 
 
 # --- Konwersje --------------------------------------------------------------
@@ -209,12 +268,20 @@ def parse_amount(value):
 
 # --- REST API ---------------------------------------------------------------
 
-def find_row_value(payload, display_name):
+def find_row_value(payload, display_name, prefix=False):
     rows = (payload.get("LocalCurrencyData") or {}).get("Rows") or []
+    matches = []
     for row in rows:
-        if str(row.get("DisplayName", "")).strip() == display_name:
-            return row.get("CurrentValue")
-    raise ValueError(f"Brak wiersza '{display_name}' w LocalCurrencyData.Rows")
+        name = str(row.get("DisplayName", "")).strip()
+        if name.startswith(display_name) if prefix else name == display_name:
+            matches.append(row)
+    if not matches:
+        description = f"zaczynającego się od '{display_name}'" if prefix else f"'{display_name}'"
+        raise ValueError(f"Brak wiersza {description} w LocalCurrencyData.Rows")
+    if len(matches) > 1:
+        log.warning("Kilka wierszy pasuje do '%s' (%s) - użyto pierwszego: '%s'", display_name,
+                    ", ".join(str(row.get("DisplayName")) for row in matches), matches[0].get("DisplayName"))
+    return matches[0].get("CurrentValue")
 
 
 def fetch_finance(session, item):
@@ -222,7 +289,7 @@ def fetch_finance(session, item):
     response = session.get(url, timeout=REQUEST_TIMEOUT_SECONDS)
     response.raise_for_status()
     payload = response.json()
-    item.capital = parse_amount(find_row_value(payload, CAPITAL_DISPLAY_NAME))
+    item.capital = parse_amount(find_row_value(payload, CAPITAL_DISPLAY_NAME_PREFIX, prefix=True))
     item.date_from = format_date(find_row_value(payload, DATE_FROM_DISPLAY_NAME))
 
 
@@ -304,7 +371,10 @@ def parse_args():
     parser.add_argument("--sheet", help="Nazwa arkusza (domyślnie aktywny)")
     parser.add_argument("--id-column", help="Adres kolumny z id, np. A")
     parser.add_argument("--date-to-column", help="Adres kolumny z datą do, np. CC")
-    parser.add_argument("--filter-column", help=f"Adres kolumny filtra; '{SKIP_FILTER_VALUE}' pomija wiersz, np. D")
+    parser.add_argument("--exclude", action="append", default=[],
+                        help="Filtr wykluczający KOLUMNA=WARTOŚĆ, np. A=NIE; można powtarzać lub rozdzielić ';'")
+    parser.add_argument("--capital-column", help="Adres kolumny, do której zostanie wpisany kapitał, np. F")
+    parser.add_argument("--date-from-column", help="Adres kolumny, do której zostanie wpisana data odsetek od dnia, np. G")
     parser.add_argument("--interest-column", help="Adres kolumny, do której zostaną wpisane odsetki, np. E")
     parser.add_argument("--first-row", type=int, default=2, help="Pierwszy wiersz z danymi (domyślnie 2)")
     parser.add_argument("--log-file", help="Plik logu (domyślnie <wejście>_odsetki.log)")
@@ -329,9 +399,16 @@ def main():
     columns = Columns(
         id=ask(args.id_column, "Adres kolumny z id (np. A)").upper(),
         date_to=ask(args.date_to_column, "Adres kolumny z datą do (np. CC)").upper(),
-        filter=ask(args.filter_column, f"Adres kolumny filtra - '{SKIP_FILTER_VALUE}' pomija wiersz (np. D)").upper(),
+        capital=ask(args.capital_column, "Adres kolumny na kapitał (np. F)").upper(),
+        date_from=ask(args.date_from_column, "Adres kolumny na odsetki od dnia (np. G)").upper(),
         interest=ask(args.interest_column, "Adres kolumny na odsetki (np. E)").upper(),
     )
+    filter_texts = args.exclude or [input("Filtry wykluczające, np. A=NIE; BA=1; CC=TAK (Enter = brak): ")]
+    try:
+        filters = parse_filters(filter_texts)
+    except ValueError as error:
+        print(error, file=sys.stderr)
+        return 2
     token = getpass.getpass("Token Bearer (niewidoczny): ").strip()
     if not token:
         print("Token jest wymagany.", file=sys.stderr)
@@ -346,8 +423,9 @@ def main():
         return 1
 
     try:
-        column_index(columns.interest)
-        items = load_items(input_path, args.sheet, columns, args.first_row)
+        for column in (columns.capital, columns.date_from, columns.interest):
+            column_index(column)
+        items = load_items(input_path, args.sheet, columns, filters, args.first_row)
     except Exception as error:
         log.error("Nie udało się wczytać pliku: %s", error)
         return 1
@@ -360,10 +438,10 @@ def main():
     try:
         process_items(items, token)
     except KeyboardInterrupt:
-        log.warning("Przerwano przez użytkownika - zapisuję odsetki wyliczone do tej pory")
+        log.warning("Przerwano przez użytkownika - zapisuję dane pobrane do tej pory")
     finally:
         try:
-            write_interest(input_path, args.sheet, columns, items)
+            write_results(input_path, args.sheet, columns, items)
         except Exception as error:
             log.error("Nie udało się zapisać odsetek do pliku: %s", type(error).__name__)
             return 1
