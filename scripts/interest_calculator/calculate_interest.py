@@ -27,6 +27,8 @@ Filtry można też podać jednym parametrem, rozdzielone średnikiem: --exclude 
 Zamiast '=' można użyć '->' (np. "A -> NIE"). Bez --exclude skrypt zapyta o filtry (Enter = brak).
 
 Domyślnie dane zaczynają się od wiersza 2 (wiersz 1 to nagłówek); zmienia to --first-row.
+Wiersze, które mają już uzupełnione kapitał, odsetki od dnia i odsetki, są pomijane, więc skrypt można
+uruchomić ponownie po błędach komunikacji; --include-filled przetwarza je mimo to.
 Token Bearer jest zawsze pobierany interaktywnie przy uruchomieniu (wpisywanie niewidoczne).
 Brakujące parametry (plik, kolumny) również są pobierane interaktywnie.
 """
@@ -152,9 +154,14 @@ def cell_value(row, index):
     return row[index - 1] if index - 1 < len(row) else None
 
 
-def load_items(path, sheet_name, columns, filters, first_row):
+def is_filled(value):
+    return value is not None and str(value).strip() != ""
+
+
+def load_items(path, sheet_name, columns, filters, first_row, include_filled=False):
     id_index = column_index(columns.id)
     date_to_index = column_index(columns.date_to)
+    result_indexes = [column_index(column) for column in (columns.capital, columns.date_from, columns.interest)]
 
     log.info("Wczytywanie pliku: %s", path)
     workbook = load_workbook(path, read_only=True, data_only=True)
@@ -167,6 +174,7 @@ def load_items(path, sheet_name, columns, filters, first_row):
 
         items = []
         skipped_by_filter = 0
+        skipped_as_filled = 0
         for row_number, row in enumerate(sheet.iter_rows(min_row=first_row, values_only=True), start=first_row):
             item_id = normalize_id(cell_value(row, id_index))
             if not item_id:
@@ -177,11 +185,17 @@ def load_items(path, sheet_name, columns, filters, first_row):
                 log.debug("Wiersz %d (id=%s) pominięty: filtr %s", row_number, item_id, matched)
                 skipped_by_filter += 1
                 continue
+            if not include_filled and all(is_filled(cell_value(row, index)) for index in result_indexes):
+                log.debug("Wiersz %d (id=%s) pominięty: kapitał, odsetki od dnia i odsetki są już uzupełnione",
+                          row_number, item_id)
+                skipped_as_filled += 1
+                continue
             items.append(FinanceItem(row_number=row_number, id=item_id, date_to=cell_value(row, date_to_index)))
     finally:
         workbook.close()
 
-    log.info("Wczytano %d obiektów do przetworzenia (pominięte przez filtry: %d)", len(items), skipped_by_filter)
+    log.info("Wczytano %d obiektów do przetworzenia (pominięte przez filtry: %d, już uzupełnione: %d)",
+             len(items), skipped_by_filter, skipped_as_filled)
     return items
 
 
@@ -377,6 +391,8 @@ def parse_args():
     parser.add_argument("--date-from-column", help="Adres kolumny, do której zostanie wpisana data odsetek od dnia, np. G")
     parser.add_argument("--interest-column", help="Adres kolumny, do której zostaną wpisane odsetki, np. E")
     parser.add_argument("--first-row", type=int, default=2, help="Pierwszy wiersz z danymi (domyślnie 2)")
+    parser.add_argument("--include-filled", action="store_true",
+                        help="Przetwarzaj też wiersze z uzupełnionym kapitałem, odsetkami od dnia i odsetkami")
     parser.add_argument("--log-file", help="Plik logu (domyślnie <wejście>_odsetki.log)")
     parser.add_argument("--verbose", action="store_true", help="Szczegółowe logowanie")
     return parser.parse_args()
@@ -425,7 +441,7 @@ def main():
     try:
         for column in (columns.capital, columns.date_from, columns.interest):
             column_index(column)
-        items = load_items(input_path, args.sheet, columns, filters, args.first_row)
+        items = load_items(input_path, args.sheet, columns, filters, args.first_row, args.include_filled)
     except Exception as error:
         log.error("Nie udało się wczytać pliku: %s", error)
         return 1
